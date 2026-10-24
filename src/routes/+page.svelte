@@ -19,7 +19,9 @@
     showLibrary = $state(false),
     switching = $state(false),
     mounted = $state(false);
-  const repository = createExplorationRepository();
+  const repository = createExplorationRepository(undefined, (message) => {
+    error = message;
+  });
   let channel: BroadcastChannel | null = null;
   let saver = createAutosave(repository, (next, message) => {
     status = next;
@@ -89,6 +91,32 @@
       }
     } catch {
       error = 'This saved exploration could not be read. Its original data is still stored.';
+    } finally {
+      switching = false;
+    }
+  }
+  async function reloadConflict() {
+    if (switching || !session.exploration) return;
+    switching = true;
+    const id = session.exploration.id;
+    try {
+      // Keep the current session and its revision guard until the read succeeds.
+      const value = await repository.get(id);
+      session.dispose();
+      resetSaver();
+      session.exploration = null;
+      status = 'saved';
+      saveMessage = '';
+      showLibrary = false;
+      if (value) {
+        session.load(value);
+        error = '';
+      } else {
+        await reloadSaved();
+        error = 'This exploration was deleted in another tab. Start a new exploration to continue.';
+      }
+    } catch {
+      error = 'The saved version could not be read. Your current work is still open.';
     } finally {
       switching = false;
     }
@@ -187,18 +215,8 @@
       <p>{saveMessage}</p>
       {#if status === 'conflict' && session.exploration}<button
           class="quiet-button"
-          onclick={() => {
-            const id = session.exploration!.id;
-            saver.dispose();
-            resetSaver();
-            void repository.get(id).then((value) => {
-              if (value) {
-                session.load(value);
-                status = 'saved';
-                saveMessage = '';
-              }
-            });
-          }}>Reload saved version</button
+          disabled={switching}
+          onclick={reloadConflict}>Reload saved version</button
         >{:else}<button
           class="quiet-button"
           onclick={() => {

@@ -26,7 +26,10 @@ export function restoreExploration(value: unknown): Exploration {
   }
   return result;
 }
-export function createExplorationRepository(name = 'branch-knowledge-v1'): ExplorationRepository {
+export function createExplorationRepository(
+  name = 'branch-knowledge-v1',
+  onUnreadable: (message: string) => void = () => {}
+): ExplorationRepository {
   const db = () =>
     openDB<KnowledgeDB>(name, 1, {
       upgrade(database) {
@@ -37,9 +40,21 @@ export function createExplorationRepository(name = 'branch-knowledge-v1'): Explo
     async list() {
       const database = await db();
       try {
-        return (await database.getAll('explorations'))
-          .map(restoreExploration)
-          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        const healthy: Exploration[] = [];
+        let unreadable = false;
+        for (const value of await database.getAll('explorations')) {
+          try {
+            healthy.push(restoreExploration(value));
+          } catch {
+            unreadable = true;
+          }
+        }
+        if (unreadable) {
+          onUnreadable(
+            'Some saved explorations could not be read. Your browser data has been preserved.'
+          );
+        }
+        return healthy.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
       } finally {
         database.close();
       }

@@ -94,6 +94,18 @@ test('a second tab cannot silently overwrite an exploration', async ({ page, con
   await expect(
     page.getByRole('button', { name: 'Reload saved version', exact: true })
   ).toBeVisible();
+  await page.evaluate(() => {
+    IDBObjectStore.prototype.get = function () {
+      throw new Error('Read unavailable');
+    };
+  });
+  await page.getByRole('button', { name: 'Reload saved version', exact: true }).click();
+  await expect(
+    page.getByText('The saved version could not be read. Your current work is still open.', {
+      exact: false
+    })
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'microSD cards', exact: true })).toBeVisible();
   await other.close();
 });
 test('deleting an exploration during research does not resurrect it', async ({ page }) => {
@@ -124,6 +136,47 @@ test('deleting an exploration during research does not resurrect it', async ({ p
   await expect(page.getByRole('button', { name: 'Resume microSD cards', exact: true })).toHaveCount(
     0
   );
+});
+test('reloading a deletion from another tab discards late results without recreating the tree', async ({
+  page,
+  context
+}) => {
+  await mockResearch(page);
+  await startExample(page);
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
+  const other = await context.newPage();
+  await other.goto('/');
+  let release!: () => void;
+  let pending = false;
+  await page.route('**/api/research', async (route) => {
+    pending = true;
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await route
+      .fulfill({ json: { kind: 'topic', content: makeContent({ title: 'Late result' }) } })
+      .catch(() => {});
+  });
+  await page.getByLabel('Your branch question').fill('A pending question');
+  await page.getByRole('button', { name: 'Add branch', exact: true }).click();
+  await expect.poll(() => pending).toBe(true);
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
+  await other.reload();
+  await other.getByRole('button', { name: 'Delete microSD cards', exact: true }).click();
+  await other.getByRole('button', { name: 'Delete exploration', exact: true }).click();
+  await page.getByRole('button', { name: 'Reload saved version', exact: true }).click();
+  release();
+  await expect(
+    page.getByRole('heading', { name: 'A little curiosity. An entire world.', exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByText('This exploration was deleted in another tab.', { exact: false })
+  ).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Resume microSD cards', exact: true })).toHaveCount(
+    0
+  );
+  await other.close();
 });
 test('clarification keeps the original question and continues the same exploration', async ({
   page

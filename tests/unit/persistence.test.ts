@@ -1,11 +1,26 @@
 import 'fake-indexeddb/auto';
 import { expect, it, vi } from 'vitest';
+import { openDB } from 'idb';
 import {
   createAutosave,
   createExplorationRepository,
   restoreExploration
 } from '../../src/lib/knowledge/persistence';
 import { makeExploration } from '../fixtures/knowledge';
+
+it('lists healthy explorations and reports unreadable records without altering them', async () => {
+  const name = 'corrupt-' + crypto.randomUUID();
+  const report = vi.fn();
+  const repo = createExplorationRepository(name, report);
+  const healthy = await repo.save(makeExploration(), 0);
+  const raw = await openDB(name, 1);
+  const unreadable = { id: 'future-data', schemaVersion: 999, privateData: 'preserve me' };
+  await raw.put('explorations', unreadable);
+  expect(await repo.list()).toEqual([healthy]);
+  expect(report).toHaveBeenCalledWith(expect.stringMatching(/could not be read/i));
+  expect(await raw.get('explorations', unreadable.id)).toEqual(unreadable);
+  raw.close();
+});
 
 it('uses atomic revision checks and explicit deletion', async () => {
   const repo = createExplorationRepository('test-' + crypto.randomUUID());
