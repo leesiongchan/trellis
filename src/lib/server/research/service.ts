@@ -1,5 +1,5 @@
-import { ResearchRequestSchema,ResearchResultSchema } from '#lib/knowledge/schemas';
-import type { ResearchRequest,ResearchResult } from '#lib/knowledge/types';
+import { ResearchRequestSchema,ResearchResultSchema } from '#lib/knowledge/schemas.ts';
+import type { ResearchRequest,ResearchResult } from '#lib/knowledge/types.ts';
 import { LIMITS } from '../config';
 import { validateEvidence } from './grounding';
 import type { ResearchDependencies } from './types';

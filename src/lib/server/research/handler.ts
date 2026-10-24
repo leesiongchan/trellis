@@ -1,7 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { createHash,randomUUID } from 'node:crypto';
-import { ResearchRequestSchema } from '#lib/knowledge/schemas';
-import type { ResearchResult } from '#lib/knowledge/types';
+import { ResearchRequestSchema } from '#lib/knowledge/schemas.ts';
+import type { ResearchResult } from '#lib/knowledge/types.ts';
 import { ACCESS_COOKIE,authorizeRequest } from '../access';
 import { readConfig,ServiceError,type AppConfig } from '../config';
 import { readBoundedJson } from '../request-guard';

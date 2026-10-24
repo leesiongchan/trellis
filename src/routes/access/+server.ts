@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { ACCESS_COOKIE,createSessionToken,validAccessKey } from '#lib/server/access';
-import { readConfig } from '#lib/server/config';
+import { ACCESS_COOKIE,createSessionToken,validAccessKey } from '#lib/server/access.ts';
+import { readConfig } from '#lib/server/config.ts';
 export const GET:RequestHandler=({url,cookies})=>{
   const config=readConfig();
   if(!validAccessKey(url.searchParams.get('key')??'',config.accessKey))return new Response('This private access link is invalid.',{status:401,headers:{'cache-control':'no-store','referrer-policy':'no-referrer'}});

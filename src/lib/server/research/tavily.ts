@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { SourceSchema } from '#lib/knowledge/schemas';
-import { isPublicSourceUrl,newId } from '#lib/knowledge/normalize';
+import { SourceSchema } from '#lib/knowledge/schemas.ts';
+import { isPublicSourceUrl,newId } from '#lib/knowledge/normalize.ts';
 import { readConfig,ServiceError,LIMITS } from '../config';
 import type { RetrievedSource } from './types';
 const SearchResponse=z.object({results:z.array(z.unknown())});

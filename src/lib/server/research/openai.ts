@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
-import { newId } from '#lib/knowledge/normalize';
-import { TopicContentSchema } from '#lib/knowledge/schemas';
-import type { ResearchRequest,TopicContent } from '#lib/knowledge/types';
+import { newId } from '#lib/knowledge/normalize.ts';
+import { TopicContentSchema } from '#lib/knowledge/schemas.ts';
+import type { ResearchRequest,TopicContent } from '#lib/knowledge/types.ts';
 import { readConfig,ServiceError } from '../config';
 import { EXPLAIN_PROMPT,VERIFY_PROMPT } from './prompts';
 import type { DraftResult,GroundingVerdict,RetrievedSource } from './types';

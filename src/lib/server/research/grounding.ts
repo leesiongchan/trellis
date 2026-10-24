@@ -1,4 +1,4 @@
-import type { TopicContent } from '#lib/knowledge/types';
+import type { TopicContent } from '#lib/knowledge/types.ts';
 import type { RetrievedSource } from './types';
 import { ServiceError } from '../config';
 const normalize=(text:string)=>text.replace(/\s+/gu,' ').trim();
