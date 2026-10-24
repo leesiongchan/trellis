@@ -5,27 +5,299 @@
   import ExplorationList from '#lib/components/ExplorationList.svelte';
   import Workspace from '#lib/components/Workspace.svelte';
   import { createSession } from '#lib/knowledge/session.svelte.ts';
-  import { createExplorationRepository,createAutosave,type SaveStatus } from '#lib/knowledge/persistence.ts';
+  import {
+    createExplorationRepository,
+    createAutosave,
+    type SaveStatus
+  } from '#lib/knowledge/persistence.ts';
   import { requestResearch } from '#lib/knowledge/client.ts';
   import type { Exploration } from '#lib/knowledge/types.ts';
-  let saved=$state<Exploration[]>([]),status=$state<SaveStatus>('saved'),saveMessage=$state(''),error=$state(''),showLibrary=$state(false),switching=$state(false),mounted=$state(false);
-  const repository=createExplorationRepository();let channel:BroadcastChannel|null=null;
-  let saver=createAutosave(repository,(next,message)=>{status=next;saveMessage=message??'';if(next==='saved'){void reloadSaved();channel?.postMessage({id:session.exploration?.id});}});
-  const session=createSession({research:requestResearch,onChange:value=>saver.enqueue(value)});
-  async function reloadSaved(){try{saved=await repository.list();}catch{error='Some saved explorations could not be read. Your browser data has been preserved.';}}
-  function resetSaver(){saver.dispose();saver=createAutosave(repository,(next,message)=>{status=next;saveMessage=message??'';if(next==='saved'){void reloadSaved();channel?.postMessage({id:session.exploration?.id});}});}
-  async function beforeSwitch(){if(switching)return false;switching=true;try{await saver.flush();return true;}catch{switching=false;return false;}}
-  async function start(question:string){if(!await beforeSwitch())return;resetSaver();showLibrary=false;error='';try{const request=session.start(question);switching=false;await request;}catch(e){error=e instanceof Error?e.message:'Could not start this exploration.';}finally{switching=false;}}
-  async function resume(id:string){if(!await beforeSwitch())return;try{const value=await repository.get(id);if(value){resetSaver();session.load(value);showLibrary=false;error='';}}catch{error='This saved exploration could not be read. Its original data is still stored.';}finally{switching=false;}}
-  async function home(){if(!await beforeSwitch())return;session.dispose();resetSaver();session.exploration=null;switching=false;showLibrary=false;await reloadSaved();}
-  async function remove(id:string){if(session.exploration?.id===id){session.dispose();saver.dispose();session.exploration=null;resetSaver();}try{await repository.remove(id);await reloadSaved();channel?.postMessage({id});}catch{error='This exploration could not be deleted. Please try again.';}}
-  onMount(()=>{mounted=true;void reloadSaved();if(typeof BroadcastChannel!=='undefined'){channel=new BroadcastChannel('branch-explorations');channel.onmessage=async(event)=>{await reloadSaved();if(event.data?.id===session.exploration?.id){status='conflict';saveMessage='This exploration changed in another tab. Reload the saved version before making more changes.';}};}return()=>{session.dispose();saver.dispose();channel?.close();};});
+  let saved = $state<Exploration[]>([]),
+    status = $state<SaveStatus>('saved'),
+    saveMessage = $state(''),
+    error = $state(''),
+    showLibrary = $state(false),
+    switching = $state(false),
+    mounted = $state(false);
+  const repository = createExplorationRepository();
+  let channel: BroadcastChannel | null = null;
+  let saver = createAutosave(repository, (next, message) => {
+    status = next;
+    saveMessage = message ?? '';
+    if (next === 'saved') {
+      void reloadSaved();
+      channel?.postMessage({ id: session.exploration?.id });
+    }
+  });
+  const session = createSession({
+    research: requestResearch,
+    onChange: (value) => saver.enqueue(value)
+  });
+  async function reloadSaved() {
+    try {
+      saved = await repository.list();
+    } catch {
+      error = 'Some saved explorations could not be read. Your browser data has been preserved.';
+    }
+  }
+  function resetSaver() {
+    saver.dispose();
+    saver = createAutosave(repository, (next, message) => {
+      status = next;
+      saveMessage = message ?? '';
+      if (next === 'saved') {
+        void reloadSaved();
+        channel?.postMessage({ id: session.exploration?.id });
+      }
+    });
+  }
+  async function beforeSwitch() {
+    if (switching) return false;
+    switching = true;
+    try {
+      await saver.flush();
+      return true;
+    } catch {
+      switching = false;
+      return false;
+    }
+  }
+  async function start(question: string) {
+    if (!(await beforeSwitch())) return;
+    resetSaver();
+    showLibrary = false;
+    error = '';
+    try {
+      const request = session.start(question);
+      switching = false;
+      await request;
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Could not start this exploration.';
+    } finally {
+      switching = false;
+    }
+  }
+  async function resume(id: string) {
+    if (!(await beforeSwitch())) return;
+    try {
+      const value = await repository.get(id);
+      if (value) {
+        resetSaver();
+        session.load(value);
+        showLibrary = false;
+        error = '';
+      }
+    } catch {
+      error = 'This saved exploration could not be read. Its original data is still stored.';
+    } finally {
+      switching = false;
+    }
+  }
+  async function home() {
+    if (!(await beforeSwitch())) return;
+    session.dispose();
+    resetSaver();
+    session.exploration = null;
+    switching = false;
+    showLibrary = false;
+    await reloadSaved();
+  }
+  async function remove(id: string) {
+    if (session.exploration?.id === id) {
+      session.dispose();
+      saver.dispose();
+      session.exploration = null;
+      resetSaver();
+    }
+    try {
+      await repository.remove(id);
+      await reloadSaved();
+      channel?.postMessage({ id });
+    } catch {
+      error = 'This exploration could not be deleted. Please try again.';
+    }
+  }
+  onMount(() => {
+    mounted = true;
+    void reloadSaved();
+    if (typeof BroadcastChannel !== 'undefined') {
+      channel = new BroadcastChannel('branch-explorations');
+      channel.onmessage = async (event) => {
+        await reloadSaved();
+        if (event.data?.id === session.exploration?.id) {
+          status = 'conflict';
+          saveMessage =
+            'This exploration changed in another tab. Reload the saved version before making more changes.';
+        }
+      };
+    }
+    return () => {
+      session.dispose();
+      saver.dispose();
+      channel?.close();
+    };
+  });
 </script>
-<svelte:head><title>{session.exploration?session.exploration.originalPrompt+' — Branch':'Branch — follow your curiosity'}</title><meta name="description" content="Start with a question. Explore detailed explanations and follow an ever-growing tree of connected topics."/></svelte:head>
+
+<svelte:head
+  ><title
+    >{session.exploration
+      ? session.exploration.originalPrompt + ' — Branch'
+      : 'Branch — follow your curiosity'}</title
+  ><meta
+    name="description"
+    content="Start with a question. Explore detailed explanations and follow an ever-growing tree of connected topics."
+  /></svelte:head
+>
 <div class="app-shell" class:exploring={!!session.exploration}>
-  <header class="app-header"><button class="wordmark" aria-label="Branch home" onclick={home}><span class="logo-mark" aria-hidden="true">⌘</span>branch<span class="logo-dot">.</span></button><span class="header-divider"></span><span class="header-tagline">Room for a little wonder.</span><div class="header-actions">{#if session.exploration}<span class="save-status" class:save-failed={status==='failed'||status==='conflict'}><span class="green-dot"></span>{status==='saved'?'All changes saved':status==='saving'?'Saving…':status==='conflict'?'Changed in another tab':'Not saved'}</span><button class="quiet-button" onclick={home}>+ New exploration</button>{/if}<button class="library-button" aria-label="Your explorations" onclick={()=>showLibrary=!showLibrary}><span aria-hidden="true">▤</span><span>Your explorations</span>{#if saved.length}<span class="library-count">{saved.length}</span>{/if}</button></div></header>
-  {#if error}<div class="workspace-notice" role="alert">{error}<button class="icon-button" aria-label="Dismiss error" onclick={()=>error=''}>×</button></div>{/if}
-  {#if status==='failed'||status==='conflict'}<div class="save-alert" role="alert"><p>{saveMessage}</p>{#if status==='conflict'&&session.exploration}<button class="quiet-button" onclick={()=>{const id=session.exploration!.id;saver.dispose();resetSaver();void repository.get(id).then(value=>{if(value){session.load(value);status='saved';saveMessage='';}});}}>Reload saved version</button>{:else}<button class="quiet-button" onclick={()=>{void saver.flush().catch(()=>{});}}>Retry saving</button>{/if}</div>{/if}
-  {#if showLibrary}<div class="library-drawer"><div class="section-label">YOUR EXPLORATIONS<button class="icon-button" aria-label="Close explorations" onclick={()=>showLibrary=false}>×</button></div><ExplorationList explorations={saved} onResume={resume} onDelete={remove}/>{#if !saved.length}<p class="empty-library">Your explorations will find a home here.</p>{/if}</div>{/if}
-  {#if session.exploration&&mounted}<Workspace {session}/>{:else}<main class="home-main"><div class="home-grid"><TopicStart onStart={start} disabled={switching}/><div class="tree-illustration" aria-hidden="true"><div class="illustration-eyebrow">A QUESTION IS JUST THE BEGINNING</div><svg viewBox="0 0 480 440" fill="none"><path d="M82 220H158M158 103V337M158 103H225M158 220H225M158 337H225M337 103H363M363 53V153M363 53H403M363 153H403M337 337H395" stroke="#b4c4aa" stroke-width="1.5"/><circle cx="82" cy="220" r="27" fill="#e5ecdb" stroke="#a7bd96"/><path d="M73 220H91M82 211V229" stroke="#637e50" stroke-width="1.5"/><rect x="225" y="72" width="112" height="62" rx="11" fill="#f0f3e8" stroke="#b8c7ad"/><rect x="225" y="189" width="137" height="62" rx="11" fill="#fffefa" stroke="#cbd4c2"/><rect x="225" y="306" width="112" height="62" rx="11" fill="#fffefa" stroke="#cbd4c2"/><circle cx="415" cy="53" r="12" fill="#edf2e5" stroke="#b6c7a6"/><circle cx="415" cy="153" r="12" fill="#edf2e5" stroke="#b6c7a6"/><circle cx="407" cy="337" r="12" fill="#edf2e5" stroke="#b6c7a6"/><text x="243" y="99" fill="#506746" font-size="11" font-family="system-ui">How it works</text><text x="243" y="117" fill="#8a967e" font-size="9" font-family="system-ui">Look a little closer ↗</text><text x="243" y="217" fill="#506746" font-size="11" font-family="system-ui">What makes it possible</text><text x="243" y="235" fill="#8a967e" font-size="9" font-family="system-ui">Find the foundations ↗</text><text x="243" y="333" fill="#506746" font-size="11" font-family="system-ui">Something unexpected</text><text x="243" y="351" fill="#8a967e" font-size="9" font-family="system-ui">Make a connection ↗</text><circle cx="158" cy="220" r="3" fill="#91a57b"/></svg><span class="illustration-caption">Every answer opens another door.</span></div></div><div class="home-bottom"><ExplorationList explorations={saved} onResume={resume} onDelete={remove}/><div class="home-promise"><span>01 <strong>Start anywhere.</strong></span><span>02 <strong>Understand the details.</strong></span><span>03 <strong>See where it takes you.</strong></span></div></div><footer class="home-footer"><span>Made for the beautifully curious.</span><span>Saved in this browser · Your own growing tree</span></footer></main>{/if}
+  <header class="app-header">
+    <button class="wordmark" aria-label="Branch home" onclick={home}
+      ><span class="logo-mark" aria-hidden="true">⌘</span>branch<span class="logo-dot">.</span
+      ></button
+    ><span class="header-divider"></span><span class="header-tagline"
+      >Room for a little wonder.</span
+    >
+    <div class="header-actions">
+      {#if session.exploration}<span
+          class="save-status"
+          class:save-failed={status === 'failed' || status === 'conflict'}
+          ><span class="green-dot"></span>{status === 'saved'
+            ? 'All changes saved'
+            : status === 'saving'
+              ? 'Saving…'
+              : status === 'conflict'
+                ? 'Changed in another tab'
+                : 'Not saved'}</span
+        ><button class="quiet-button" onclick={home}>+ New exploration</button>{/if}<button
+        class="library-button"
+        aria-label="Your explorations"
+        onclick={() => (showLibrary = !showLibrary)}
+        ><span aria-hidden="true">▤</span><span>Your explorations</span>{#if saved.length}<span
+            class="library-count">{saved.length}</span
+          >{/if}</button
+      >
+    </div>
+  </header>
+  {#if error}<div class="workspace-notice" role="alert">
+      {error}<button class="icon-button" aria-label="Dismiss error" onclick={() => (error = '')}
+        >×</button
+      >
+    </div>{/if}
+  {#if status === 'failed' || status === 'conflict'}<div class="save-alert" role="alert">
+      <p>{saveMessage}</p>
+      {#if status === 'conflict' && session.exploration}<button
+          class="quiet-button"
+          onclick={() => {
+            const id = session.exploration!.id;
+            saver.dispose();
+            resetSaver();
+            void repository.get(id).then((value) => {
+              if (value) {
+                session.load(value);
+                status = 'saved';
+                saveMessage = '';
+              }
+            });
+          }}>Reload saved version</button
+        >{:else}<button
+          class="quiet-button"
+          onclick={() => {
+            void saver.flush().catch(() => {});
+          }}>Retry saving</button
+        >{/if}
+    </div>{/if}
+  {#if showLibrary}<div class="library-drawer">
+      <div class="section-label">
+        YOUR EXPLORATIONS<button
+          class="icon-button"
+          aria-label="Close explorations"
+          onclick={() => (showLibrary = false)}>×</button
+        >
+      </div>
+      <ExplorationList
+        explorations={saved}
+        onResume={resume}
+        onDelete={remove}
+      />{#if !saved.length}<p class="empty-library">
+          Your explorations will find a home here.
+        </p>{/if}
+    </div>{/if}
+  {#if session.exploration && mounted}<Workspace {session} />{:else}<main class="home-main">
+      <div class="home-grid">
+        <TopicStart onStart={start} disabled={switching} />
+        <div class="tree-illustration" aria-hidden="true">
+          <div class="illustration-eyebrow">A QUESTION IS JUST THE BEGINNING</div>
+          <svg viewBox="0 0 480 440" fill="none"
+            ><path
+              d="M82 220H158M158 103V337M158 103H225M158 220H225M158 337H225M337 103H363M363 53V153M363 53H403M363 153H403M337 337H395"
+              stroke="#b4c4aa"
+              stroke-width="1.5"
+            /><circle cx="82" cy="220" r="27" fill="#e5ecdb" stroke="#a7bd96" /><path
+              d="M73 220H91M82 211V229"
+              stroke="#637e50"
+              stroke-width="1.5"
+            /><rect
+              x="225"
+              y="72"
+              width="112"
+              height="62"
+              rx="11"
+              fill="#f0f3e8"
+              stroke="#b8c7ad"
+            /><rect
+              x="225"
+              y="189"
+              width="137"
+              height="62"
+              rx="11"
+              fill="#fffefa"
+              stroke="#cbd4c2"
+            /><rect
+              x="225"
+              y="306"
+              width="112"
+              height="62"
+              rx="11"
+              fill="#fffefa"
+              stroke="#cbd4c2"
+            /><circle cx="415" cy="53" r="12" fill="#edf2e5" stroke="#b6c7a6" /><circle
+              cx="415"
+              cy="153"
+              r="12"
+              fill="#edf2e5"
+              stroke="#b6c7a6"
+            /><circle cx="407" cy="337" r="12" fill="#edf2e5" stroke="#b6c7a6" /><text
+              x="243"
+              y="99"
+              fill="#506746"
+              font-size="11"
+              font-family="system-ui">How it works</text
+            ><text x="243" y="117" fill="#8a967e" font-size="9" font-family="system-ui"
+              >Look a little closer ↗</text
+            ><text x="243" y="217" fill="#506746" font-size="11" font-family="system-ui"
+              >What makes it possible</text
+            ><text x="243" y="235" fill="#8a967e" font-size="9" font-family="system-ui"
+              >Find the foundations ↗</text
+            ><text x="243" y="333" fill="#506746" font-size="11" font-family="system-ui"
+              >Something unexpected</text
+            ><text x="243" y="351" fill="#8a967e" font-size="9" font-family="system-ui"
+              >Make a connection ↗</text
+            ><circle cx="158" cy="220" r="3" fill="#91a57b" /></svg
+          ><span class="illustration-caption">Every answer opens another door.</span>
+        </div>
+      </div>
+      <div class="home-bottom">
+        <ExplorationList explorations={saved} onResume={resume} onDelete={remove} />
+        <div class="home-promise">
+          <span>01 <strong>Start anywhere.</strong></span><span
+            >02 <strong>Understand the details.</strong></span
+          ><span>03 <strong>See where it takes you.</strong></span>
+        </div>
+      </div>
+      <footer class="home-footer">
+        <span>Made for the beautifully curious.</span><span
+          >Saved in this browser · Your own growing tree</span
+        >
+      </footer>
+    </main>{/if}
 </div>
