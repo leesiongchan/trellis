@@ -32,16 +32,16 @@ export function createExplorationRepository(name='branch-knowledge-v1'): Explora
 }
 export type SaveStatus='saving'|'saved'|'failed'|'conflict';
 export function createAutosave(repository:ExplorationRepository,onStatus:(status:SaveStatus,message?:string)=>void){
-  let pending:Exploration|null=null,timer:ReturnType<typeof setTimeout>|undefined,active:Promise<void>|null=null,disposed=false;
+  let pending:Exploration|null=null,timer:ReturnType<typeof setTimeout>|undefined,active:Promise<void>|null=null,disposed=false,hasFailed=false;
   const revisions=new Map<string,number>();
   const run=async()=>{
     while(pending&&!disposed){
       const value=pending;pending=null;onStatus('saving');
       try{
         const saved=await repository.save(value,revisions.get(value.id)??value.revision);
-        revisions.set(value.id,saved.revision);if(!disposed&&!pending)onStatus('saved');
+        revisions.set(value.id,saved.revision);hasFailed=false;if(!disposed&&!pending)onStatus('saved');
       }catch(error){
-        if(!pending)pending=value;
+        if(!pending)pending=value;hasFailed=true;clearTimeout(timer);
         const message=error instanceof Error?error.message:'Your browser could not save this exploration.';
         if(!disposed)onStatus(error instanceof SaveConflict?'conflict':'failed',message);
         throw error;
@@ -55,7 +55,7 @@ export function createAutosave(repository:ExplorationRepository,onStatus:(status
     active=run();try{await active;}finally{active=null;}
   };
   return {
-    enqueue(value:Exploration){if(disposed)return;pending=structuredClone(value);clearTimeout(timer);onStatus('saving');timer=setTimeout(()=>{void flush().catch(()=>{});},300);},
+    enqueue(value:Exploration){if(disposed)return;pending=structuredClone(value);clearTimeout(timer);if(hasFailed)return;onStatus('saving');timer=setTimeout(()=>{void flush().catch(()=>{});},300);},
     flush,
     dispose(){disposed=true;pending=null;clearTimeout(timer);}
   };

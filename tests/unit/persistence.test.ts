@@ -26,7 +26,8 @@ it('serializes autosaves, reports quota failures, and never labels failures save
   expect((await repo.get(value.id))!.originalPrompt).toBe('latest');expect(status).toHaveBeenLastCalledWith('saved');saver.dispose();
   const broken={...repo,save:vi.fn().mockRejectedValue(new Error('Quota exceeded'))},failed=vi.fn();
   const bad=createAutosave(broken,failed);bad.enqueue(value);await expect(bad.flush()).rejects.toThrow('Quota');
-  expect(failed.mock.calls.some(c=>c[0]==='saved')).toBe(false);expect(failed).toHaveBeenLastCalledWith('failed','Quota exceeded');bad.dispose();
+  expect(failed.mock.calls.some(c=>c[0]==='saved')).toBe(false);expect(failed).toHaveBeenLastCalledWith('failed','Quota exceeded');
+  bad.enqueue({...value,originalPrompt:'Changed after failure'});expect(failed).toHaveBeenLastCalledWith('failed','Quota exceeded');bad.dispose();
 });
 it('reports conflicts instead of silently overwriting another tab',async()=>{
   const repo=createExplorationRepository('conflict-'+crypto.randomUUID()),initial=await repo.save(makeExploration(),0);
