@@ -1,4 +1,4 @@
-import type { ResearchRequest,ResearchResult,Source,TopicContent } from '$lib/knowledge/types';
+import type { ResearchRequest,ResearchResult,Source,TopicContent } from '#lib/knowledge/types';
 export type RetrievedSource=Source & {text:string};
 export type DraftResult=ResearchResult;
 export type GroundingVerdict={unsupportedParagraphIds:string[];unsupportedBranchIndexes:number[]};

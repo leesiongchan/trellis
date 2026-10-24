@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Exploration } from '$lib/knowledge/types';
+  import type { Exploration } from '#lib/knowledge/types';
   let { explorations, onResume, onDelete }: { explorations:Exploration[];onResume:(id:string)=>void;onDelete:(id:string)=>void }=$props();
   let deleting=$state<string|null>(null);
 </script>
