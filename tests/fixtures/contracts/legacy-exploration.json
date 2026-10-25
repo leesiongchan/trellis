@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "mode": "research",
+  "id": "pre-rust-exploration",
+  "originalPrompt": "microSD cards",
+  "rootId": "root",
+  "revision": 1,
+  "nodes": {
+    "root": {
+      "id": "root",
+      "parentId": null,
+      "question": "microSD cards",
+      "relationship": "Starting topic",
+      "teaser": "",
+      "status": "ready",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "analogy": null,
+        "limitations": null,
+        "sources": [
+          {
+            "id": "s1",
+            "title": "MicroSD reference",
+            "url": "https://example.org/memory",
+            "publisher": "Example",
+            "retrievedAt": "2026-10-25T00:00:00.000Z"
+          }
+        ],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "2026-10-25T00:00:00.000Z"
+      },
+      "childIds": [],
+      "lastError": null,
+      "isRefreshing": false
+    }
+  },
+  "view": {
+    "selectedNodeId": "root",
+    "expandedNodeIds": [
+      "root"
+    ],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    },
+    "mobilePane": "map"
+  },
+  "createdAt": "2026-10-25T00:00:00.000Z",
+  "updatedAt": "2026-10-25T00:00:00.000Z"
+}

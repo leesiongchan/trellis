@@ -1,0 +1,360 @@
+[
+  {
+    "name": "complete topic",
+    "input": {
+      "kind": "topic",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "analogy": null,
+        "limitations": null,
+        "sources": [
+          {
+            "id": "s1",
+            "title": "MicroSD reference",
+            "url": "https://example.org/memory",
+            "publisher": "Example",
+            "retrievedAt": "2026-10-25T00:00:00.000Z"
+          }
+        ],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "2026-10-25T00:00:00.000Z"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "clarification",
+    "input": {
+      "kind": "clarification",
+      "question": " Which Java? "
+    },
+    "valid": true,
+    "normalized": {
+      "kind": "clarification",
+      "question": "Which Java?"
+    }
+  },
+  {
+    "name": "insufficient evidence",
+    "input": {
+      "kind": "insufficient-evidence",
+      "message": "No evidence."
+    },
+    "valid": true
+  },
+  {
+    "name": "missing sources",
+    "input": {
+      "kind": "topic",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "analogy": null,
+        "limitations": null,
+        "sources": [],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "2026-10-25T00:00:00.000Z"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown result",
+    "input": {
+      "kind": "invented"
+    },
+    "valid": false
+  },
+  {
+    "name": "invalid timestamp",
+    "input": {
+      "kind": "topic",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "analogy": null,
+        "limitations": null,
+        "sources": [
+          {
+            "id": "s1",
+            "title": "MicroSD reference",
+            "url": "https://example.org/memory",
+            "publisher": "Example",
+            "retrievedAt": "2026-10-25T00:00:00.000Z"
+          }
+        ],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "yesterday"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unsafe source",
+    "input": {
+      "kind": "topic",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "analogy": null,
+        "limitations": null,
+        "sources": [
+          {
+            "id": "s1",
+            "title": "MicroSD reference",
+            "url": "https://127.0.0.1/private",
+            "publisher": "Example",
+            "retrievedAt": "2026-10-25T00:00:00.000Z"
+          }
+        ],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "2026-10-25T00:00:00.000Z"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "missing required analogy",
+    "input": {
+      "kind": "topic",
+      "content": {
+        "title": "microSD cards",
+        "summary": [
+          {
+            "id": "p1",
+            "text": "Flash retains data without power.",
+            "evidence": [
+              {
+                "sourceId": "s1",
+                "quote": "Flash retains data without power."
+              }
+            ]
+          }
+        ],
+        "sections": [
+          {
+            "heading": "A closer look",
+            "paragraphs": [
+              {
+                "id": "p2",
+                "text": "A controller manages flash storage.",
+                "evidence": [
+                  {
+                    "sourceId": "s1",
+                    "quote": "Flash retains data without power."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "limitations": null,
+        "sources": [
+          {
+            "id": "s1",
+            "title": "MicroSD reference",
+            "url": "https://example.org/memory",
+            "publisher": "Example",
+            "retrievedAt": "2026-10-25T00:00:00.000Z"
+          }
+        ],
+        "branches": [
+          {
+            "title": "NAND flash",
+            "question": "NAND flash",
+            "relationship": "Component",
+            "reason": {
+              "id": "b1",
+              "text": "The memory inside the card.",
+              "evidence": [
+                {
+                  "sourceId": "s1",
+                  "quote": "Flash retains data without power."
+                }
+              ]
+            }
+          }
+        ],
+        "researchedAt": "2026-10-25T00:00:00.000Z"
+      }
+    },
+    "valid": false
+  }
+]

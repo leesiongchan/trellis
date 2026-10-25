@@ -1,0 +1,12 @@
+[
+  {
+    "name": "access error",
+    "input": {
+      "code": "ACCESS_REQUIRED",
+      "message": "Open your private access link to enable research.",
+      "retryable": false,
+      "requestId": "fixture-request"
+    },
+    "valid": true
+  }
+]
