@@ -1,3 +1,61 @@
 //! Evidence-backed research orchestration.
 pub mod context;
+pub mod grounding;
 pub mod prompts;
+use crate::{
+    contracts::*,
+    error::{AppError, ErrorCode},
+    providers::ResearchProvider,
+};
+use context::JobContext;
+pub async fn research_topic(
+    input: &ResearchRequest,
+    ctx: &JobContext,
+    provider: &dyn ResearchProvider,
+) -> Result<ResearchResult, AppError> {
+    ctx.check()?;
+    let context = input
+        .ancestors
+        .iter()
+        .map(|a| a.title.as_str())
+        .collect::<Vec<_>>()
+        .join(" → ");
+    let mut parts = vec![input.question.clone()];
+    if let Some(clarification) = &input.clarification {
+        parts.push(clarification.clone());
+    }
+    if !context.is_empty() {
+        parts.push(format!("Context: {context}"));
+    }
+    let sources = provider.search(&parts.join(" — "), ctx).await?;
+    ctx.check()?;
+    if sources.is_empty() {
+        return Ok(ResearchResult::InsufficientEvidence{message:"I could not retrieve enough reliable source text for this topic. Try a more specific question.".into()});
+    }
+    let generated = provider.generate(input, &sources, ctx).await?;
+    ctx.check()?;
+    let result = ResearchResult::from_json(
+        serde_json::to_value(generated)
+            .map_err(|_| AppError::new(ErrorCode::InvalidExplanation))?,
+    )
+    .map_err(|_| AppError::new(ErrorCode::InvalidExplanation))?;
+    let ResearchResult::Topic { content } = &result else {
+        return Ok(result);
+    };
+    if grounding::validate_evidence(content, &sources).is_err() {
+        return Ok(ResearchResult::InsufficientEvidence {
+            message:
+                "The explanation did not pass its source check. Try again or narrow the topic."
+                    .into(),
+        });
+    }
+    ctx.check()?;
+    let verdict = provider.verify(content, &sources, ctx).await?;
+    ctx.check()?;
+    if !verdict.unsupported_paragraph_ids.is_empty()
+        || !verdict.unsupported_branch_indexes.is_empty()
+    {
+        return Ok(ResearchResult::InsufficientEvidence{message:"Some claims were not sufficiently supported by the retrieved sources. Please retry or make the question more specific.".into()});
+    }
+    Ok(result)
+}
