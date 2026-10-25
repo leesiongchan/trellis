@@ -117,7 +117,7 @@ const results = [
     valid: false
   }
 ];
-// This is the exact Node protocol from src/lib/server/access.ts, using a fake key
+// Legacy protocol from dc1f24a:src/lib/server/access.ts, using a fake key
 // and a frozen clock; no user cookie or secret is read by this script.
 const key = 'fixture-access-key-'.repeat(4);
 const expires = '4102444800000';

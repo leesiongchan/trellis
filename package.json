@@ -8,20 +8,23 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js --host 127.0.0.1",
-    "build": "vite build",
-    "start": "node --env-file-if-exists=.env build",
+    "dev": "node --env-file-if-exists=.env scripts/dev.ts",
+    "build:frontend": "vite build",
+    "build:backend": "cargo build --manifest-path backend/Cargo.toml --release --locked",
+    "build": "pnpm build:frontend && pnpm build:backend && node scripts/package-release.ts",
+    "start": "sh scripts/start.sh",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
+    "test:build": "node --test tests/build/*.test.ts",
+    "test:backend": "cargo test --manifest-path backend/Cargo.toml --locked",
+    "test:e2e": "playwright test --config playwright.production.config.ts",
+    "test:e2e:dev": "playwright test --config playwright.config.ts",
     "live-smoke": "node --env-file-if-exists=.env scripts/live-smoke.ts"
   },
   "dependencies": {
-    "@sveltejs/adapter-node": "6.0.0",
     "@sveltejs/kit": "3.1.0",
     "@xyflow/svelte": "1.7.0",
     "idb": "^8.0.4",
-    "openai": "^7.43.0",
     "svelte": "5.57.2",
     "zod": "^4.6.7"
   },

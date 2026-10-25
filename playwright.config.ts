@@ -11,7 +11,8 @@ export default defineConfig({
   webServer: {
     command: 'pnpm dev --port 5173',
     url: 'http://127.0.0.1:5173',
-    reuseExistingServer: true
+    reuseExistingServer: false,
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 135000 }
   },
   reporter: 'list'
 });

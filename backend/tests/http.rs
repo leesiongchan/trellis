@@ -247,6 +247,24 @@ async fn slow_chunked_body_has_a_total_deadline() {
     assert!(response.starts_with("HTTP/1.1 408"), "{response}");
     assert!(response.contains("BODY_TIMEOUT"));
 }
+
+#[tokio::test]
+async fn chunked_body_is_limited_without_content_length() {
+    let (server, _, stub) = setup().await;
+    let mut socket = tokio::net::TcpStream::connect(server.address)
+        .await
+        .unwrap();
+    let body = "x".repeat(65537);
+    socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n{body}\r\n0\r\n\r\n",cookie(),body.len()).as_bytes()).await.unwrap();
+    let mut response = String::new();
+    tokio::time::timeout(Duration::from_secs(1), socket.read_to_string(&mut response))
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(response.starts_with("HTTP/1.1 413"), "{response}");
+    assert!(response.contains("BODY_TOO_LARGE"));
+    assert_eq!(stub.count(), 0);
+}
 #[tokio::test]
 async fn readiness_and_private_metrics_are_explicit() {
     let (server, state, _) = setup().await;
