@@ -54,6 +54,8 @@ Use the reference ID in the UI to find structured `requestId` events. `research_
 
 Metrics include HTTP/stage counts, failures, duration histograms, active jobs/waiters, shared requests and admission rejections. Labels use fixed route/stage/status/code sets. Request IDs and raw paths are not labels. There is no hosted collector, dashboard or alert routing requirement for this private service.
 
+JSON output uses a dedicated writer thread with a 256-event queue and a 16 KiB event cap. A full queue, oversized event or output error drops the event and increments `branch_log_events_dropped_total`; HTTP workers and emergency signal handling never wait on the collector. Normal termination attempts to flush for at most 100 ms. A stalled collector can lose final events, including shutdown completion; use process status/readiness as well as logs. Keep `RUST_LOG=info` for ordinary operation. Debug/trace filters can also enable dependency diagnostics beyond the application's safe-code convention; restricting those targets remains a documented minor follow-up. The review found no demonstrated credential, question, cookie or provider-body disclosure.
+
 ```sh
 cargo fmt --manifest-path backend/Cargo.toml -- --check
 cargo clippy --manifest-path backend/Cargo.toml --all-targets --all-features --locked -- -D warnings

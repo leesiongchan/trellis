@@ -28,9 +28,9 @@ async fn run() -> Result<(), AppError> {
     let executable =
         std::env::current_exe().map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
     let config = Arc::new(Config::from_values(&load_values()?, &executable)?);
-    init_logging(&config.log_filter)?;
-    let assets = Arc::new(StaticAssets::load(&config.asset_dir)?);
     let telemetry = Arc::new(Telemetry::new());
+    let _logging = init_logging(&config.log_filter, &telemetry)?;
+    let assets = Arc::new(StaticAssets::load(&config.asset_dir)?);
     let provider =
         Arc::new(HttpProviders::production(config.clone())?.with_telemetry(telemetry.clone()));
     let jobs = Coordinator::instrumented(provider, config.limits.clone(), telemetry.clone());

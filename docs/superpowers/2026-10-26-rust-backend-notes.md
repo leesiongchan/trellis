@@ -5,7 +5,7 @@ The approved design and implementation plan are implemented on `feat/rust-backen
 ## Verification recorded on 2026-10-26
 
 - macOS arm64: Rust formatting, strict Clippy, all backend targets, frontend type checking and production build passed during implementation.
-- 43 backend tests pass; the browser fixture-server test is intentionally ignored in normal Cargo runs and launched only by the browser supervisor.
+- 44 backend tests pass; the browser fixture-server test is intentionally ignored in normal Cargo runs and launched only by the browser supervisor.
 - 43 frontend/domain/contract tests and four build/release-verifier tests cover the final implementation. Release-verifier red/green: all three new checks failed against the artifact-only stub before runtime verification was added, then passed.
 - 21 production browser scenarios passed after Node code/dependency removal. They include the existing 17 scenarios, one production upgrade scenario, fixture-backed research over HTTP and HTTPS, and HTTPS upgrade compatibility.
 - A named agent-browser session additionally opened the Rust-served homepage and expanded the provider-free demo to the memory-cell/quantum-tunneling branch. The session was closed after inspection.
@@ -38,4 +38,18 @@ The final browser run exposed an existing recovery-test race: the refresh-only e
 3. Make the Tokio socket test helper asynchronous. This corrects the plan's omitted async requirement and changes no product API.
 4. Run independent HTTP/HTTPS fixture instances concurrently on backend ports 5184/5186, with the HTTPS proxy on 5185. Each app still has one exact configured origin. This adds one test-only loopback listener and avoids restarts during the suite.
 
-Independent review results and any deferred minor findings are recorded below once the final review is complete.
+## Independent review and fix
+
+One fresh-context whole-branch review used `gpt-6-astra`, covering `dc1f24a..60f5f8f`, the approved spec/plan and the four implementation rulings. The reviewer found no Critical issues, one Important availability defect and one Minor logging-boundary concern. It judged the five review-focus areas and the implementation rulings sound. Hosted CI, live providers, actual Tailscale deployment and physical-device behavior were explicitly excluded from claims.
+
+The Important defect was synchronous stdout logging on Tokio workers: an unread pipe could stall health and signal handling. `unread_log_sink_preserves_health_and_bounded_termination` reproduced the health timeout before the fix, then passed. Output now uses a dedicated thread, 256-event nonblocking queue, 16 KiB event cap, overflow/output-error counter and at most 100 ms shutdown flush. The real-process regression saturates output, verifies continued health and observable drops, then checks ordinary SIGTERM and second-signal exit with a pending upload. It never drains stdout. No dependency or production endpoint changed. The fix receives full-suite verification rather than another reviewer.
+
+Deferred minor: unrestricted `RUST_LOG` can enable dependency diagnostics beyond the intended application event allowlist. Existing tests do not exercise the production subscriber at debug/trace. No credential, question, cookie or provider-body leak was established; Hyper internal tracing is compiled out and Reqwest byte logging is disabled. The runbook recommends normal `info` operation and records the limitation.
+
+## Final review rulings
+
+5. Keep live OpenAI/Tavily behavior, model availability and research quality unverified. Paid calls were excluded; fixtures establish protocol behavior. Cost if wrong: a configured project/model can fail or produce poor research despite passing local fixtures.
+6. Keep the actual Rust-through-Tailscale path unverified. Deployment/restart was not authorized, and forwarding stays unchanged. Cost if wrong: the actual proxy may require investigation before deployment.
+7. Use browser phone emulation as the available mobile evidence; a physical phone remains unverified. Cost if wrong: device-specific layout/storage behavior may differ.
+8. Do not claim hosted Linux CI success from the workflow. It passed actionlint locally, but the hosted job has not run. Cost if wrong: a platform/runner issue may still surface.
+9. Retain the single-user private-process operating model. Public hosting, multiple users, distributed coordination and server persistence were explicitly excluded. Cost if wrong: this release is unsuitable for an unplanned public/shared deployment.

@@ -240,6 +240,9 @@ impl Drop for ProcessGuard {
     }
 }
 fn spawn_process(with_env_file: bool) -> ProcessGuard {
+    spawn_process_output(with_env_file, false)
+}
+fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuard {
     use sha2::{Digest, Sha256};
     use std::{
         fs,
@@ -282,7 +285,12 @@ fn spawn_process(with_env_file: bool) -> ProcessGuard {
         .env("APP_ORIGIN", &origin)
         .env("APP_ACCESS_KEY", "a".repeat(64))
         .env("PORT", port.to_string())
-        .stdout(Stdio::from(fs::File::create(&log).unwrap()))
+        .env("TOKIO_WORKER_THREADS", "2")
+        .stdout(if unread_stdout {
+            Stdio::piped()
+        } else {
+            Stdio::from(fs::File::create(&log).unwrap())
+        })
         .stderr(Stdio::from(
             fs::File::create(root.path().join("stderr.log")).unwrap(),
         ))
@@ -382,4 +390,71 @@ async fn second_signal_forces_exit_while_an_upload_is_pending() {
     .await;
     signal(&process, rustix::process::Signal::TERM);
     assert_eq!(process_exit(&mut process).await.code(), Some(130));
+}
+
+#[tokio::test]
+async fn unread_log_sink_preserves_health_and_bounded_termination() {
+    for forced in [false, true] {
+        let mut process = spawn_process_output(false, true);
+        process_ready(&mut process).await;
+        // Keep stdout open without reading. Enough events fill both the OS pipe
+        // and the bounded writer queue on the supported Linux/macOS hosts.
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(1))
+            .build()
+            .unwrap();
+        for _ in 0..4096 {
+            let response = client
+                .get(format!("{}/health/live", process.origin))
+                .send()
+                .await
+                .expect("health stalled behind an unread log sink");
+            assert_eq!(response.status(), 200);
+            response.bytes().await.unwrap();
+        }
+        let cookie = issue_cookie(&"a".repeat(64), 4102444800000).unwrap();
+        let metrics = client
+            .get(format!("{}/metrics", process.origin))
+            .header("cookie", format!("branch_access={cookie}"))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        let dropped: u64 = metrics
+            .lines()
+            .find_map(|line| line.strip_prefix("branch_log_events_dropped_total "))
+            .expect("log overflow must be observable")
+            .parse()
+            .unwrap();
+        assert!(dropped > 0, "the test must exercise a saturated queue");
+        let mut pending = None;
+        if forced {
+            let authority = process.origin.strip_prefix("http://").unwrap();
+            let mut socket = TcpStream::connect(authority).await.unwrap();
+            socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: {authority}\r\nOrigin: {}\r\nCookie: branch_access={cookie}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\n\r\n",process.origin).as_bytes()).await.unwrap();
+            // Hyper acknowledges only when the handler begins polling the body.
+            let mut acknowledgment = Vec::new();
+            tokio::time::timeout(Duration::from_secs(1), async {
+                while !acknowledgment.ends_with(b"\r\n\r\n") {
+                    acknowledgment.push(socket.read_u8().await.unwrap());
+                }
+            })
+            .await
+            .unwrap();
+            assert!(acknowledgment.starts_with(b"HTTP/1.1 100 Continue"));
+            pending = Some(socket);
+        }
+        signal(&process, rustix::process::Signal::TERM);
+        if forced {
+            let authority = process.origin.strip_prefix("http://").unwrap();
+            wait_for(|| std::net::TcpStream::connect(authority).is_err()).await;
+            signal(&process, rustix::process::Signal::TERM);
+            assert_eq!(process_exit(&mut process).await.code(), Some(130));
+        } else {
+            assert!(process_exit(&mut process).await.success());
+        }
+        drop(pending);
+    }
 }

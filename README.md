@@ -88,7 +88,7 @@ See [the approved design](docs/superpowers/specs/2026-10-25-knowledge-tree-desig
 
 ## Verification recorded on 2026-10-26
 
-The migration passed 43 Rust tests, 43 frontend/domain/contract tests, four build checks and 21 browser scenarios on macOS. Type checking, strict Clippy, release packaging and dependency audits passed. CI covers Linux and macOS; those hosted jobs have not been run locally.
+The migration passed 44 Rust tests, 43 frontend/domain/contract tests, four build checks and 21 browser scenarios on macOS. Type checking, strict Clippy, release packaging and dependency audits passed. CI covers Linux and macOS; those hosted jobs have not been run locally.
 
 Live provider research, model availability, a separate physical phone and the Rust release through the actual Tailscale route remain **unverified**. Forwarding was inspected read-only and left unchanged.
 

@@ -64,7 +64,8 @@ async fn respond(Json(input): Json<Value>) -> Result<Json<Value>, StatusCode> {
 #[ignore = "Only launched by scripts/test-server.ts for local browser acceptance"]
 async fn serve_browser_fixtures() {
     install_redacted_panic_hook();
-    init_logging("warn").unwrap();
+    let logging_metrics = Telemetry::new();
+    let _logging = init_logging("warn", &logging_metrics).unwrap();
     let upstream = common::spawn_router(
         Router::new()
             .route("/search", post(search))

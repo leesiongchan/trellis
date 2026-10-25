@@ -1,6 +1,8 @@
 //! Allowlisted logs and bounded-label process metrics.
+mod log_writer;
 use crate::error::{AppError, ErrorCode};
 use axum::http::StatusCode;
+pub use log_writer::LoggingGuard;
 use prometheus_client::{
     encoding::{EncodeLabelSet, text::encode},
     metrics::{counter::Counter, family::Family, gauge::Gauge, histogram::Histogram},
@@ -52,6 +54,7 @@ pub struct Telemetry {
     waiters: Gauge,
     deduplicated: Counter,
     rejections: Family<RejectionLabels, Counter>,
+    log_drops: Counter,
 }
 impl Default for Telemetry {
     fn default() -> Self {
@@ -78,6 +81,12 @@ impl Telemetry {
         let waiters = Gauge::default();
         let deduplicated = Counter::default();
         let rejections = Family::<RejectionLabels, Counter>::default();
+        let log_drops = Counter::default();
+        registry.register(
+            "branch_log_events_dropped",
+            "Log events dropped by the bounded output queue or failed sink",
+            log_drops.clone(),
+        );
         registry.register(
             "branch_http_requests",
             "HTTP request outcomes",
@@ -128,6 +137,7 @@ impl Telemetry {
             waiters,
             deduplicated,
             rejections,
+            log_drops,
         }
     }
     pub fn render(&self) -> Result<String, AppError> {
@@ -238,18 +248,21 @@ impl Drop for StageTimer {
         }
     }
 }
-pub fn init_logging(filter: &str) -> Result<(), AppError> {
+pub fn init_logging(filter: &str, telemetry: &Telemetry) -> Result<LoggingGuard, AppError> {
     use tracing_subscriber::util::SubscriberInitExt;
     let filter = tracing_subscriber::EnvFilter::try_new(filter)
         .map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
+    let (writer, guard) = log_writer::start(telemetry.log_drops.clone())?;
     tracing_subscriber::fmt()
         .json()
+        .with_writer(writer)
         .with_env_filter(filter)
         .with_current_span(true)
         .with_span_list(true)
         .finish()
         .try_init()
-        .map_err(|_| AppError::new(ErrorCode::InvalidConfig))
+        .map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
+    Ok(guard)
 }
 pub fn install_redacted_panic_hook() {
     std::panic::set_hook(Box::new(|_| {
