@@ -10,7 +10,7 @@
 
 **Spec:** [Approved Rust backend design](../specs/2026-10-25-rust-backend-design.md). Read the spec and this plan before execution. The core dependency versions above were checked against official documentation; the lockfile and feature compatibility still need verification in Task 1. Do not claim that planning resolved or compiled them.
 
-**Execution record:** Native execution on `feat/rust-backend`; all ten tasks are complete and committed. Local verification and independent final review are complete; the Important finding is fixed and one Minor follow-up is recorded. The original steps below retain their planning assumptions; the [migration evidence](../2026-10-26-rust-backend-notes.md) records verification scope, review results and implementation rulings. Integration awaits the user's choice; no deployment, forwarding change or paid research was performed.
+**Execution record:** Native execution on `feat/rust-backend`; all ten tasks are complete and committed. Local verification and independent final review are complete; the Important finding is fixed and one Minor follow-up is recorded. The original steps below retain their planning assumptions; the [migration evidence](../2026-10-26-rust-backend-notes.md) records verification scope, review results and implementation rulings. The user authorized merging into `main` and cleanup; the merge passed post-integration checks, and the merged feature branch and unused worktree were removed. No deployment, forwarding change or paid research was performed.
 
 ## Global Constraints
 

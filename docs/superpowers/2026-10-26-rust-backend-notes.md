@@ -1,6 +1,6 @@
 # Rust backend migration evidence
 
-The approved design and implementation plan are implemented on `feat/rust-backend`. The runtime is one Rust executable plus static frontend assets. The Svelte UI, browser storage schema/database, configured model default, private access protocol and provider-free demo remain compatible.
+The approved design and implementation plan were implemented on `feat/rust-backend` and merged into `main` at the user's request. The runtime is one Rust executable plus static frontend assets. The Svelte UI, browser storage schema/database, configured model default, private access protocol and provider-free demo remain compatible.
 
 ## Verification recorded on 2026-10-26
 
@@ -35,7 +35,9 @@ Final command results on macOS arm64:
 | `, actionlint .github/workflows/ci.yml` | Exit 0, actionlint 1.7.12 |
 | `git diff --check` | Exit 0 |
 
-Tasks 1–9 are recorded in commits `4478c3e` through `4fbce95`; Task 10 is `60f5f8f`, with the reviewed logging fix in `fdbadb3`. The final completion gate reran the full backend suite successfully after that fix. The execution scratch directory is removed only after preserving this evidence, review outcome and all rulings here. The feature branch and packaged local release remain available for the integration decision.
+Tasks 1–9 are recorded in commits `4478c3e` through `4fbce95`; Task 10 is `60f5f8f`, with the reviewed logging fix in `fdbadb3`. The final completion gate reran the full backend suite successfully after that fix. The execution scratch directory was removed after preserving this evidence, review outcome and all rulings here.
+
+On the user's subsequent merge/cleanup instruction, `main` fast-forwarded to `a71a389`. Post-merge checks passed: 44 backend tests, 43 frontend tests, four build/release tests, 21 production browser scenarios and frontend type checking. The fully merged feature branch and clean unused detached worktree were removed without force. Only `main` and the primary checkout remain. No Git remote is configured; this was a local merge, with no push or deployment.
 
 ## Replacement test coverage
 
@@ -54,7 +56,7 @@ The final browser run exposed an existing recovery-test race: the refresh-only e
 
 ## Rulings made during implementation
 
-1. Use the writable checkout on a feature branch after the managed worktree was created outside permitted write roots. `main` remains unchanged; protection from simultaneous file edits is weaker than a separate worktree. The unused native worktree has no implementation changes.
+1. Use the writable checkout on a feature branch after the managed worktree was created outside permitted write roots. During implementation, `main` remained unchanged; protection from simultaneous file edits was weaker than a separate worktree. The unused native worktree had no implementation changes and was removed during the later authorized cleanup.
 2. Preserve the installed Zod version's code-point string limits, while the custom ancestor-total check and legacy source clipping use UTF-16. The plan's blanket UTF-16 assumption failed the cross-language fixture. Following it would have rejected previously valid multilingual questions.
 3. Make the Tokio socket test helper asynchronous. This corrects the plan's omitted async requirement and changes no product API.
 4. Run independent HTTP/HTTPS fixture instances concurrently on backend ports 5184/5186, with the HTTPS proxy on 5185. Each app still has one exact configured origin. This adds one test-only loopback listener and avoids restarts during the suite.
