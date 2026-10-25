@@ -1,6 +1,6 @@
 # Rust backend migration
 
-Status: draft for user approval. Approach 1 was selected by the user on 2026-10-25; implementation is not yet approved.
+Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Ready for implementation planning; execution method has not yet been selected.
 
 Builder check: a fresh Rust backend reviewer read this document on 2026-10-25 and reported “nothing important left.” This is a design-completeness check, not implementation verification.
 
