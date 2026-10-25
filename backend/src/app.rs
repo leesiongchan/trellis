@@ -8,15 +8,30 @@ pub struct AppState {
     pub draining: CancellationToken,
 }
 pub fn api_router(state: Arc<AppState>) -> axum::Router {
-    finish(api_routes(state.clone()),state)
+    finish(api_routes(state.clone()), state)
 }
-pub fn router(state:Arc<AppState>,assets:Arc<crate::http::static_files::StaticAssets>)->axum::Router{
-    finish(api_routes(state.clone()).merge(crate::http::static_files::routes(assets)),state)
+pub fn router(
+    state: Arc<AppState>,
+    assets: Arc<crate::http::static_files::StaticAssets>,
+) -> axum::Router {
+    finish(
+        api_routes(state.clone()).merge(crate::http::static_files::routes(assets)),
+        state,
+    )
 }
-fn finish(router:axum::Router,state:Arc<AppState>)->axum::Router{
-    router.layer(axum::middleware::from_fn_with_state(state,crate::http::headers::boundary)).layer(tower_http::sensitive_headers::SetSensitiveResponseHeadersLayer::new([axum::http::header::SET_COOKIE]))
+fn finish(router: axum::Router, state: Arc<AppState>) -> axum::Router {
+    router
+        .layer(axum::middleware::from_fn_with_state(
+            state,
+            crate::http::headers::boundary,
+        ))
+        .layer(
+            tower_http::sensitive_headers::SetSensitiveResponseHeadersLayer::new([
+                axum::http::header::SET_COOKIE,
+            ]),
+        )
 }
-fn api_routes(state:Arc<AppState>)->axum::Router{
+fn api_routes(state: Arc<AppState>) -> axum::Router {
     use crate::{
         access,
         http::{health, research},

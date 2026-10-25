@@ -8,4 +8,5 @@ pub mod http;
 pub mod jobs;
 pub mod providers;
 pub mod research;
+pub mod server;
 pub mod telemetry;

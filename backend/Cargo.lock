@@ -123,9 +123,12 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
+ "dotenvy",
  "futures-util",
  "hmac",
  "http-body-util",
+ "hyper",
+ "hyper-util",
  "mime_guess",
  "prometheus-client",
  "reqwest",
@@ -138,6 +141,7 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "tokio-io-timeout",
  "tokio-util",
  "tower",
  "tower-http 0.7.1",
@@ -287,6 +291,12 @@ dependencies = [
  "quote",
  "syn 3.0.9",
 ]
+
+[[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
 name = "dtoa"
@@ -1571,6 +1581,16 @@ dependencies = [
  "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tokio-io-timeout"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd86198d9ee903fedd2f9a2e72014287c0d9167e4ae43b5853007205dda1b76"
+dependencies = [
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]

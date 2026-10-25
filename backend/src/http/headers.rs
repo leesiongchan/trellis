@@ -59,6 +59,7 @@ pub async fn boundary(
         }
     }
     let span = tracing::info_span!("http_request",requestId=%id,entryPoint="http",route);
+    tracing::info!(parent:&span,event="http_started");
     let mut response = next.run(request).instrument(span.clone()).await;
     if response.status().is_server_error() {
         tracing::warn!(parent:&span,event="http_failed",status=response.status().as_u16());

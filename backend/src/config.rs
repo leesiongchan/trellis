@@ -155,3 +155,29 @@ impl Config {
         &self.origin[url::Position::BeforeHost..url::Position::AfterPort]
     }
 }
+
+/// Load into owned values; never mutate the process environment after threads start.
+pub fn load_values() -> Result<HashMap<String, String>, AppError> {
+    let environment: HashMap<String, String> = std::env::vars_os()
+        .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
+        .collect();
+    let selected = environment.get("APP_ENV_FILE");
+    let path = selected.map(String::as_str).unwrap_or(".env");
+    let mut values = HashMap::new();
+    if !path.is_empty() {
+        match dotenvy::from_path_iter(path) {
+            Ok(entries) => {
+                for entry in entries {
+                    let (key, value) =
+                        entry.map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
+                    values.insert(key, value);
+                }
+            }
+            Err(dotenvy::Error::Io(error))
+                if selected.is_none() && error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => return Err(AppError::new(ErrorCode::InvalidConfig)),
+        }
+    }
+    values.extend(environment);
+    Ok(values)
+}

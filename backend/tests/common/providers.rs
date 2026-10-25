@@ -20,6 +20,7 @@ pub struct Script {
     pub body: Vec<u8>,
     pub delay: Duration,
     pub location: Option<String>,
+    pub gate: Option<Arc<tokio::sync::Notify>>,
 }
 impl Script {
     pub fn json(body: Value) -> Self {
@@ -28,6 +29,7 @@ impl Script {
             body: serde_json::to_vec(&body).unwrap(),
             delay: Duration::ZERO,
             location: None,
+            gate: None,
         }
     }
 }
@@ -77,6 +79,9 @@ async fn answer(
             ..Script::json(Value::Null)
         });
     tokio::time::sleep(script.delay).await;
+    if let Some(gate) = script.gate {
+        gate.notified().await;
+    }
     let chunks: Vec<_> = script
         .body
         .chunks(8192)
