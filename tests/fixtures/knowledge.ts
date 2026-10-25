@@ -48,6 +48,7 @@ export function makeRequest(overrides: Partial<ResearchRequest> = {}): ResearchR
 export function makeExploration(overrides: Partial<Exploration> = {}): Exploration {
   return {
     schemaVersion: 1,
+    mode: 'research',
     id: 'e1',
     originalPrompt: 'microSD cards',
     rootId: 'root',

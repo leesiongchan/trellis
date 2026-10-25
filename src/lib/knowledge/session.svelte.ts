@@ -78,6 +78,7 @@ export class KnowledgeSession {
       now = new Date().toISOString();
     this.exploration = {
       schemaVersion: 1,
+      mode: 'research',
       id: newId(),
       originalPrompt: question,
       rootId: root.id,
@@ -177,6 +178,7 @@ export class KnowledgeSession {
     force = false,
     clarification: string | null = null
   ): Promise<void> {
+    if (this.exploration?.mode === 'demo') return Promise.resolve();
     const existing = this.jobs.get(nodeId);
     if (existing) return existing.promise;
     const value = this.exploration,

@@ -72,6 +72,7 @@ export const ViewSchema = z.object({
 export const ExplorationSchema = z
   .object({
     schemaVersion: z.literal(1),
+    mode: z.enum(['research', 'demo']).default('research'),
     id,
     originalPrompt: question,
     rootId: id,
