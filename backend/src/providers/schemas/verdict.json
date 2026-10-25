@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "unsupportedParagraphIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unsupportedBranchIndexes": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    }
+  },
+  "required": [
+    "unsupportedParagraphIds",
+    "unsupportedBranchIndexes"
+  ],
+  "additionalProperties": false
+}
