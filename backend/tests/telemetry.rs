@@ -10,27 +10,7 @@ use branch_backend::{
     providers::{HttpProviders, ProviderEndpoints},
 };
 use serde_json::json;
-use std::{
-    io::Write,
-    sync::{Arc, Mutex},
-};
-#[derive(Clone, Default)]
-struct Capture(Arc<Mutex<Vec<u8>>>);
-impl Write for Capture {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap().extend_from_slice(bytes);
-        Ok(bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for Capture {
-    type Writer = Self;
-    fn make_writer(&'a self) -> Self {
-        self.clone()
-    }
-}
+use std::sync::Arc;
 #[test]
 fn metrics_expose_aggregate_instruments_without_user_labels() {
     let telemetry = Telemetry::new();
@@ -48,15 +28,150 @@ fn metrics_expose_aggregate_instruments_without_user_labels() {
     }
 }
 
+struct LoggingProcess(std::process::Child);
+impl Drop for LoggingProcess {
+    fn drop(&mut self) {
+        if self.0.try_wait().ok().flatten().is_none() {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+}
+
+#[test]
+fn failed_research_is_correlated_and_redacted_in_actual_logs() {
+    use std::{fs, process::Command, time::Duration};
+    for (filter, info, debug, trace) in [
+        ("debug", true, true, false),
+        ("trace", true, true, true),
+        (
+            "off,branch_backend=debug,reqwest=trace,hyper_util=trace",
+            true,
+            true,
+            false,
+        ),
+        (
+            "off,reqwest=trace,hyper_util=trace,branch_backend_untrusted=trace",
+            false,
+            false,
+            false,
+        ),
+    ] {
+        let output = tempfile::tempdir().unwrap();
+        let stdout = output.path().join("stdout.log");
+        let stderr = output.path().join("stderr.log");
+        // Global subscriber state must not leak between filter configurations.
+        let mut child = LoggingProcess(
+            Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "production_logging_fixture",
+                    "--ignored",
+                    "--nocapture",
+                    "--quiet",
+                ])
+                .env_clear()
+                .env("APP_ENV_FILE", "")
+                .env("RUST_LOG", filter)
+                .stdin(std::process::Stdio::null())
+                .stdout(fs::File::create(&stdout).unwrap())
+                .stderr(fs::File::create(&stderr).unwrap())
+                .spawn()
+                .unwrap(),
+        );
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        let status = loop {
+            if let Some(status) = child.0.try_wait().unwrap() {
+                break status;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "logging fixture stalled"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        let logs = fs::read_to_string(stdout).unwrap();
+        let errors = fs::read_to_string(stderr).unwrap();
+        assert!(status.success(), "fixture failed for {filter}: {errors}");
+        for secret in [
+            "private-user-question",
+            "private-ancestor-title",
+            "private-ancestor-summary",
+            "private-provider-body",
+            "private-source-text",
+            "private-query-key",
+            "private-cookie",
+            "private-dependency-error",
+            "private-dependency-span",
+            "private-prefix-spoof",
+            "fake-tavily",
+            "fake-openai",
+            &"a".repeat(64),
+            &issue_cookie(&"a".repeat(64), 4102444800000).unwrap(),
+        ] {
+            assert!(!logs.contains(secret), "logged {secret} with {filter}");
+            assert!(
+                !errors.contains(secret),
+                "stderr logged {secret} with {filter}"
+            );
+        }
+        let records: Vec<serde_json::Value> = logs
+            .lines()
+            .filter(|line| line.starts_with('{'))
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        for record in &records {
+            let target = record["target"].as_str().unwrap();
+            assert!(
+                target == "branch_backend" || target.starts_with("branch_backend::"),
+                "dependency target {target} bypassed {filter}"
+            );
+            assert_ne!(record["span"]["name"], "dependency_span");
+            if let Some(spans) = record["spans"].as_array() {
+                assert!(spans.iter().all(|span| span["name"] != "dependency_span"));
+            }
+        }
+        let has_event = |name: &str| records.iter().any(|r| r["fields"]["event"] == name);
+        assert_eq!(has_event("binary_logging_info"), info, "{filter}");
+        assert_eq!(has_event("logging_debug"), debug, "{filter}");
+        assert_eq!(has_event("logging_trace"), trace, "{filter}");
+        assert_eq!(has_event("inside_dependency_span"), info, "{filter}");
+        if info {
+            for expected in [
+                "diagnostic-request",
+                "jobId",
+                "search",
+                "SEARCH_FAILED",
+                "durationMs",
+            ] {
+                assert!(logs.contains(expected), "missing {expected} with {filter}");
+            }
+        } else {
+            assert!(records.is_empty(), "disabled app targets produced events");
+        }
+    }
+}
+
 #[tokio::test(flavor = "current_thread")]
-async fn failed_research_is_correlated_and_redacted_in_actual_logs() {
-    let capture = Capture::default();
-    let subscriber = tracing_subscriber::fmt()
-        .json()
-        .with_writer(capture.clone())
-        .with_ansi(false)
-        .finish();
-    let _guard = tracing::subscriber::set_default(subscriber);
+#[ignore = "Subprocess fixture for production subscriber tests"]
+async fn production_logging_fixture() {
+    let telemetry = Arc::new(Telemetry::new());
+    let _logging =
+        branch_backend::telemetry::init_logging(&std::env::var("RUST_LOG").unwrap(), &telemetry)
+            .unwrap();
+    tracing::info!(target: "branch_backend", event = "binary_logging_info");
+    tracing::debug!(target: "branch_backend::logging_fixture", event = "logging_debug");
+    tracing::trace!(target: "branch_backend::logging_fixture", event = "logging_trace");
+    tracing::error!(target: "reqwest", error = "private-dependency-error");
+    tracing::trace!(target: "hyper_util::client", body = "private-provider-body");
+    tracing::warn!(target: "branch_backend_untrusted", key = "private-prefix-spoof");
+    {
+        let application = tracing::info_span!(target: "branch_backend::logging_fixture", "application_scope", requestId = "diagnostic-request");
+        let _application = application.enter();
+        let dependency = tracing::info_span!(target: "reqwest::client", "dependency_span", authorization = "private-dependency-span");
+        let _dependency = dependency.enter();
+        tracing::info!(target: "branch_backend::logging_fixture", event = "inside_dependency_span");
+    }
     let upstream = stubs::StubProviders::start(vec![stubs::Script {
         status: axum::http::StatusCode::BAD_GATEWAY,
         ..stubs::Script::json(
@@ -65,7 +180,6 @@ async fn failed_research_is_correlated_and_redacted_in_actual_logs() {
     }])
     .await;
     let config = common::config("http://127.0.0.1:3000");
-    let telemetry = Arc::new(Telemetry::new());
     let provider = Arc::new(
         HttpProviders::with_endpoints(
             config.clone(),
@@ -100,17 +214,7 @@ async fn failed_research_is_correlated_and_redacted_in_actual_logs() {
         .await
         .unwrap();
     jobs.idle().await;
-    let logs = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
     let metrics = telemetry.render().unwrap();
-    for expected in [
-        "diagnostic-request",
-        "jobId",
-        "search",
-        "SEARCH_FAILED",
-        "durationMs",
-    ] {
-        assert!(logs.contains(expected), "missing {expected}: {logs}");
-    }
     for secret in [
         "private-user-question",
         "private-ancestor-title",
@@ -122,11 +226,7 @@ async fn failed_research_is_correlated_and_redacted_in_actual_logs() {
         "fake-tavily",
         config.access_key.expose(),
     ] {
-        assert!(!logs.contains(secret), "logged {secret}");
         assert!(!metrics.contains(secret));
-    }
-    for line in logs.lines() {
-        assert!(serde_json::from_str::<serde_json::Value>(line).is_ok());
     }
     assert!(metrics.contains("branch_research_stage_duration_seconds_bucket"));
     assert!(metrics.contains("SEARCH_FAILED"));

@@ -1,6 +1,6 @@
 # Rust backend migration
 
-Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Native execution is complete and merged into `main`; local verification and independent review are complete, with the Important finding fixed and one Minor follow-up recorded. See [migration evidence](../2026-10-26-rust-backend-notes.md) for results, unavailable checks and implementation rulings.
+Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Native execution is complete and merged into `main`; local verification and independent review are complete. The Important finding and subsequent Minor logging follow-up are fixed. See [migration evidence](../2026-10-26-rust-backend-notes.md) for results, unavailable checks and implementation rulings.
 
 Builder check: a fresh Rust backend reviewer read this document on 2026-10-25 and reported “nothing important left.” This is a design-completeness check, not implementation verification.
 

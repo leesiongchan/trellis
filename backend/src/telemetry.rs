@@ -249,7 +249,7 @@ impl Drop for StageTimer {
     }
 }
 pub fn init_logging(filter: &str, telemetry: &Telemetry) -> Result<LoggingGuard, AppError> {
-    use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::{filter::filter_fn, layer::SubscriberExt, util::SubscriberInitExt};
     let filter = tracing_subscriber::EnvFilter::try_new(filter)
         .map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
     let (writer, guard) = log_writer::start(telemetry.log_drops.clone())?;
@@ -260,6 +260,12 @@ pub fn init_logging(filter: &str, telemetry: &Telemetry) -> Result<LoggingGuard,
         .with_current_span(true)
         .with_span_list(true)
         .finish()
+        // Verbosity settings must never enable dependency events or spans,
+        // whose fields are outside the application's safe logging contract.
+        .with(filter_fn(|metadata| {
+            metadata.target() == "branch_backend"
+                || metadata.target().starts_with("branch_backend::")
+        }))
         .try_init()
         .map_err(|_| AppError::new(ErrorCode::InvalidConfig))?;
     Ok(guard)
