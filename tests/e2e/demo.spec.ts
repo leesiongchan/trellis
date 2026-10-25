@@ -1,6 +1,23 @@
 import { expect, test } from '@playwright/test';
 import { mockResearch } from './helpers';
 
+test('unsubmitted questions do not carry between separate demo copies', async ({ page }) => {
+  await page.route('**/api/research', (route) => route.abort());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try the microSD demo', exact: true }).click();
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Branch home', exact: true }).click();
+  await page.getByRole('button', { name: 'Try the microSD demo', exact: true }).click();
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
+  await page.getByLabel('Your branch question').fill('This draft belongs to the second copy');
+  await page.getByRole('button', { name: 'Your explorations', exact: true }).click();
+  const demos = page.getByRole('button', { name: 'Resume microSD cards (demo)', exact: true });
+  await expect(demos).toHaveCount(2);
+  // The oldest entry is the first copy; the current second copy was saved later.
+  await demos.last().click();
+  await expect(page.getByLabel('Your branch question')).toHaveValue('');
+});
+
 test('demo branches, citations and saved questions work without research requests', async ({
   page
 }) => {

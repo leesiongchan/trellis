@@ -78,7 +78,7 @@
       onViewportChange={(viewport) => session.setView({ viewport })}
     />
   </div>
-  {#key selected.id}<TopicReader
+  {#key `${exploration.id}:${selected.id}`}<TopicReader
       node={selected}
       demo={exploration.mode === 'demo'}
       onFollow={follow}
