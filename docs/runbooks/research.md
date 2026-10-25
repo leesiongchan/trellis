@@ -14,6 +14,9 @@
 | `GROUNDING_FAILED` / insufficient evidence | Sources did not sufficiently support the generated claims, or the check did not finish. Try a narrower question or an explicit retry. |
 | `RESEARCH_LIMIT` / 429 | At most two distinct jobs run at once, with ten new jobs per minute per process. Identical in-flight requests share a job. |
 | `RESEARCH_TIMEOUT` / 504 | Total deadline is 120 seconds; search has 20 seconds. A stalled provider may still have consumed a call; no automatic retry is performed. |
+| `BODY_TIMEOUT` / 408 or `BODY_TOO_LARGE` / 413 | The complete request body has ten seconds and a 65,536-byte cap. Check the client/proxy rather than increasing limits to hide stalled uploads. |
+| `SERVER_DRAINING` / 503 | Shutdown has begun; allow the supervisor's 130-second termination window. Retry explicitly after the replacement is ready. |
+| Startup `INVALID_CONFIG` | Check the exact origin, loopback binding, access-key length, environment-file path and complete executable/assets/manifest release. Configuration errors omit secret values. |
 | `OFFLINE` | Check that the Mac, app process and Tailscale client are running. Completed browser-local content still opens. |
 | `INTERRUPTED` | Reload happened during research. Previously completed content is preserved; retry is explicit. |
 | Saving failure | Keep the tab open. Free browser storage and use Retry saving. Do not clear site data to repair saving. |
@@ -21,4 +24,4 @@
 
 **Escalate:** reproduce once with the reference ID, stage and elapsed time. Keep secrets and page contents out of reports. Run the fixture-backed checks before changing the providers. Use the two-request live smoke only when provider configuration is ready.
 
-Runtime scope is one Node process on loopback with private Tailscale forwarding. Process-local limits and request sharing do not provide distributed coordination or replay after restarts. Public hosting requires a separate design for access control and shared limits.
+Runtime scope is one Rust process on loopback with private Tailscale forwarding. Process-local limits and request sharing do not provide distributed coordination or replay after restarts. Public hosting requires a separate design for access control and shared limits. See [Rust service operation](rust-service.md) for configuration, release checks, metrics, graceful shutdown and rollback.

@@ -1,6 +1,6 @@
 # Rust backend migration
 
-Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Ready for implementation planning; execution method has not yet been selected.
+Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Native execution is implemented on `feat/rust-backend`, with final verification/review in progress. See [migration evidence](../2026-10-26-rust-backend-notes.md) for results and implementation rulings.
 
 Builder check: a fresh Rust backend reviewer read this document on 2026-10-25 and reported “nothing important left.” This is a design-completeness check, not implementation verification.
 
@@ -89,7 +89,7 @@ Retain `POST /api/research` and its existing camelCase request fields: `explorat
 
 Retain the three discriminated success shapes: `topic` with content, `clarification` with a question, and `insufficient-evidence` with a message. Retain the error shape `{ error: { code, message, retryable, requestId } }`, existing error codes and meaningful HTTP statuses. New operational failures may add documented codes without altering the shape. Framework rejections, body limits, deadlines, wrong methods, and unknown `/api/*` paths must use the same envelope. Errors contain safe messages and no raw upstream bodies or internal stack traces.
 
-Rust validates all existing structural and semantic bounds from `src/lib/knowledge/schemas.ts`, including trimmed questions, IDs, nullable/required fields, array limits, total ancestor summaries, public HTTPS source links, evidence lengths, section/branch counts, and timestamps. Preserve Zod's unknown-field stripping behavior at this boundary. Match JavaScript UTF-16 length semantics where the existing schema uses string length; UTF-8 bytes remain the independent transport limit. Share JSON contract fixtures between Rust and TypeScript and check both sides against valid and invalid cases, including non-ASCII boundaries. Do not change persistence schema version 1 or its default `research` mode.
+Rust validates all existing structural and semantic bounds from `src/lib/knowledge/schemas.ts`, including trimmed questions, IDs, nullable/required fields, array limits, total ancestor summaries, public HTTPS source links, evidence lengths, section/branch counts, and timestamps. Preserve Zod's unknown-field stripping behavior at this boundary. Match the installed schema's length semantics; UTF-8 bytes remain the independent transport limit. Implementation fixtures established that Zod 4.6.7 uses code points for string bounds, while the custom ancestor-total check uses JavaScript UTF-16 units, correcting the design's original blanket UTF-16 assumption. Share JSON contract fixtures between Rust and TypeScript and check both sides against valid and invalid cases, including non-ASCII boundaries. Do not change persistence schema version 1 or its default `research` mode.
 
 Existing TypeScript schemas remain the browser validator; Rust is the authoritative server validator. Avoid a new code-generation stack unless planning identifies a concrete need. Contract fixtures must detect drift in both directions.
 

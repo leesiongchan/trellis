@@ -5,6 +5,8 @@ test('a failed refresh preserves the prior explanation and explored branches', a
   await mockResearch(page);
   await startExample(page);
   await page.getByRole('button', { name: 'Expand NAND flash', exact: true }).click();
+  // Install the refresh failure only after initial research has completed.
+  await expect(page.getByRole('button', { name: 'Read Memory cells', exact: true })).toBeVisible();
   await page.route('**/api/research', (route) =>
     route.fulfill({
       status: 502,

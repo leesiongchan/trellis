@@ -17,6 +17,7 @@
     "test:unit": "vitest run",
     "test:build": "node --test tests/build/*.test.ts",
     "test:backend": "cargo test --manifest-path backend/Cargo.toml --locked",
+    "verify:release": "node scripts/verify-release.ts",
     "test:e2e": "playwright test --config playwright.production.config.ts",
     "test:e2e:dev": "playwright test --config playwright.config.ts",
     "live-smoke": "node --env-file-if-exists=.env scripts/live-smoke.ts"
