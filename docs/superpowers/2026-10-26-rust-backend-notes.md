@@ -16,6 +16,27 @@ The approved design and implementation plan are implemented on `feat/rust-backen
 
 Linux CI is configured, not claimed to have run. A separate physical phone, live OpenAI/Tavily behavior and configured model availability remain unverified. No paid provider calls were made. The local HTTPS fixture verifies Host preservation and Secure-cookie behavior; it is not evidence of a live tailnet deployment.
 
+Final command results on macOS arm64:
+
+| Command | Observed result |
+| --- | --- |
+| `pnpm install --frozen-lockfile --ignore-scripts` | Exit 0, lockfile current |
+| `cargo fmt --manifest-path backend/Cargo.toml -- --check` | Exit 0 |
+| `cargo clippy --manifest-path backend/Cargo.toml --all-targets --all-features --locked -- -D warnings` | Exit 0 |
+| `cargo test --manifest-path backend/Cargo.toml --all-targets --all-features --locked` | 44 passed, zero failed; one intentionally ignored fixture harness |
+| `pnpm check` | Zero errors/warnings |
+| `pnpm test:unit` | 43 passed |
+| `pnpm build` | Static frontend, locked optimized Rust build and release packaging passed |
+| `pnpm test:build` | Four passed |
+| `pnpm test:e2e` | 21 passed after the review fix |
+| `node scripts/verify-release.ts` | `ok: true`, all eight runtime/integrity/redaction checks reported |
+| `, cargo-audit audit --file backend/Cargo.lock` | Exit 0, no vulnerabilities in 217 locked crates |
+| `pnpm audit --json` | Exit 0, zero known vulnerabilities in 122 dependencies |
+| `, actionlint .github/workflows/ci.yml` | Exit 0, actionlint 1.7.12 |
+| `git diff --check` | Exit 0 |
+
+Tasks 1–9 are recorded in commits `4478c3e` through `4fbce95`; Task 10 is `60f5f8f`, with the reviewed logging fix in `fdbadb3`. The final completion gate reran the full backend suite successfully after that fix. The execution scratch directory is removed only after preserving this evidence, review outcome and all rulings here. The feature branch and packaged local release remain available for the integration decision.
+
 ## Replacement test coverage
 
 | Removed Node tests | Rust replacement |

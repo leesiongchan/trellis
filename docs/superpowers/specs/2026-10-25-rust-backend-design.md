@@ -1,6 +1,6 @@
 # Rust backend migration
 
-Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Native execution is implemented on `feat/rust-backend`, with final verification/review in progress. See [migration evidence](../2026-10-26-rust-backend-notes.md) for results and implementation rulings.
+Status: approved by the user on 2026-10-26. Approach 1 was selected on 2026-10-25. Native execution is complete on `feat/rust-backend`; local verification and independent review are complete, with the Important finding fixed and one Minor follow-up recorded. See [migration evidence](../2026-10-26-rust-backend-notes.md) for results, unavailable checks and implementation rulings.
 
 Builder check: a fresh Rust backend reviewer read this document on 2026-10-25 and reported “nothing important left.” This is a design-completeness check, not implementation verification.
 
