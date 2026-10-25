@@ -19,12 +19,13 @@
       <div class="saved-item">
         <button
           class="saved-resume"
-          aria-label={'Resume ' + item.originalPrompt}
+          aria-label={'Resume ' + item.originalPrompt + (item.mode === 'demo' ? ' (demo)' : '')}
           onclick={() => onResume(item.id)}
         >
           <span class="saved-icon">↗</span><span
             ><strong>{item.originalPrompt}</strong><small
-              >{Object.keys(item.nodes).length} topics · {new Date(
+              >{#if item.mode === 'demo'}<span class="demo-tag">Demo</span> ·
+              {/if}{Object.keys(item.nodes).length} topics · {new Date(
                 item.updatedAt
               ).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</small
             ></span
@@ -32,7 +33,7 @@
         </button>
         <button
           class="icon-button"
-          aria-label={'Delete ' + item.originalPrompt}
+          aria-label={'Delete ' + item.originalPrompt + (item.mode === 'demo' ? ' (demo)' : '')}
           onclick={() => (deleting = item.id)}>×</button
         >
         {#if deleting === item.id}<div class="delete-confirm" role="alert">

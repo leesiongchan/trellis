@@ -1,6 +1,9 @@
 <script lang="ts">
-  let { onStart, disabled = false }: { onStart: (question: string) => void; disabled?: boolean } =
-    $props();
+  let {
+    onStart,
+    onDemo,
+    disabled = false
+  }: { onStart: (question: string) => void; onDemo: () => void; disabled?: boolean } = $props();
   let question = $state('');
   let input: HTMLInputElement;
   const examples = [
@@ -42,6 +45,12 @@
       >
     </div>
   </form>
+  <div class="demo-launch">
+    <button class="quiet-button" type="button" onclick={onDemo} {disabled}
+      >Try the microSD demo</button
+    >
+    <span>Prewritten content · No API keys needed</span>
+  </div>
   <div class="examples">
     <span>A few starting points</span>{#each examples as example}<button
         onclick={() => {

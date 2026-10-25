@@ -16,7 +16,7 @@ Add “Try the microSD demo” on the start screen with “Prewritten content ·
 
 Persist a `mode` field (`research` or `demo`), defaulting legacy saved explorations to `research`. A demo banner and library label stay visible after resuming. Prewritten content must not claim to have been newly researched. Hide refresh actions for demos and guard all research entry points in the session so even direct refresh/clarification calls cannot contact a provider.
 
-Custom questions create ordinary local child nodes and remain editable through tree navigation. They do not receive invented explanations: the reader says the question is saved and that demo questions are not researched. It still offers adding another local question. Duplicate and ancestor checks remain unchanged. All curated nodes retain normal explanation and citation UI.
+Custom questions create ordinary local child nodes and remain accessible through tree navigation. They do not receive invented explanations: the reader says the question is saved and that demo questions are not researched. It still offers adding another local question. Duplicate and ancestor checks remain unchanged. All curated nodes retain normal explanation and citation UI.
 
 Every launch creates a new copy; it never overwrites existing work. Save conflicts, quota errors, deletion and viewport restoration use existing mechanisms. The custom-question notice and demo banner must fit the phone reader/map layout and use normal keyboard-accessible buttons.
 

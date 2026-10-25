@@ -7,13 +7,15 @@
     onFollow,
     onRefresh,
     onClarify,
-    clarification
+    clarification,
+    demo = false
   }: {
     node: TopicNode;
     onFollow: (question: string) => void;
     onRefresh: () => void;
     onClarify: (answer: string) => void;
     clarification: string | null;
+    demo?: boolean;
   } = $props();
   let answer = $state('');
   const content = $derived(node.content);
@@ -26,7 +28,7 @@
   aria-busy={node.status === 'researching' || node.isRefreshing}
 >
   <div class="reader-kicker">
-    <span class="eyebrow">{node.relationship || 'EXPLANATION'}</span>{#if content}<button
+    <span class="eyebrow">{node.relationship || 'EXPLANATION'}</span>{#if content && !demo}<button
         class="icon-button"
         aria-label="Refresh research"
         title="Research this topic again"
@@ -48,7 +50,7 @@
   {#if node.isRefreshing}<p class="inline-status" role="status">
       ↻ Checking fresh sources. Your earlier explanation stays here.
     </p>{/if}
-  {#if node.lastError}<div class="reader-error" role="alert">
+  {#if node.lastError && !demo}<div class="reader-error" role="alert">
       <strong
         >{node.lastError.code === 'SETUP_REQUIRED'
           ? 'Research is not connected yet'
@@ -63,7 +65,7 @@
           >Reference: {node.lastError.requestId}</small
         >{/if}
     </div>{/if}
-  {#if clarification}<form
+  {#if clarification && !demo}<form
       class="clarification"
       onsubmit={(event) => {
         event.preventDefault();
@@ -81,6 +83,16 @@
         placeholder="A little more context…"
       /><button class="primary-button" type="submit">Continue exploring ↗</button>
     </form>{/if}
+  {#if demo && !content}
+    <div class="demo-question">
+      <h3>Your question is saved.</h3>
+      <p>
+        This demo has prewritten explanations for the included topics. Your new questions stay in
+        this tree, but are not researched.
+      </p>
+    </div>
+    <BranchQuestion {onFollow} />
+  {/if}
   {#if content}
     <div class="reader-prose">
       {#each content.summary as p (p.id)}<p class="summary-paragraph">
@@ -123,11 +135,13 @@
       <div class="section-label">FOLLOW THE SOURCES <span>{content.sources.length}</span></div>
       {#each content.sources as source, i (source.id)}<CitationLink {source} index={i + 1} />{/each}
       <p class="research-date">
-        Researched {new Date(content.researchedAt).toLocaleDateString(undefined, {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        })}. Check the original sources for context.
+        {#if demo}Prewritten demo · Sources for further reading.{:else}
+          Researched {new Date(content.researchedAt).toLocaleDateString(undefined, {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+          })}. Check the original sources for context.
+        {/if}
       </p>
     </section>
   {/if}

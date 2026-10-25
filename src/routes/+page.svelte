@@ -11,6 +11,7 @@
     type SaveStatus
   } from '#lib/knowledge/persistence.ts';
   import { requestResearch } from '#lib/knowledge/client.ts';
+  import { createDemoExploration } from '#lib/knowledge/demo.ts';
   import type { Exploration } from '#lib/knowledge/types.ts';
   let saved = $state<Exploration[]>([]),
     status = $state<SaveStatus>('saved'),
@@ -91,6 +92,18 @@
       }
     } catch {
       error = 'This saved exploration could not be read. Its original data is still stored.';
+    } finally {
+      switching = false;
+    }
+  }
+  async function startDemo() {
+    if (!(await beforeSwitch())) return;
+    try {
+      resetSaver();
+      session.load(createDemoExploration());
+      saver.enqueue(session.exploration!);
+      showLibrary = false;
+      error = '';
     } finally {
       switching = false;
     }
@@ -206,6 +219,14 @@
       >
     </div>
   </header>
+  {#if session.exploration?.mode === 'demo'}
+    <div class="demo-banner" role="note" aria-label="Demo content">
+      <strong>Demo content</strong>
+      <span
+        >Prewritten explanations. Explore the branches and save your own questions without research.</span
+      >
+    </div>
+  {/if}
   {#if error}<div class="workspace-notice" role="alert">
       {error}<button class="icon-button" aria-label="Dismiss error" onclick={() => (error = '')}
         >×</button
@@ -242,7 +263,7 @@
     </div>{/if}
   {#if session.exploration && mounted}<Workspace {session} />{:else}<main class="home-main">
       <div class="home-grid">
-        <TopicStart onStart={start} disabled={switching} />
+        <TopicStart onStart={start} onDemo={startDemo} disabled={switching || !mounted} />
         <div class="tree-illustration" aria-hidden="true">
           <div class="illustration-eyebrow">A QUESTION IS JUST THE BEGINNING</div>
           <svg viewBox="0 0 480 440" fill="none"

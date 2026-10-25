@@ -2,6 +2,12 @@
 
 A private knowledge tree. Start with a question, read a detailed explanation, and expand related topics without losing your place. Every opened topic is researched on demand, with links to supporting sources.
 
+## Try the demo without credentials
+
+Choose **Try the microSD demo** on the home screen. It opens eight prewritten topics, including microSD cards → NAND flash → Memory cells → Quantum tunneling, plus controller, error correction, pages/blocks and wear-leveling branches. Expand, collapse, read source links and add your own questions without provider requests.
+
+Demo explorations are labelled in the workspace and saved library. Custom questions stay as unanswered local branches. Every launch creates a separate copy, and reload/resume preserves its questions and view. Research refresh is unavailable in a demo. The app still needs to be reachable to load; this is not an offline-installed app, and following external source links needs connectivity.
+
 ## Run locally
 
 Requires Node 24+ and pnpm 11.21.0. On a Nix system, missing commands can be run through `,`.
@@ -75,8 +81,8 @@ See [the approved design](docs/superpowers/specs/2026-10-25-knowledge-tree-desig
 
 ## Verification recorded on 2026-10-25
 
-The local implementation passed 33 unit/integration tests and 14 browser scenarios, including phone layout, reloads, switching saved viewports, conflicting saves, failed refreshes, unreadable saved records and deletion during research across tabs. Type checking and the production build passed. The dependency audit reported no known vulnerabilities.
+The local implementation passed 35 unit/integration tests and 16 browser scenarios, including the provider-free demo, phone layout, reloads, switching saved viewports, conflicting saves, failed refreshes, unreadable saved records and deletion during research across tabs. Type checking and the production build passed. The dependency audit reported no known vulnerabilities.
 
-Live provider-backed research is **unverified** until both API credentials are configured and the bounded live smoke passes. Local browser tests through a Tailscale URL verify that endpoint, not a separate physical device.
+Live provider-backed research is **unverified** and excluded from this handoff at the user's request. Local browser tests through a Tailscale URL verify that endpoint, not a separate physical device.
 
 See [implementation and review notes](docs/superpowers/2026-10-25-implementation-notes.md) for verification scope and review fixes.

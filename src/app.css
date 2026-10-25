@@ -273,6 +273,53 @@ input {
   align-items: center;
   gap: 8px;
 }
+.demo-launch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 15px;
+  padding: 13px 15px;
+  background: #edf1e5;
+  border: 1px solid #d7dfca;
+  border-radius: 10px;
+}
+.demo-launch > span {
+  font-size: 10px;
+  color: #55674b;
+}
+.demo-banner {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 10px 24px;
+  flex-shrink: 0;
+  background: #edf1e5;
+  color: #435a3d;
+  border-bottom: 1px solid #d7dfca;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.demo-tag {
+  color: #435a3d;
+  font-weight: 600;
+}
+.demo-question {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #d7dfca;
+  border-radius: 10px;
+  background: #f2f5eb;
+}
+.demo-question h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.demo-question p {
+  font-size: 13px;
+  line-height: 1.8;
+}
 .green-dot {
   display: inline-block;
   width: 5px;
@@ -1173,6 +1220,7 @@ input {
   .exploring .app-header {
     height: 60px;
     padding: 0 16px;
+    gap: 8px;
   }
   .exploring .header-actions {
     gap: 12px;
@@ -1188,6 +1236,7 @@ input {
     font-size: 8px;
     max-width: 75px;
     line-height: 1.5;
+    white-space: normal;
   }
   .workspace-toolbar {
     padding: 8px 14px;

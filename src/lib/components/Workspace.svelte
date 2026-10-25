@@ -80,6 +80,7 @@
   </div>
   {#key selected.id}<TopicReader
       node={selected}
+      demo={exploration.mode === 'demo'}
       onFollow={follow}
       onRefresh={() => session.refresh(selected.id)}
       onClarify={(answer) => session.clarify(selected.id, answer)}
