@@ -5,15 +5,15 @@ The approved horizontal tree and reader are implemented on `feat/knowledge-tree`
 ## Verification
 
 - `pnpm check`: zero errors or warnings.
-- `pnpm test:unit`: 32 passing tests across ten files.
-- `pnpm test:e2e`: 13 passing browser scenarios, with mocked research responses.
+- `pnpm test:unit`: 33 passing tests across ten files.
+- `pnpm test:e2e`: 14 passing browser scenarios, with mocked research responses.
 - `pnpm build`: production build succeeded.
 - Dependency audit: no known vulnerabilities in the installed dependency set.
 - Private HTTPS runtime: access redirects with 303 and a Secure, HttpOnly, SameSite=Strict cookie; root responds with 200 and a content security policy. Anonymous research is rejected with 401, and an incorrect Origin is rejected with 403.
 - The rebuilt, authenticated research endpoint responds with 503 / `SETUP_REQUIRED` because both provider keys are absent. The bounded live smoke exits without provider calls when credentials are missing.
 - Desktop and 390px phone viewports were inspected through the private production endpoint. This does not establish physical-device behavior.
 
-Live research remains unverified. Configure `OPENAI_API_KEY` and `TAVILY_API_KEY` in the ignored `.env`, restart the server and run `pnpm live-smoke`. Do not paste keys into chat or commit them.
+Live research remains unverified and is excluded from this handoff at the user's request. To enable research, configure `OPENAI_API_KEY` and `TAVILY_API_KEY` in the ignored `.env` and restart the server. Do not paste keys into chat or commit them. No live provider calls were made.
 
 ## Final review
 
@@ -32,6 +32,8 @@ The complete unit and browser suites passed after this fix pass. No second revie
 4. Accept the independently checked private HTTPS endpoint and desktop/phone browser viewports as runtime evidence. The reviewer did not independently assess Tailscale, physical phones or visual/accessibility behavior. Cost if wrong: device-specific or accessibility problems can remain despite the covered browser checks.
 5. Accept the recorded dependency audit without a second audit, and make no large-tree performance claim. The reviewer did not independently establish dependency provenance or run load tests. Cost if wrong: unreported supply-chain issues or poor performance on very large explorations can remain.
 
-## Deferred minor
+## Viewport follow-up
 
-Switching directly between two saved explorations in the library refocuses the destination's selected topic rather than restoring its exact saved pan and zoom. Saved content and selected topics remain available. A normal reload restores the saved viewport.
+The user requested that the deferred navigation issue be addressed. The map provider and canvas now remount when the exploration ID changes, so switching directly between saved explorations restores each exploration's exact saved pan and zoom. A browser regression with two distinct saved viewports reproduced the failure before the fix and passed afterward, including switching back without research calls. There are no remaining deferred review findings.
+
+The follow-up browser checks exposed an intermittent autosave problem. A timing trace showed stationary viewport animation events restarting the 300ms save timer about every 183ms, indefinitely in a reproduced failure. Session updates now ignore duplicate viewport-only events and floating point drift below 0.001 pixels and 0.000001 zoom. Meaningful movement and combined view changes still save. The session regression failed before the fix and passed afterward; the diagnostic browser reproduction also passed after the fix. Temporary diagnostic instrumentation was removed.

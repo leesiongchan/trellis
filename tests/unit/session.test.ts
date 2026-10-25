@@ -19,6 +19,20 @@ function setup(research: ResearchClient = vi.fn(async () => reply())) {
   return createSession({ research, onChange: vi.fn() });
 }
 describe('exploration session', () => {
+  it('does not postpone autosave for duplicate viewport events or floating point noise', () => {
+    const onChange = vi.fn();
+    const session = createSession({ research: vi.fn(), onChange });
+    session.load(makeExploration());
+    session.setView({ viewport: { x: 0, y: 0, zoom: 1 } });
+    session.setView({ viewport: { x: 0.00001, y: -0.00001, zoom: 1.00000001 } });
+    expect(onChange).not.toHaveBeenCalled();
+    session.setView({ viewport: { x: 20, y: 30, zoom: 0.8 } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(session.exploration!.view.viewport).toEqual({ x: 20, y: 30, zoom: 0.8 });
+    session.setView({ viewport: { x: 20, y: 30, zoom: 0.8 }, mobilePane: 'reader' });
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(session.exploration!.view.mobilePane).toBe('reader');
+  });
   it('onlyResearchesOpenedNodes and selectDoesNotExpand', async () => {
     const research = vi.fn(async () => reply()),
       session = setup(research);

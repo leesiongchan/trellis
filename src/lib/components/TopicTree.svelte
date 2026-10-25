@@ -5,4 +5,6 @@
   let props: ComponentProps<typeof TreeCanvas> = $props();
 </script>
 
-<SvelteFlowProvider><TreeCanvas {...props} /></SvelteFlowProvider>
+{#key props.exploration.id}
+  <SvelteFlowProvider><TreeCanvas {...props} /></SvelteFlowProvider>
+{/key}

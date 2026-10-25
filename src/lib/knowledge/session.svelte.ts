@@ -114,6 +114,19 @@ export class KnowledgeSession {
     });
   }
   setView(patch: Partial<ViewState>) {
+    const previous = this.exploration?.view.viewport,
+      next = patch.viewport;
+    // Fit animations can emit the same endpoint repeatedly. Avoid restarting autosave
+    // (and the map's reactive layout) for duplicates or imperceptible numeric drift.
+    if (
+      previous &&
+      next &&
+      Object.keys(patch).length === 1 &&
+      Math.abs(previous.x - next.x) < 0.001 &&
+      Math.abs(previous.y - next.y) < 0.001 &&
+      Math.abs(previous.zoom - next.zoom) < 0.000001
+    )
+      return;
     this.update((v) => {
       v.view = { ...v.view, ...patch };
     });

@@ -75,8 +75,8 @@ See [the approved design](docs/superpowers/specs/2026-10-25-knowledge-tree-desig
 
 ## Verification recorded on 2026-10-25
 
-The local implementation passed 32 unit/integration tests and 13 browser scenarios, including phone layout, reloads, conflicting saves, failed refreshes, unreadable saved records and deletion during research across tabs. Type checking and the production build passed. The dependency audit reported no known vulnerabilities.
+The local implementation passed 33 unit/integration tests and 14 browser scenarios, including phone layout, reloads, switching saved viewports, conflicting saves, failed refreshes, unreadable saved records and deletion during research across tabs. Type checking and the production build passed. The dependency audit reported no known vulnerabilities.
 
 Live provider-backed research is **unverified** until both API credentials are configured and the bounded live smoke passes. Local browser tests through a Tailscale URL verify that endpoint, not a separate physical device.
 
-See [implementation and review notes](docs/superpowers/2026-10-25-implementation-notes.md) for verification scope and the deferred navigation issue.
+See [implementation and review notes](docs/superpowers/2026-10-25-implementation-notes.md) for verification scope and review fixes.
