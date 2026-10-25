@@ -27,6 +27,7 @@ fn context() -> JobContext {
         deadline: tokio::time::Instant::now() + Duration::from_secs(2),
         cancel: tokio_util::sync::CancellationToken::new(),
         job_id: "pipeline-test".into(),
+        telemetry: None,
     }
 }
 fn input() -> ResearchRequest {

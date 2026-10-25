@@ -42,7 +42,15 @@ pub async fn research_topic(
     let ResearchResult::Topic { content } = &result else {
         return Ok(result);
     };
-    if grounding::validate_evidence(content, &sources).is_err() {
+    let timer = ctx
+        .telemetry
+        .as_ref()
+        .map(|t| t.start(crate::telemetry::Stage::Grounding, &ctx.job_id));
+    let evidence = grounding::validate_evidence(content, &sources);
+    if let Some(timer) = timer {
+        timer.finish(&evidence);
+    }
+    if evidence.is_err() {
         return Ok(ResearchResult::InsufficientEvidence {
             message:
                 "The explanation did not pass its source check. Try again or narrow the topic."

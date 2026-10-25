@@ -37,6 +37,7 @@ pub struct HttpProviders {
     config: Arc<Config>,
     client: reqwest::Client,
     endpoints: ProviderEndpoints,
+    telemetry: Option<Arc<crate::telemetry::Telemetry>>,
 }
 impl HttpProviders {
     pub fn production(config: Arc<Config>) -> Result<Self, AppError> {
@@ -63,7 +64,31 @@ impl HttpProviders {
             config,
             client,
             endpoints,
+            telemetry: None,
         })
+    }
+    pub fn with_telemetry(mut self, telemetry: Arc<crate::telemetry::Telemetry>) -> Self {
+        self.telemetry = Some(telemetry);
+        self
+    }
+    async fn observed<T>(
+        &self,
+        stage: crate::telemetry::Stage,
+        ctx: &JobContext,
+        future: impl Future<Output = Result<T, AppError>>,
+    ) -> Result<T, AppError> {
+        use tracing::Instrument;
+        let timer = ctx
+            .telemetry
+            .as_ref()
+            .or(self.telemetry.as_ref())
+            .map(|t| t.start(stage, &ctx.job_id));
+        let span = tracing::info_span!("research_stage",entryPoint="research_endpoint",jobId=%ctx.job_id,stage=stage.name());
+        let result = future.instrument(span).await;
+        if let Some(timer) = timer {
+            timer.finish(&result);
+        }
+        result
     }
 }
 impl ResearchProvider for HttpProviders {
@@ -72,7 +97,11 @@ impl ResearchProvider for HttpProviders {
         query: &'a str,
         ctx: &'a JobContext,
     ) -> ProviderFuture<'a, Vec<RetrievedSource>> {
-        Box::pin(self.search_evidence(query, ctx))
+        Box::pin(self.observed(
+            crate::telemetry::Stage::Search,
+            ctx,
+            self.search_evidence(query, ctx),
+        ))
     }
     fn generate<'a>(
         &'a self,
@@ -80,7 +109,11 @@ impl ResearchProvider for HttpProviders {
         sources: &'a [RetrievedSource],
         ctx: &'a JobContext,
     ) -> ProviderFuture<'a, ResearchResult> {
-        Box::pin(self.generate_topic(input, sources, ctx))
+        Box::pin(self.observed(
+            crate::telemetry::Stage::Generation,
+            ctx,
+            self.generate_topic(input, sources, ctx),
+        ))
     }
     fn verify<'a>(
         &'a self,
@@ -88,6 +121,10 @@ impl ResearchProvider for HttpProviders {
         sources: &'a [RetrievedSource],
         ctx: &'a JobContext,
     ) -> ProviderFuture<'a, GroundingVerdict> {
-        Box::pin(self.verify_grounding(content, sources, ctx))
+        Box::pin(self.observed(
+            crate::telemetry::Stage::Verification,
+            ctx,
+            self.verify_grounding(content, sources, ctx),
+        ))
     }
 }

@@ -41,6 +41,7 @@ pub struct Coordinator {
     inner: Mutex<Inner>,
     capacity: Arc<Semaphore>,
     tasks: TaskTracker,
+    telemetry: Option<Arc<crate::telemetry::Telemetry>>,
 }
 pub struct JobSnapshot {
     pub active: usize,
@@ -49,18 +50,40 @@ pub struct JobSnapshot {
 }
 impl Coordinator {
     pub fn new(provider: Arc<dyn ResearchProvider>, limits: Limits) -> Arc<Self> {
+        Self::build(provider, limits, None)
+    }
+    pub fn instrumented(
+        provider: Arc<dyn ResearchProvider>,
+        limits: Limits,
+        telemetry: Arc<crate::telemetry::Telemetry>,
+    ) -> Arc<Self> {
+        Self::build(provider, limits, Some(telemetry))
+    }
+    fn build(
+        provider: Arc<dyn ResearchProvider>,
+        limits: Limits,
+        telemetry: Option<Arc<crate::telemetry::Telemetry>>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             provider,
             capacity: Arc::new(Semaphore::new(limits.concurrent)),
             limits,
             inner: Mutex::new(Inner::default()),
             tasks: TaskTracker::new(),
+            telemetry,
         })
     }
     fn lock(&self) -> MutexGuard<'_, Inner> {
         self.inner
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+    fn rejection(&self, kind: ErrorCode) -> AppError {
+        let error = AppError::new(kind);
+        if let Some(telemetry) = &self.telemetry {
+            telemetry.rejected(&error);
+        }
+        error
     }
     pub fn admit(self: &Arc<Self>, input: ResearchRequest) -> Result<Waiter, AppError> {
         let canonical =
@@ -76,10 +99,10 @@ impl Coordinator {
             state.starts.pop_front();
         }
         if state.draining {
-            return Err(AppError::new(ErrorCode::ServerDraining));
+            return Err(self.rejection(ErrorCode::ServerDraining));
         }
         if state.waiters >= self.limits.waiters {
-            return Err(AppError::new(ErrorCode::ResearchLimit));
+            return Err(self.rejection(ErrorCode::ResearchLimit));
         }
         if let Some(entry) = state.entries.get_mut(&key) {
             entry.waiters += 1;
@@ -90,16 +113,20 @@ impl Coordinator {
                 receiver: entry.sender.subscribe(),
             };
             state.waiters += 1;
+            if let Some(telemetry) = &self.telemetry {
+                telemetry.waiter_added();
+                telemetry.shared();
+            }
             return Ok(waiter);
         }
         if state.starts.len() >= self.limits.per_minute {
-            return Err(AppError::new(ErrorCode::ResearchLimit));
+            return Err(self.rejection(ErrorCode::ResearchLimit));
         }
         let permit = self
             .capacity
             .clone()
             .try_acquire_owned()
-            .map_err(|_| AppError::new(ErrorCode::ResearchLimit))?;
+            .map_err(|_| self.rejection(ErrorCode::ResearchLimit))?;
         let generation = uuid::Uuid::new_v4().simple().to_string();
         let cancel = CancellationToken::new();
         let (sender, receiver) = watch::channel(None);
@@ -120,6 +147,10 @@ impl Coordinator {
         );
         state.starts.push_back(now);
         state.waiters += 1;
+        if let Some(telemetry) = &self.telemetry {
+            telemetry.waiter_added();
+            telemetry.job_started();
+        }
         let guard = JobGuard {
             owner: Arc::downgrade(self),
             key,
@@ -133,6 +164,7 @@ impl Coordinator {
             deadline: now + self.limits.research,
             cancel,
             job_id: generation,
+            telemetry: self.telemetry.clone(),
         };
         self.tasks.spawn(async move {
             let work=AssertUnwindSafe(async {
@@ -143,6 +175,7 @@ impl Coordinator {
                 }
             }).catch_unwind().await;
             let outcome=work.unwrap_or_else(|_|Err(AppError::new(ErrorCode::InternalFailure)));
+            tracing::info!(event="research_completed",entryPoint="research_endpoint",jobId=%ctx.job_id,code=outcome.as_ref().err().map(AppError::code).unwrap_or("ok"));
             guard.publish(outcome.map(Arc::new).map_err(Arc::new));
         });
         Ok(waiter)
@@ -174,6 +207,9 @@ impl Coordinator {
     fn release(&self, key: &str, generation: &str) {
         let mut state = self.lock();
         state.waiters = state.waiters.saturating_sub(1);
+        if let Some(telemetry) = &self.telemetry {
+            telemetry.waiter_removed();
+        }
         if let Some(entry) = state.entries.get_mut(key)
             && entry.generation == generation
         {
@@ -214,6 +250,9 @@ impl Drop for JobGuard {
                 .is_some_and(|e| e.generation == self.generation)
             {
                 state.entries.remove(&self.key);
+            }
+            if let Some(telemetry) = &owner.telemetry {
+                telemetry.job_finished();
             }
         }
         self.permit.take();

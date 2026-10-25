@@ -21,6 +21,11 @@ reqwest = { version = "=0.13.5", default-features = false, features = ["rustls",
 tokio-util = { version = "=0.7.20", features = ["rt"] }
 uuid = { version = "1", features = ["v4"] }
 futures-util = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+prometheus-client = "=0.25.1"
+http-body-util = "0.1"
+tower-http = { version = "=0.7.1", default-features = false, features = ["sensitive-headers"] }
 
 [dev-dependencies]
 tokio = { version = "=1.54.1", features = ["test-util"] }

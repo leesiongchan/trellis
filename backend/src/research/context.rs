@@ -6,6 +6,7 @@ pub struct JobContext {
     pub deadline: Instant,
     pub cancel: CancellationToken,
     pub job_id: String,
+    pub telemetry: Option<std::sync::Arc<crate::telemetry::Telemetry>>,
 }
 impl JobContext {
     pub fn check(&self) -> Result<(), AppError> {
