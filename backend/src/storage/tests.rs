@@ -32,12 +32,16 @@ async fn embedded_nested_answer_round_trip() {
         let guard = store.client.read().await;
         let db = guard.as_ref().unwrap();
         db.query("CREATE fixture:answer CONTENT {summary:[{text:'Flash retains charge.',evidence:[{sourceId:'s1',quote:'Flash retains charge.'}]}],sources:[{id:'s1',url:'https://example.org/flash',retrievedAt:'2026-10-27T00:00:00Z'}]};").await.unwrap().check().unwrap();
-        db.query("RETURN fixture:answer;")
+        db.query("SELECT * FROM ONLY fixture:answer;")
             .await
             .unwrap()
             .take::<surrealdb::types::Value>(0)
             .unwrap()
     };
+    assert_eq!(
+        before.clone().into_json_value()["summary"][0]["text"],
+        "Flash retains charge."
+    );
     store.close().await.unwrap();
     let store = KnowledgeStore::open(&config).await.unwrap();
     let after = {
@@ -45,7 +49,7 @@ async fn embedded_nested_answer_round_trip() {
         guard
             .as_ref()
             .unwrap()
-            .query("RETURN fixture:answer;")
+            .query("SELECT * FROM ONLY fixture:answer;")
             .await
             .unwrap()
             .take::<surrealdb::types::Value>(0)
@@ -53,4 +57,23 @@ async fn embedded_nested_answer_round_trip() {
     };
     assert_eq!(after, before);
     store.close().await.unwrap();
+}
+
+#[test]
+fn transaction_root_error_is_not_hidden_by_rollback_markers() {
+    use surrealdb::types::{Error, QueryError};
+    let errors = vec![
+        (
+            0,
+            Error::query("not executed".into(), QueryError::NotExecuted),
+        ),
+        (
+            1,
+            Error::query("conflict".into(), QueryError::TransactionConflict),
+        ),
+    ];
+    assert_eq!(
+        super::root_query_error(errors).unwrap().query_details(),
+        Some(&QueryError::TransactionConflict)
+    );
 }

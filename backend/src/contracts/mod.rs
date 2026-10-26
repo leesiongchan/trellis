@@ -1,4 +1,5 @@
 //! Validated wire contracts shared with the browser.
+pub mod library;
 mod validation;
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};

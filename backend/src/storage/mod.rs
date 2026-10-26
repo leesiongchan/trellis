@@ -1,5 +1,8 @@
 //! The sole embedded datastore and its bounded access boundary.
 mod config;
+pub mod operations;
+pub mod records;
+mod schema;
 pub use config::StorageConfig;
 
 use crate::error::{AppError, ErrorCode};
@@ -23,7 +26,23 @@ const LOCK_FILE: &str = ".branch-storage.lock";
 pub(crate) const STORAGE_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn storage_error() -> AppError {
-    AppError::new(ErrorCode::InternalFailure)
+    AppError::new(ErrorCode::StorageUnavailable)
+}
+
+// SurrealDB marks earlier transaction statements as NotExecuted after rollback.
+// Select the substantive error so only genuine serialization conflicts retry.
+fn root_query_error(mut errors: Vec<(usize, surrealdb::Error)>) -> Option<surrealdb::Error> {
+    use surrealdb::types::QueryError;
+    errors.sort_by_key(|(index, _)| *index);
+    let substantive = errors.iter().position(|(_, e)| {
+        !matches!(
+            e.query_details(),
+            Some(QueryError::NotExecuted | QueryError::Cancelled)
+        )
+    });
+    substantive
+        .or_else(|| (!errors.is_empty()).then_some(0))
+        .map(|index| errors.remove(index).1)
 }
 
 pub struct KnowledgeStore {
@@ -137,6 +156,50 @@ impl KnowledgeStore {
             admission: Semaphore::new(16),
             lock: Mutex::new(Some(lock)),
         })
+    }
+
+    /// Only repository-owned SQL enters here; values always use bound parameters.
+    /// Retry local serialization conflicts only. No external effect is in this boundary.
+    pub(crate) async fn query(
+        &self,
+        sql: &str,
+        bindings: serde_json::Value,
+    ) -> Result<surrealdb::IndexedResults, AppError> {
+        let _permit = tokio::time::timeout(STORAGE_TIMEOUT, self.admission.acquire())
+            .await
+            .map_err(|_| AppError::new(ErrorCode::StorageBusy))?
+            .map_err(|_| storage_error())?;
+        let guard = self.client.read().await;
+        let db = guard.as_ref().ok_or_else(storage_error)?;
+        for attempt in 0..3 {
+            let result = db
+                .query(sql)
+                .bind(bindings.clone())
+                .await
+                .and_then(|mut response| {
+                    match root_query_error(response.take_errors().into_iter().collect()) {
+                        Some(error) => Err(error),
+                        None => Ok(response),
+                    }
+                });
+            match result {
+                Ok(value) => return Ok(value),
+                Err(error)
+                    if error.query_details()
+                        == Some(&surrealdb::types::QueryError::TransactionConflict) =>
+                {
+                    if attempt == 2 {
+                        return Err(AppError::new(ErrorCode::StorageBusy));
+                    }
+                    tokio::task::yield_now().await;
+                }
+                Err(error) => {
+                    tracing::error!(error_kind = error.kind_str(), "library query failed");
+                    return Err(storage_error());
+                }
+            }
+        }
+        Err(AppError::new(ErrorCode::StorageBusy))
     }
 
     /// Finish outstanding local queries and drop the sole SDK connection.

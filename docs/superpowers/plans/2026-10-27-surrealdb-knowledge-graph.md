@@ -71,7 +71,7 @@ assert!(second_open.is_err());
 
 Produce `KnowledgeStore::install_schema() -> Result<(),AppError>`, `claim_operation(intent: &OperationIntent) -> Result<ClaimOutcome,AppError>`, `operation(id: &OperationId) -> Result<OperationView,AppError>`, and `question_key(input: &ResolvedQuestion) -> QuestionKey`. `OperationIntent` contains command ID, epoch, stable canonical payload hash, target, and creation time; `ClaimOutcome` is claimed/replay. `ResolvedQuestion` contains normalized wording, nullable clarification, locale, bounded stored ancestors, interpretation, and normalization/context encoding version.
 
-- [ ] **Step 1 — Write failing checks.** Shared Rust/TS fixtures assert required nullable fields, opaque IDs, protocol/schema version 2, existing content limits, and unknown-field handling. `exact_key_preserves_context` asserts different keys for “volatile”/“nonvolatile,” units, changed ancestors/clarification/locale, and stable keys for agreed whitespace/case normalization. `operation_claim_is_atomic` sends 12 simultaneous identical intents: exactly one is claimed, the rest replay; a reused ID with a different payload or old epoch returns conflict.
+- [x] **Step 1 — Write failing checks.** Shared Rust/TS fixtures assert required nullable fields, opaque IDs, protocol/schema version 2, existing content limits, and unknown-field handling. `exact_key_preserves_context` asserts different keys for “volatile”/“nonvolatile,” units, changed ancestors/clarification/locale, and stable keys for agreed whitespace/case normalization. `operation_claim_is_atomic` sends 12 simultaneous identical intents: exactly one is claimed, the rest replay; a reused ID with a different payload or old epoch returns conflict.
 Assertion anchors (fixture variables are local to these named tests):
 
 ```rust
@@ -80,10 +80,10 @@ assert_eq!(replayed, 11);
 assert_ne!(volatile_key, nonvolatile_key);
 ```
 
-- [ ] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test library_contracts --test operations` and `pnpm exec vitest run tests/unit/library-contracts.test.ts`; failures must identify missing contracts or invariants.
-- [ ] **Step 3 — Implement types and schema version 1.** Install explicit record/relationship schemas and unique indexes for exact keys, operation IDs, one active attempt per topic, appearance ownership, answer revisions, directional edges, symmetric pairs, and import digests. Keep mutable topic pointers separate from immutable answers. Add safe error codes for storage unavailable/busy, revision conflict, intent conflict, interrupted work, invalid import, and reload required. Retry only serialization conflicts, at most three attempts; never run an external effect inside this retry.
-- [ ] **Step 4 — Verify green.** Re-run both targeted commands with Cargo `--locked`, then the existing contract suite and `pnpm check`. Confirm repository records and wire types do not leak SDK types into Svelte.
-- [ ] **Step 5 — Commit.** `feat: define library contracts and atomic operation replay`.
+- [x] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test library_contracts --test operations` and `pnpm exec vitest run tests/unit/library-contracts.test.ts`; failures must identify missing contracts or invariants.
+- [x] **Step 3 — Implement types and schema version 1.** Install explicit record/relationship schemas and unique indexes for exact keys, operation IDs, one active attempt per topic, appearance ownership, answer revisions, directional edges, symmetric pairs, and import digests. Keep mutable topic pointers separate from immutable answers. Add safe error codes for storage unavailable/busy, revision conflict, intent conflict, interrupted work, invalid import, and reload required. Retry only serialization conflicts, at most three attempts; never run an external effect inside this retry.
+- [x] **Step 4 — Verify green.** Re-run both targeted commands with Cargo `--locked`, then the existing contract suite and `pnpm check`. Confirm repository records and wire types do not leak SDK types into Svelte.
+- [x] **Step 5 — Commit.** `feat: define library contracts and atomic operation replay`.
 
 ## Task 3: Save topic appearances and preserve shared content on deletion
 

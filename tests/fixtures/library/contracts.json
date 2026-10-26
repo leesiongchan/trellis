@@ -1,0 +1,229 @@
+[
+  {
+    "name": "normalized create",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en"
+      }
+    },
+    "valid": true,
+    "normalized": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "How does memory work?",
+        "locale": "en"
+      }
+    }
+  },
+  {
+    "name": "unknown fields stripped",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en",
+        "extra": 2
+      },
+      "extra": 1
+    },
+    "valid": true,
+    "normalized": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "How does memory work?",
+        "locale": "en"
+      }
+    }
+  },
+  {
+    "name": "missing nullable",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "record reference ID",
+    "kind": "create",
+    "input": {
+      "operationId": "operation:123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "old epoch",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 0,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "fractional revision",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": 0.5,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "blank question",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  ",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "oversized question",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "locale": "en"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "oversized locale",
+    "kind": "create",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "question": "  How does memory work?  ",
+        "locale": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "research nullable",
+    "kind": "research",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "appearanceId": "a-1",
+        "refresh": false,
+        "clarification": null
+      }
+    },
+    "valid": true,
+    "normalized": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "appearanceId": "a-1",
+        "refresh": false,
+        "clarification": null
+      }
+    }
+  },
+  {
+    "name": "missing clarification",
+    "kind": "research",
+    "input": {
+      "operationId": "op-123",
+      "libraryEpoch": 1,
+      "expectedRevision": null,
+      "payload": {
+        "appearanceId": "a-1",
+        "refresh": false
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "library protocol2",
+    "kind": "library",
+    "input": {
+      "protocolVersion": 2,
+      "schemaVersion": 2,
+      "libraryId": "lib_123",
+      "libraryEpoch": 1,
+      "discovery": "unavailable"
+    },
+    "valid": true,
+    "normalized": {
+      "protocolVersion": 2,
+      "schemaVersion": 2,
+      "libraryId": "lib_123",
+      "libraryEpoch": 1,
+      "discovery": "unavailable"
+    }
+  },
+  {
+    "name": "reject old protocolVersion",
+    "kind": "library",
+    "input": {
+      "protocolVersion": 1,
+      "schemaVersion": 2,
+      "libraryId": "lib_123",
+      "libraryEpoch": 1,
+      "discovery": "unavailable"
+    },
+    "valid": false
+  },
+  {
+    "name": "reject old schemaVersion",
+    "kind": "library",
+    "input": {
+      "protocolVersion": 2,
+      "schemaVersion": 1,
+      "libraryId": "lib_123",
+      "libraryEpoch": 1,
+      "discovery": "unavailable"
+    },
+    "valid": false
+  }
+]

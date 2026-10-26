@@ -28,6 +28,13 @@ pub enum ErrorCode {
     ServerDraining,
     InternalFailure,
     InvalidConfig,
+    StorageUnavailable,
+    StorageBusy,
+    RevisionConflict,
+    IntentConflict,
+    WorkInterrupted,
+    InvalidImport,
+    ReloadRequired,
 }
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("{code}: {message}", code = self.code(), message = self.message())]
@@ -175,6 +182,48 @@ impl AppError {
                 "Research could not finish. Please try again shortly.",
                 StatusCode::INTERNAL_SERVER_ERROR,
                 true,
+            ),
+            StorageUnavailable => (
+                "STORAGE_UNAVAILABLE",
+                "The saved library is temporarily unavailable.",
+                StatusCode::SERVICE_UNAVAILABLE,
+                true,
+            ),
+            StorageBusy => (
+                "STORAGE_BUSY",
+                "The saved library is busy. Try again shortly.",
+                StatusCode::SERVICE_UNAVAILABLE,
+                true,
+            ),
+            RevisionConflict => (
+                "REVISION_CONFLICT",
+                "The library changed. Reload it before trying again.",
+                StatusCode::CONFLICT,
+                false,
+            ),
+            IntentConflict => (
+                "INTENT_CONFLICT",
+                "This operation ID was already used for another request.",
+                StatusCode::CONFLICT,
+                false,
+            ),
+            WorkInterrupted => (
+                "WORK_INTERRUPTED",
+                "Research was interrupted. Retry explicitly to continue.",
+                StatusCode::CONFLICT,
+                false,
+            ),
+            InvalidImport => (
+                "INVALID_IMPORT",
+                "The saved exploration could not be imported.",
+                StatusCode::UNPROCESSABLE_ENTITY,
+                false,
+            ),
+            ReloadRequired => (
+                "RELOAD_REQUIRED",
+                "Reload the app to use the current library protocol.",
+                StatusCode::UPGRADE_REQUIRED,
+                false,
             ),
             InvalidConfig => (
                 "INVALID_CONFIG",
