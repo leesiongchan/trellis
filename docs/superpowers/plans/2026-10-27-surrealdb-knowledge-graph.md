@@ -50,7 +50,7 @@ Public IDs (`LibraryId`, `ExplorationId`, `AppearanceId`, `TopicId`, `AnswerVers
 
 **Interfaces:** Produce `StorageConfig::from_values(values: &HashMap<String,String>, executable: &Path) -> Result<Self,AppError>`, `KnowledgeStore::open(config: &StorageConfig) -> Result<Self,AppError>`, and `KnowledgeStore::close(&self) -> Result<(),AppError>`. `StorageConfig` contains absolute data/backup paths and an optional model path. Use `APP_DATA_DIR` explicitly; default backup location to a separate sibling `backups` directory and model location to the executable's sibling `models` directory. Reject overlapping data, backup, public-asset, and model roots.
 
-- [ ] **Step 1 — Write failing integration checks.** `embedded_round_trip_and_exclusive_open` writes a nested answer to an owned temporary RocksDB directory, closes/reopens it, and asserts exact source/paragraph preservation; a simultaneous second open must fail. `invalid_storage_roots_are_rejected` covers relative paths, symlink escape, and backup/data overlap. These use a real embedded datastore, not HTTP or mocks.
+- [x] **Step 1 — Write failing integration checks.** `embedded_round_trip_and_exclusive_open` writes a nested answer to an owned temporary RocksDB directory, closes/reopens it, and asserts exact source/paragraph preservation; a simultaneous second open must fail. `invalid_storage_roots_are_rejected` covers relative paths, symlink escape, and backup/data overlap. These use a real embedded datastore, not HTTP or mocks.
 Assertion anchors (fixture variables are local to these named tests):
 
 ```rust
@@ -58,10 +58,10 @@ assert_eq!(reopened_answer, original_answer);
 assert!(second_open.is_err());
 ```
 
-- [ ] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test storage`; expect missing storage interfaces or failed persistence assertions, not an unexplained compiler/toolchain failure.
-- [ ] **Step 3 — Implement the foundation.** Pin SurrealDB 3.3.4 with default features disabled and only required local features. Set the SDK channel capacity to 32 and bound datastore admission to 16 concurrent calls with a five-second deadline. Open one fixed namespace/database, configure synchronous durability through the documented embedded API, create restricted directories, and close through the supported API. Keep schema installation for Task 2. Inspect native build scripts/dependency provenance and record C++/libclang requirements; preserve existing toolchain versions.
-- [ ] **Step 4 — Verify the gate.** Run the storage test with `--locked`, `cargo build --manifest-path backend/Cargo.toml --release --locked`, strict Clippy, and rustfmt. Inspect native linkage using platform tools (`otool -L` on macOS; `ldd` on Linux). Record required runtime libraries rather than assuming they are bundled. A missing compatible feature/API or one-process deployment failure stops later tasks for a concrete design revision.
-- [ ] **Step 5 — Commit.** `feat: add embedded SurrealDB storage foundation`.
+- [x] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test storage`; expect missing storage interfaces or failed persistence assertions, not an unexplained compiler/toolchain failure.
+- [x] **Step 3 — Implement the foundation.** Pin SurrealDB 3.3.4 with default features disabled and only required local features. Set the SDK channel capacity to 32 and bound datastore admission to 16 concurrent calls with a five-second deadline. Open one fixed namespace/database, configure synchronous durability through the documented embedded API, create restricted directories, and close through the supported API. Keep schema installation for Task 2. Inspect native build scripts/dependency provenance and record C++/libclang requirements; preserve existing toolchain versions.
+- [x] **Step 4 — Verify the gate.** Run the storage test with `--locked`, `cargo build --manifest-path backend/Cargo.toml --release --locked`, strict Clippy, and rustfmt. Inspect native linkage using platform tools (`otool -L` on macOS; `ldd` on Linux). Record required runtime libraries rather than assuming they are bundled. A missing compatible feature/API or one-process deployment failure stops later tasks for a concrete design revision.
+- [x] **Step 5 — Commit.** `feat: add embedded SurrealDB storage foundation`.
 
 ## Task 2: Define library contracts, schema, and operation replay
 
