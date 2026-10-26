@@ -101,6 +101,21 @@ pub fn canonical_hash(input: &Value) -> String {
 }
 pub(crate) fn now() -> Result<String, AppError> {
     time::OffsetDateTime::now_utc()
-        .format(&time::format_description::well_known::Rfc3339)
+        .format(
+            &time::format_description::parse_borrowed::<2>(
+                "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:9]Z",
+            )
+            .map_err(|_| AppError::new(crate::error::ErrorCode::InternalFailure))?,
+        )
         .map_err(|_| AppError::new(crate::error::ErrorCode::InternalFailure))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TopicRecord {
+    pub id: crate::contracts::library::TopicId,
+    pub question: String,
+    pub current_answer_version_id: Option<crate::contracts::library::AnswerVersionId>,
+    pub created_at: String,
+    pub updated_at: String,
 }

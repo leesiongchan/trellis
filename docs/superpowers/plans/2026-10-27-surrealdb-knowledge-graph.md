@@ -91,7 +91,7 @@ assert_ne!(volatile_key, nonvolatile_key);
 
 **Interfaces:** Produce `create_exploration(command: &Command<CreateExploration>) -> OperationView`, `add_branch(command: &Command<AddBranch>) -> OperationView`, `exploration(id: &ExplorationId) -> ExplorationSnapshot`, `explorations(cursor: Option<&str>, limit: usize) -> Page<ExplorationSummary>`, `topic(id: &TopicId, version: Option<&AnswerVersionId>) -> TopicView`, `delete_exploration(command: &Command<DeleteExploration>) -> OperationView`, and `purge_library(command: &Command<PurgeLibrary>) -> OperationView`. Define `ExplorationSummary` in Task 2's library contract module. Snapshots contain appearance IDs/parentage, topic references, original questions/context, answer pins, and a content revision; view state is excluded.
 
-- [ ] **Step 1 — Write failing checks.** `shared_topic_has_distinct_appearances` creates two explorations with identical resolved parent context reaching the same scoped question and asserts one topic, two appearances, original branch questions retained, and a valid tree in each snapshot. `different_context_is_not_identity` preserves identical “What is Apple?” questions under fruit and computing contexts. `delete_preserves_library_and_purge_fences_replay` checks shared topic retention, support-counted branch edges, deletion tombstones, changed epoch after purge, and rejection of old intents without recreating text. A lost purge response can replay its own content-free receipt and learn the new epoch without purging again. Include stale-revision and endpoint-ownership failures.
+- [x] **Step 1 — Write failing checks.** `shared_topic_has_distinct_appearances` creates two explorations with identical resolved parent context reaching the same scoped question and asserts one topic, two appearances, original branch questions retained, and a valid tree in each snapshot. `different_context_is_not_identity` preserves identical “What is Apple?” questions under fruit and computing contexts. `delete_preserves_library_and_purge_fences_replay` checks shared topic retention, support-counted branch edges, deletion tombstones, changed epoch after purge, and rejection of old intents without recreating text. A lost purge response can replay its own content-free receipt and learn the new epoch without purging again. Include stale-revision and endpoint-ownership failures.
 Assertion anchors (fixture variables are local to these named tests):
 
 ```rust
@@ -100,10 +100,10 @@ assert_ne!(first_appearance.id, second_appearance.id);
 assert!(epoch_after_purge > epoch_before_purge);
 ```
 
-- [ ] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test library` and inspect the failed semantic assertions.
-- [ ] **Step 3 — Implement atomic mutations.** Resolve exact identity through unique question keys and reread after races. Create/update exploration, appearances, occurrence support, and operation result in one transaction. Scope all references to the library and correct exploration; suppress canonical self-edges. Use stable list ordering by timestamp and ID. Exploration deletion retains topics/versions; explicit purge removes content and derived records while retaining content-free receipts and advancing epoch.
-- [ ] **Step 4 — Verify green.** Run library, operations, and storage integration tests `--locked`; assert a failed mutation leaves counts, pins, and revisions unchanged. Check page-size values 1, 100, and 101 with the documented maximum.
-- [ ] **Step 5 — Commit.** `feat: persist shared topics and exploration appearances`.
+- [x] **Step 2 — Verify red.** Run `cargo test --manifest-path backend/Cargo.toml --test library` and inspect the failed semantic assertions.
+- [x] **Step 3 — Implement atomic mutations.** Resolve exact identity through unique question keys and reread after races. Create/update exploration, appearances, occurrence support, and operation result in one transaction. Scope all references to the library and correct exploration; suppress canonical self-edges. Use stable list ordering by timestamp and ID. Exploration deletion retains topics/versions; explicit purge removes content and derived records while retaining content-free receipts and advancing epoch.
+- [x] **Step 4 — Verify green.** Run library, operations, and storage integration tests `--locked`; assert a failed mutation leaves counts, pins, and revisions unchanged. Check page-size values 1, 100, and 101 with the documented maximum.
+- [x] **Step 5 — Commit.** `feat: persist shared topics and exploration appearances`.
 
 ## Task 4: Commit researched answers before acknowledging completion
 

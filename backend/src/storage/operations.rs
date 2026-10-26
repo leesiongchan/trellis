@@ -115,3 +115,77 @@ impl KnowledgeStore {
         }
     }
 }
+
+impl KnowledgeStore {
+    pub(crate) fn intent<T: Serialize + ValidatedInput + serde::de::DeserializeOwned>(
+        command: &Command<T>,
+        target: &str,
+    ) -> Result<(Command<T>, OperationIntent), AppError> {
+        let command = Command::from_json(
+            serde_json::to_value(command).map_err(|_| AppError::invalid_question())?,
+        )?;
+        let intent = OperationIntent::new(
+            command.operation_id.clone(),
+            command.library_epoch,
+            serde_json::to_value(&command).map_err(|_| storage_error())?,
+            target,
+        )?;
+        Ok((command, intent))
+    }
+    pub(crate) async fn replay_existing(
+        &self,
+        intent: &OperationIntent,
+        purge_receipt: bool,
+    ) -> Result<Option<OperationView>, AppError> {
+        let info = self.library_info().await?;
+        let record = self.operation_record(&intent.id).await?;
+        if info.library_epoch != intent.library_epoch
+            && !(purge_receipt
+                && record
+                    .as_ref()
+                    .is_some_and(|r| r["target"] == "purge" && r["data"]["state"] == "completed"))
+        {
+            return Err(AppError::new(ErrorCode::RevisionConflict));
+        }
+        match record {
+            Some(record) => match Self::replay(intent, record)? {
+                ClaimOutcome::Replay(view) => Ok(Some(view)),
+                ClaimOutcome::Claimed(_) => unreachable!(),
+            },
+            None => Ok(None),
+        }
+    }
+    pub(crate) async fn commit_mutation(
+        &self,
+        intent: &OperationIntent,
+        body: &str,
+        mut bindings: Value,
+        result: OperationResult,
+    ) -> Result<OperationView, AppError> {
+        let view = OperationView {
+            id: intent.id.clone(),
+            state: OperationState::Completed,
+            result: Some(result),
+            error: None,
+            created_at: intent.created_at.clone(),
+            updated_at: intent.created_at.clone(),
+        };
+        bindings["epoch"] = json!(intent.library_epoch);
+        bindings["operationKey"] = json!(intent.id);
+        bindings["requestHash"] = json!(intent.request_hash);
+        bindings["target"] = json!(intent.target);
+        bindings["operationRecord"] = json!({"key":intent.id,"requestHash":intent.request_hash,"libraryEpoch":intent.library_epoch,"target":intent.target,"data":view});
+        let sql = format!(
+            "BEGIN TRANSACTION; IF library:main.epoch != $epoch {{ THROW 'library_epoch_changed'; }}; LET $existing=(SELECT * FROM ONLY type::record('operation',$operationKey)); IF $existing != NONE {{ IF $existing.requestHash != $requestHash OR $existing.target != $target {{ THROW 'intent_conflict'; }}; }} ELSE {{ {body} CREATE ONLY type::record('operation',$operationKey) CONTENT $operationRecord; }}; COMMIT TRANSACTION;"
+        );
+        match self.query(&sql, bindings).await {
+            Ok(_) => self.operation(&intent.id).await,
+            Err(error) => {
+                if let Some(view) = self.replay_existing(intent, false).await? {
+                    return Ok(view);
+                }
+                Err(error)
+            }
+        }
+    }
+}

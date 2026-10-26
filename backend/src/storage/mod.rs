@@ -1,5 +1,6 @@
 //! The sole embedded datastore and its bounded access boundary.
 mod config;
+mod library;
 pub mod operations;
 pub mod records;
 mod schema;
@@ -194,6 +195,22 @@ impl KnowledgeStore {
                     tokio::task::yield_now().await;
                 }
                 Err(error) => {
+                    if error.is_thrown() {
+                        let kind = match error
+                            .message()
+                            .strip_prefix("An error occurred: ")
+                            .unwrap_or(error.message())
+                        {
+                            "library_epoch_changed" | "revision_conflict" => {
+                                ErrorCode::RevisionConflict
+                            }
+                            "intent_conflict" => ErrorCode::IntentConflict,
+                            "missing_reference" => ErrorCode::NotFound,
+                            "content_limit" => ErrorCode::BodyTooLarge,
+                            _ => ErrorCode::StorageUnavailable,
+                        };
+                        return Err(AppError::new(kind));
+                    }
                     tracing::error!(error_kind = error.kind_str(), "library query failed");
                     return Err(storage_error());
                 }
