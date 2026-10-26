@@ -139,3 +139,38 @@ fn add_paragraph_ids(draft: &mut Value) -> Result<(), AppError> {
     }
     Ok(())
 }
+
+impl crate::knowledge::verification::ConnectionVerifier for HttpProviders {
+    fn model_id(&self) -> &str {
+        &self.config.model
+    }
+    fn verify<'a>(
+        &'a self,
+        candidates: &'a [crate::knowledge::matching::MatchCandidate],
+        ctx: &'a JobContext,
+    ) -> ProviderFuture<'a, crate::knowledge::verification::ConnectionVerdict> {
+        Box::pin(self.observed(
+            crate::telemetry::Stage::ConnectionVerification,
+            ctx,
+            async move {
+                let data = crate::knowledge::verification::comparison_data(candidates)?;
+                let raw = self
+                    .response(
+                        crate::knowledge::verification::CONNECTION_PROMPT,
+                        data,
+                        (
+                            "connection_verdict",
+                            include_str!("schemas/connections.json"),
+                        ),
+                        2500,
+                        ctx,
+                        ErrorCode::InvalidExplanation,
+                    )
+                    .await?;
+                let verdict = crate::knowledge::verification::ConnectionVerdict::from_json(raw)?;
+                verdict.validate(candidates)?;
+                Ok(verdict)
+            },
+        ))
+    }
+}

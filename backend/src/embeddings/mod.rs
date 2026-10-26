@@ -187,3 +187,9 @@ pub struct SearchHit {
 }
 mod worker;
 pub use worker::EmbeddingWorker;
+
+#[derive(Debug, Clone)]
+pub(crate) struct QuerySearchHit {
+    pub query_index: usize,
+    pub hit: SearchHit,
+}

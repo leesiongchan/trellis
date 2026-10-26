@@ -3,6 +3,7 @@ use super::*;
 use crate::{contracts::library::*, embeddings::*};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+const RETRIEVAL_FILTER: &str = "modelVersion=$model AND data.sourceKind=$kind AND ($exclude=NULL OR data.topicId!=$exclude) AND ($cursor=NULL OR key>$cursor) AND ($kind='question' OR !$visible OR data.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.answerVersionId LIMIT 1))>0)";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EmbeddingCursor {
@@ -145,6 +146,27 @@ impl KnowledgeStore {
             .await?;
         Ok(value == "completed")
     }
+    pub(crate) async fn matching_completed(
+        &self,
+        source: &EmbeddingSource,
+        model: &str,
+    ) -> Result<bool, AppError> {
+        let value = self
+            .query_value(
+                "SELECT VALUE data.state FROM ONLY type::record('match_state',$key);",
+                json!({"key":state_key(source,model)}),
+            )
+            .await?;
+        Ok(value == "completed")
+    }
+    pub(crate) async fn complete_matching(
+        &self,
+        source: &EmbeddingSource,
+        model: &str,
+    ) -> Result<(), AppError> {
+        self.query("BEGIN TRANSACTION; IF library:main.epoch=$epoch { UPSERT type::record('match_state',$key) CONTENT {key:$key,data:{state:'completed'}}; }; COMMIT TRANSACTION;", json!({"epoch":source.library_epoch,"key":state_key(source,model)})).await?;
+        Ok(())
+    }
     pub(crate) async fn embedding_failed(
         &self,
         source: &EmbeddingSource,
@@ -199,38 +221,145 @@ impl KnowledgeStore {
         filter: &SearchFilter,
         limit: usize,
     ) -> Result<Vec<SearchHit>, AppError> {
-        if !(1..=10).contains(&limit) {
+        Ok(self
+            .nearest_many(std::slice::from_ref(input), filter, limit)
+            .await?
+            .into_iter()
+            .map(|v| v.hit)
+            .collect())
+    }
+    /// Stream target pages once and retain the winning source passage for each hit.
+    pub(crate) async fn nearest_many(
+        &self,
+        inputs: &[SearchVector],
+        filter: &SearchFilter,
+        limit: usize,
+    ) -> Result<Vec<QuerySearchHit>, AppError> {
+        if inputs.is_empty() || inputs.len() > 64 || !(1..=10).contains(&limit) {
             return Err(AppError::invalid_question());
         }
-        let input = SearchVector::new(input.model_version.clone(), input.values.clone(), 384)
-            .map_err(|_| AppError::invalid_question())?;
+        let version = inputs[0].model_version.clone();
+        let mut normalized = vec![];
+        for input in inputs {
+            if input.model_version != version {
+                return Err(AppError::invalid_question());
+            }
+            normalized.push(
+                SearchVector::new(version.clone(), input.values.clone(), 384)
+                    .map_err(|_| AppError::invalid_question())?,
+            );
+        }
         let exists = self
             .query_value(
                 "RETURN record::exists(type::record('embedding_model',$key));",
-                json!({"key":input.model_version}),
+                json!({"key":version}),
             )
             .await?;
         if exists != true {
             return Ok(vec![]);
         }
+        let normalized = std::sync::Arc::new(normalized);
         tokio::time::timeout(STORAGE_TIMEOUT,async{
-   let mut cursor:Option<String>=None;let mut hits:Vec<SearchHit>=vec![];
-   loop{
-    let value=self.query_value("SELECT key,sourceKey,inputHash,data FROM embedding WHERE modelVersion=$model AND data.sourceKind=$kind AND ($exclude=NULL OR data.topicId!=$exclude) AND ($cursor=NULL OR key>$cursor) AND ($kind='question' OR !$visible OR data.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.answerVersionId LIMIT 1))>0) ORDER BY key ASC LIMIT 512;",json!({"model":input.model_version,"kind":filter.kind,"exclude":filter.exclude_topic,"cursor":cursor,"visible":filter.current_and_pinned_only})).await?;
-    let rows=value.as_array().ok_or_else(storage_error)?;
-    for row in rows{
-     let record:VectorRecord=serde_json::from_value(row["data"].clone()).map_err(|_|storage_error())?;
-     if record.source_kind!=filter.kind || record.values.len()!=384 || record.values.iter().any(|v|!v.is_finite()){return Err(storage_error());}
-     let score=input.values.iter().zip(&record.values).map(|(a,b)|*a as f64 * *b as f64).sum::<f64>().clamp(-1.,1.) as f32;
-     hits.push(SearchHit{source_key:row["sourceKey"].as_str().ok_or_else(storage_error)?.into(),topic_id:record.topic_id,answer_version_id:record.answer_version_id,location:record.location,score,model_version:input.model_version.clone(),input_hash:row["inputHash"].as_str().ok_or_else(storage_error)?.into(),text:record.text});
-     hits.sort_by(|a,b|b.score.total_cmp(&a.score).then_with(||a.source_key.cmp(&b.source_key)).then_with(||a.location.as_ref().map(|v|v.part_index).cmp(&b.location.as_ref().map(|v|v.part_index))));hits.truncate(limit);
+            let mut cursor:Option<String>=None;let mut hits=vec![];
+            loop{
+                let sql=format!("SELECT key,sourceKey,inputHash,data FROM embedding WHERE {RETRIEVAL_FILTER} ORDER BY key ASC LIMIT 512;");
+                let value=self.query_value(&sql,json!({"model":version,"kind":filter.kind,"exclude":filter.exclude_topic,"cursor":cursor,"visible":filter.current_and_pinned_only})).await?;
+                let rows=value.as_array().ok_or_else(storage_error)?;let mut records=vec![];
+                for row in rows{let record:VectorRecord=serde_json::from_value(row["data"].clone()).map_err(|_|storage_error())?;if record.source_kind!=filter.kind{return Err(storage_error());}records.push((record,row["sourceKey"].as_str().ok_or_else(storage_error)?.to_owned(),row["inputHash"].as_str().ok_or_else(storage_error)?.to_owned()));}
+                let inputs=normalized.clone();let model=version.clone();
+                let page=tokio::task::spawn_blocking(move||{
+                    let mut out=vec![];
+                    for(record,key,hash)in records{
+                        let target=SearchVector::new(model.clone(),record.values,384).map_err(|_|storage_error())?;
+                        let(query_index,score)=inputs.iter().enumerate().map(|(index,input)|{let score=input.values.iter().zip(&target.values).map(|(a,b)|*a as f64 * *b as f64).sum::<f64>().clamp(-1.,1.)as f32;(index,score)}).max_by(|a,b|a.1.total_cmp(&b.1).then_with(||b.0.cmp(&a.0))).ok_or_else(storage_error)?;
+                        out.push(QuerySearchHit{query_index,hit:SearchHit{source_key:key,topic_id:record.topic_id,answer_version_id:record.answer_version_id,location:record.location,score,model_version:model.clone(),input_hash:hash,text:record.text}});
+                    }
+                    out.sort_by(hit_order);out.truncate(limit);Ok::<_,AppError>(out)
+                }).await.map_err(|_|storage_error())??;
+                hits.extend(page);hits.sort_by(hit_order);hits.truncate(limit);
+                if rows.len()<512{break;}cursor=Some(rows.last().and_then(|r|r["key"].as_str()).ok_or_else(storage_error)?.into());
+            }
+            Ok(hits)
+        }).await.map_err(|_|AppError::new(ErrorCode::StorageBusy))?
     }
-    if rows.len()<512{break;}cursor=rows.last().and_then(|r|r["key"].as_str()).map(str::to_owned);
-   }
-   Ok(hits)
-  }).await.map_err(|_|AppError::new(ErrorCode::StorageBusy))?
+    pub(crate) async fn source_vectors(
+        &self,
+        source: &EmbeddingSource,
+        model: &str,
+    ) -> Result<Vec<Vec<f32>>, AppError> {
+        let value=self.query_value("SELECT VALUE data.values FROM embedding WHERE modelVersion=$model AND sourceKey=$source AND inputHash=$hash ORDER BY partIndex ASC LIMIT 64;",json!({"model":model,"source":source.key,"hash":source.input_hash})).await?;
+        serde_json::from_value(value).map_err(|_| storage_error())
+    }
+    pub(crate) async fn keyword_hits(
+        &self,
+        model: &str,
+        filter: &SearchFilter,
+        terms: &[String],
+        limit: usize,
+    ) -> Result<Vec<SearchHit>, AppError> {
+        if terms.is_empty() {
+            return Ok(vec![]);
+        }
+        if terms.len() > 12 || !(1..=10).contains(&limit) {
+            return Err(AppError::invalid_question());
+        }
+        let mut bindings = json!({"model":model,"kind":filter.kind,"exclude":filter.exclude_topic,"cursor":null,"visible":filter.current_and_pinned_only,"limit":limit});
+        let mut expressions = vec![];
+        for (index, term) in terms.iter().enumerate() {
+            let name = format!("term{index}");
+            bindings[&name] = json!(term);
+            expressions.push(format!(
+                "(IF string::contains(string::lowercase(data.text),${name}) {{ 1 }} ELSE {{ 0 }})"
+            ));
+        }
+        bindings["minimum"] = json!(terms.len().min(2));
+        let count = expressions.join("+");
+        let sql = format!(
+            "SELECT key,sourceKey,inputHash,data,({count}) AS keywordRank FROM embedding WHERE {RETRIEVAL_FILTER} AND ({count})>=$minimum ORDER BY keywordRank DESC,key ASC LIMIT $limit;"
+        );
+        let value = self.query_value(&sql, bindings).await?;
+        let rows = value.as_array().ok_or_else(storage_error)?;
+        let mut hits = vec![];
+        for row in rows {
+            let data: VectorRecord =
+                serde_json::from_value(row["data"].clone()).map_err(|_| storage_error())?;
+            hits.push(SearchHit {
+                source_key: row["sourceKey"].as_str().ok_or_else(storage_error)?.into(),
+                topic_id: data.topic_id,
+                answer_version_id: data.answer_version_id,
+                location: data.location,
+                score: 0.,
+                model_version: model.into(),
+                input_hash: row["inputHash"].as_str().ok_or_else(storage_error)?.into(),
+                text: data.text,
+            });
+        }
+        Ok(hits)
+    }
+    pub(crate) async fn discovery_model_ready(&self, model: &str) -> Result<bool, AppError> {
+        let value=self.query_value("RETURN library:main.activeModelVersion=$model AND library:main.discoveryStatus IN ['ready','indexing'];",json!({"model":model})).await?;
+        Ok(value == true)
     }
 }
+fn hit_order(a: &QuerySearchHit, b: &QuerySearchHit) -> std::cmp::Ordering {
+    b.hit
+        .score
+        .total_cmp(&a.hit.score)
+        .then_with(|| a.hit.source_key.cmp(&b.hit.source_key))
+        .then_with(|| {
+            a.hit
+                .location
+                .as_ref()
+                .map(|v| (&v.paragraph_id, v.section_index, v.part_index))
+                .cmp(
+                    &b.hit
+                        .location
+                        .as_ref()
+                        .map(|v| (&v.paragraph_id, v.section_index, v.part_index)),
+                )
+        })
+}
+
 fn state_key(source: &EmbeddingSource, model: &str) -> String {
     records::canonical_hash(&json!([model, source.key, source.input_hash]))
 }

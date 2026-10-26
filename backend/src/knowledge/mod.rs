@@ -2,3 +2,6 @@
 mod research;
 mod service;
 pub use service::KnowledgeService;
+
+pub mod matching;
+pub mod verification;

@@ -9,6 +9,11 @@ impl KnowledgeStore {
         );
         sql.push_str("DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
         let tables: &[(&str, &[(&str, &str)])] = &[
+            (
+                "verification_stage",
+                &[("key", "string"), ("attemptKey", "string")],
+            ),
+            ("match_state", &[("key", "string")]),
             ("embedding_model", &[("key", "string")]),
             ("embedding_cursor", &[("key", "string")]),
             (

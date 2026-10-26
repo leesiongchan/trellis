@@ -283,6 +283,15 @@ pub struct PassageLocation {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ConnectionCitation {
+    pub topic_id: TopicId,
+    pub answer_version_id: AnswerVersionId,
+    pub paragraph_id: String,
+    pub source: super::Source,
+    pub quote: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConnectionView {
     pub id: ConnectionId,
     pub from_topic_id: TopicId,
@@ -295,6 +304,8 @@ pub struct ConnectionView {
     pub score: Option<f32>,
     pub passages: Vec<PassageLocation>,
     pub evidence: Vec<super::EvidenceRef>,
+    #[serde(default)]
+    pub citation_sources: Vec<ConnectionCitation>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -55,6 +55,8 @@ async fn run(
 ) -> Result<(), AppError> {
     let model = embedder.manifest().clone();
     let version = model.version();
+    let matching =
+        crate::knowledge::matching::MatchingService::new(store.clone(), embedder.clone());
     store.register_embedding_model(&model).await?;
     store.set_discovery(DiscoveryStatus::Indexing, None).await?;
     let mut cursor = store.embedding_cursor(&version).await?;
@@ -101,6 +103,35 @@ async fn run(
                     }
                     let _ = store.embedding_failed(source, &version).await;
                     return Err(error);
+                }
+            }
+            // Revisit indexed sources after a generation becomes active. Local discovery
+            // has no provider capability and checkpoints only successful, non-skipped work.
+            if !store.matching_completed(source, &version).await? {
+                let request = if let Some(version) = &source.answer_version_id {
+                    crate::knowledge::matching::MatchSource::answer(
+                        source.topic_id.clone(),
+                        version.clone(),
+                        source.library_epoch,
+                    )
+                } else {
+                    crate::knowledge::matching::MatchSource::question(
+                        source.topic_id.clone(),
+                        source.library_epoch,
+                    )
+                };
+                let discovered = tokio::select! {
+                    _ = cancel.cancelled() => return Ok(()),
+                    result = matching.discover(&request) => result,
+                };
+                match discovered {
+                    Ok(summary) if !summary.skipped => {
+                        store.complete_matching(source, &version).await?
+                    }
+                    Ok(_) => {}
+                    Err(error) => {
+                        tracing::warn!(code = error.code(), "local connection discovery deferred")
+                    }
                 }
             }
             let id = source

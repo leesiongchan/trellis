@@ -18,6 +18,7 @@ pub struct KnowledgeService {
     pub(super) tasks: TaskTracker,
     pub(super) failed: Arc<AtomicBool>,
     draining: AtomicBool,
+    hooks: Option<super::research::MatchingHooks>,
 }
 impl KnowledgeService {
     pub fn new(
@@ -32,7 +33,16 @@ impl KnowledgeService {
             tasks: TaskTracker::new(),
             failed: Arc::new(AtomicBool::new(false)),
             draining: AtomicBool::new(false),
+            hooks: None,
         }
+    }
+    pub fn with_matching(
+        mut self,
+        matching: Arc<super::matching::MatchingService>,
+        verifier: Arc<dyn super::verification::ConnectionVerifier>,
+    ) -> Self {
+        self.hooks = Some((matching, verifier));
+        self
     }
     pub async fn start_research(
         &self,
@@ -41,18 +51,18 @@ impl KnowledgeService {
         if self.draining.load(Ordering::SeqCst) {
             return Err(AppError::new(ErrorCode::ServerDraining));
         }
-        let (store, jobs, provider, tasks, failed) = (
-            self.store.clone(),
-            self.jobs.clone(),
-            self.provider.clone(),
-            self.tasks.clone(),
-            self.failed.clone(),
-        );
+        let runner = super::research::ResearchRunner {
+            store: self.store.clone(),
+            jobs: self.jobs.clone(),
+            provider: self.provider.clone(),
+            tasks: self.tasks.clone(),
+            failed: self.failed.clone(),
+            hooks: self.hooks.clone(),
+        };
         let (tx, rx) = oneshot::channel();
         // The server owns reservation/admission even if the requesting connection disappears.
         self.tasks.spawn(async move {
-            let result =
-                super::research::start(store, jobs, provider, tasks, failed, command).await;
+            let result = runner.start(command).await;
             let _ = tx.send(result);
         });
         rx.await

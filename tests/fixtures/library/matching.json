@@ -1,0 +1,8 @@
+[
+ {"name":"NAND paraphrase","left":"How does NAND flash store bits?","right":"How is data stored in NAND flash?","leftContext":null,"rightContext":null,"verdict":"equivalent","equivalent":true},
+ {"name":"storage mechanism differs from wear","left":"How does NAND flash store data?","right":"Why do NAND flash cells wear out?","leftContext":null,"rightContext":null,"verdict":"different","equivalent":false},
+ {"name":"Apple contexts","left":"What is Apple?","right":"What is Apple?","leftContext":"Fruit","rightContext":"Computing","verdict":"equivalent","equivalent":false},
+ {"name":"negation remains meaningful","left":"Can flash retain data without power?","right":"Can flash not retain data without power?","leftContext":null,"rightContext":null,"verdict":"equivalent","equivalent":false},
+ {"name":"units remain meaningful","left":"How far does light travel in 5 ms?","right":"How far does light travel in 5 s?","leftContext":null,"rightContext":null,"verdict":"equivalent","equivalent":false},
+ {"name":"irrelevant neighbour","left":"How does NAND flash store data?","right":"How do lithium ion batteries store energy?","leftContext":null,"rightContext":null,"verdict":"different","equivalent":false}
+]

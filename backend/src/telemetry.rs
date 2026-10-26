@@ -30,6 +30,7 @@ pub enum Stage {
     Generation,
     Grounding,
     Verification,
+    ConnectionVerification,
 }
 impl Stage {
     pub fn name(self) -> &'static str {
@@ -38,6 +39,7 @@ impl Stage {
             Self::Generation => "generation",
             Self::Grounding => "grounding",
             Self::Verification => "verification",
+            Self::ConnectionVerification => "connection_verification",
         }
     }
 }

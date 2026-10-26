@@ -315,7 +315,7 @@ impl KnowledgeStore {
             .checked_add(1)
             .filter(|v| *v <= MAX_SAFE_INTEGER)
             .ok_or_else(storage_error)?;
-        let body = "DELETE embedding; DELETE embedding_state; DELETE embedding_cursor; DELETE embedding_model; DELETE edge_support; DELETE connection; DELETE active_attempt; DELETE research_follower; DELETE research_attempt; DELETE appearance; DELETE exploration; DELETE question_variant; DELETE answer_version; DELETE topic; DELETE migration_stage; DELETE migration_manifest; DELETE operation WHERE target!='purge'; UPDATE import_receipt SET data.deleted=true; UPDATE library:main SET epoch=$nextEpoch,discoveryStatus='unavailable',activeModelVersion=NONE;";
+        let body = "DELETE embedding; DELETE match_state; DELETE verification_stage; DELETE embedding_state; DELETE embedding_cursor; DELETE embedding_model; DELETE edge_support; DELETE connection; DELETE active_attempt; DELETE research_follower; DELETE research_attempt; DELETE appearance; DELETE exploration; DELETE question_variant; DELETE answer_version; DELETE topic; DELETE migration_stage; DELETE migration_manifest; DELETE operation WHERE target!='purge'; UPDATE import_receipt SET data.deleted=true; UPDATE library:main SET epoch=$nextEpoch,discoveryStatus='unavailable',activeModelVersion=NONE;";
         self.commit_mutation(
             &intent,
             body,
@@ -353,6 +353,7 @@ pub(crate) fn add_branch_bindings(
         score: None,
         passages: vec![],
         evidence: vec![],
+        citation_sources: vec![],
     };
     bindings["fromTopicKey"] = json!(from);
     bindings["connectionKey"] = json!(id);

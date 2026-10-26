@@ -184,3 +184,28 @@ async fn rejects_large_streams_status_redirects_and_expired_deadlines() {
     );
     assert_eq!(stub.count(), 0);
 }
+
+#[tokio::test]
+async fn connection_verifier_uses_existing_provider_without_tools_or_storage() {
+    use branch_backend::knowledge::verification::ConnectionVerifier;
+    let stub = StubProviders::start(vec![Script::json(completed(json!({"decisions":[]})))]).await;
+    let result = ConnectionVerifier::verify(&adapter(&stub), &[], &context())
+        .await
+        .unwrap();
+    assert!(result.decisions.is_empty());
+    assert_eq!(stub.count(), 1);
+    let requests = stub.state.requests.lock().unwrap();
+    let (_, body) = &requests[0];
+    assert_eq!(body["store"], false);
+    assert!(body.get("tools").is_none());
+    assert_eq!(body["max_output_tokens"], 2500);
+    assert_eq!(body["text"]["format"]["strict"], true);
+    assert!(
+        body["input"][0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("untrusted data")
+    );
+    let data: Value = serde_json::from_str(body["input"][1]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(data, json!({"candidates":[]}));
+}

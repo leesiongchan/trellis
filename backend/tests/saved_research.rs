@@ -508,3 +508,51 @@ async fn exact_answer_reuse_needs_no_provider_and_populates_suggestions() {
     assert_eq!(s.provider.searches.load(Ordering::SeqCst), 1);
     s.shutdown().await;
 }
+
+#[tokio::test]
+async fn opening_a_cached_answer_during_refresh_keeps_its_existing_pin() {
+    let s = Setup::new().await;
+    let (original_exploration, a) = s.create("Memory").await;
+    let first = research(&a, 0, false);
+    s.service.start_research(first.clone()).await.unwrap();
+    s.provider.release.add_permits(1);
+    s.finish(&first.operation_id).await;
+    let old_original = pin(&s, &original_exploration, &a).await;
+    let refresh = research(&a, 1, true);
+    s.service.start_research(refresh.clone()).await.unwrap();
+    assert_eq!(
+        s.service
+            .start_research(research(&a, 1, false))
+            .await
+            .unwrap()
+            .state,
+        OperationState::Completed
+    );
+    let (other, oa) = s.create("Memory").await;
+    let original = pin(&s, &other, &oa).await;
+    let opened = s
+        .service
+        .start_research(research(&oa, 0, false))
+        .await
+        .unwrap();
+    assert_eq!(opened.state, OperationState::Completed);
+    assert_eq!(pin(&s, &other, &oa).await, original);
+    s.provider.release.add_permits(1);
+    s.finish(&refresh.operation_id).await;
+    assert_ne!(pin(&s, &original_exploration, &a).await, old_original);
+    assert_eq!(pin(&s, &other, &oa).await, original);
+    let revision = s
+        .store
+        .exploration(&other)
+        .await
+        .unwrap()
+        .exploration
+        .revision;
+    s.service
+        .start_research(research(&oa, revision, false))
+        .await
+        .unwrap();
+    assert_eq!(pin(&s, &other, &oa).await, original);
+    assert_eq!(s.provider.searches.load(Ordering::SeqCst), 2);
+    s.shutdown().await;
+}

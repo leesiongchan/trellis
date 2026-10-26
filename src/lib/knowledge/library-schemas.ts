@@ -120,7 +120,8 @@ export const ConnectionViewSchema = z.object({
   modelVersion: z.string().max(200).nullable(),
   score: z.number().finite().min(-1).max(1).nullable(),
   passages: z.array(PassageLocationSchema).max(6),
-  evidence: z.array(EvidenceRefSchema).max(10)
+  evidence: z.array(EvidenceRefSchema).max(10),
+  citationSources:z.array(z.object({topicId:id,answerVersionId:id,paragraphId:z.string().min(1).max(200),source:SourceSchema,quote:z.string().min(1).max(600)})).max(10)
 });
 export const pageSchema = <T extends z.ZodType>(item: T) =>
   z.object({ items: z.array(item).max(100), nextCursor: z.string().max(1000).nullable() });

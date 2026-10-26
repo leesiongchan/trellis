@@ -1,6 +1,7 @@
 //! The sole embedded datastore and its bounded access boundary.
 pub(crate) mod answers;
 mod config;
+mod connections;
 mod embeddings;
 mod library;
 pub mod operations;
