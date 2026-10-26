@@ -2,6 +2,7 @@ use crate::{config::Config, jobs::Coordinator, telemetry::Telemetry};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 pub struct AppState {
+    pub library_id: crate::contracts::library::LibraryId,
     pub store: Arc<crate::storage::KnowledgeStore>,
     pub knowledge: Arc<crate::knowledge::KnowledgeService>,
     pub knowledge_runtime: Arc<crate::knowledge::KnowledgeRuntime>,
@@ -40,7 +41,8 @@ impl AppState {
         }
         let jobs =
             Coordinator::instrumented(provider.clone(), config.limits.clone(), telemetry.clone());
-        let mut service = KnowledgeService::new(store.clone(), jobs.clone(), provider);
+        let mut service = KnowledgeService::new(store.clone(), jobs.clone(), provider)
+            .with_research_enabled(config.research_configured());
         if let (Some(embedder), Some(verifier)) = (&embedder, verifier) {
             service = service.with_matching(
                 Arc::new(MatchingService::new(store.clone(), embedder.clone())),
@@ -60,7 +62,9 @@ impl AppState {
             )
             .await?,
         );
+        let library_id = store.library_info().await?.library_id;
         Ok(Arc::new(Self {
+            library_id,
             store,
             knowledge: service,
             knowledge_runtime,
@@ -109,6 +113,7 @@ fn api_routes(state: Arc<AppState>) -> axum::Router {
             "/api",
             Router::new()
                 .route("/research", post(research::research))
+                .merge(crate::http::library::routes())
                 .fallback(research::not_found),
         )
         .route("/health/live", get(health::live))

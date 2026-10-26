@@ -611,3 +611,35 @@ async fn local_worker_resumes_after_a_long_maintenance_pause() {
     worker.shutdown().await.unwrap();
     s.store.close().await.unwrap();
 }
+
+#[tokio::test(start_paused = true)]
+async fn graph_deadline_bounds_waiting_for_storage_admission() {
+    use crate::{contracts::library::TopicId, knowledge::matching::GraphBounds};
+    let root = tempfile::tempdir().unwrap();
+    let config = StorageConfig::from_values(
+        &HashMap::from([(
+            "APP_DATA_DIR".into(),
+            root.path().join("data").display().to_string(),
+        )]),
+        &root.path().join("release/branch-backend"),
+    )
+    .unwrap();
+    let store = KnowledgeStore::open(&config).await.unwrap();
+    let permit = store.admission.acquire_many(16).await.unwrap();
+    let started = tokio::time::Instant::now();
+    let error = store
+        .neighborhood(
+            &TopicId::new("root").unwrap(),
+            GraphBounds {
+                hops: 3,
+                nodes: 100,
+                edges: 200,
+            },
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.code(), "STORAGE_BUSY");
+    assert_eq!(started.elapsed(), std::time::Duration::from_secs(2));
+    drop(permit);
+    store.close().await.unwrap();
+}

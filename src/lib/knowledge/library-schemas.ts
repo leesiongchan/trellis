@@ -196,3 +196,35 @@ export const ImportViewSchema = z.object({
   serverRevision: integer.nullable(),
   error: z.object({ code: z.string(), message: z.string(), retryable: z.boolean() }).nullable()
 });
+
+export const StartFromTopicCommandSchema = commandSchema(
+  z.object({ topicId: id, answerVersionId: id.nullable() })
+);
+export const TopicSummarySchema = z.object({
+  id,
+  question: storedQuestion,
+  currentAnswerVersionId: id.nullable(),
+  answerVersionCount: integer,
+  updatedAt: timestamp
+});
+export const AppearanceLocationSchema = z.object({
+  explorationId: id,
+  appearanceId: id,
+  answerVersionId: id.nullable(),
+  question: storedQuestion,
+  originalPrompt: storedQuestion,
+  revision: integer
+});
+export const GraphBoundsSchema = z.object({
+  hops: integer.max(3),
+  nodes: integer.min(1).max(100),
+  edges: integer.min(1).max(200)
+});
+export const GraphNeighborhoodSchema = z.object({
+  nodes: z
+    .array(z.object({ id, question: storedQuestion, currentAnswerVersionId: id.nullable() }))
+    .max(100),
+  edges: z.array(ConnectionViewSchema).max(200),
+  truncated: z.boolean(),
+  bounds: GraphBoundsSchema
+});

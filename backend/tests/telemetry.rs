@@ -6,6 +6,7 @@ mod stubs;
 use branch_backend::{
     access::issue_cookie,
     app::{AppState, api_router},
+    contracts::library::*,
     providers::{HttpProviders, ProviderEndpoints},
 };
 use serde_json::json;
@@ -145,6 +146,17 @@ fn failed_research_is_correlated_and_redacted_in_actual_logs() {
             ] {
                 assert!(logs.contains(expected), "missing {expected} with {filter}");
             }
+            let completion = records
+                .iter()
+                .find(|r| r["fields"]["event"] == "research_completed")
+                .expect("research completion event");
+            assert_eq!(completion["fields"]["code"], "SEARCH_FAILED");
+            assert!(
+                completion["spans"].as_array().is_some_and(|spans| spans
+                    .iter()
+                    .any(|span| span["requestId"] == "diagnostic-request")),
+                "background completion lost originating request"
+            );
         } else {
             assert!(records.is_empty(), "disabled app targets produced events");
         }
@@ -198,11 +210,56 @@ async fn production_logging_fixture() {
     )
     .await
     .unwrap();
-    let jobs = state.jobs.clone();
-    let server = common::spawn_router(api_router(state)).await;
+    let created = state
+        .store
+        .create_exploration(&Command {
+            operation_id: OperationId::generate(),
+            library_epoch: 1,
+            expected_revision: None,
+            payload: CreateExploration {
+                question: "private-user-question".into(),
+                locale: "en".into(),
+            },
+        })
+        .await
+        .unwrap();
+    let Some(OperationResult::Exploration { appearance_id, .. }) = created.result else {
+        unreachable!()
+    };
+    let operation_id = OperationId::generate();
+    let server = common::spawn_router(api_router(state.clone())).await;
     let client = reqwest::Client::new();
-    let response=client.post(format!("{}/api/research",server.origin())).header("host","127.0.0.1:3000").header("origin","http://127.0.0.1:3000").header("x-request-id","diagnostic-request").header("cookie",format!("branch_access={}",issue_cookie(config.access_key.expose(),4102444800000).unwrap())).json(&json!({"explorationId":"e","nodeId":"n","question":"private-user-question","clarification":null,"ancestors":[{"title":"private-ancestor-title","summary":"private-ancestor-summary"}]})).send().await.unwrap();
-    assert_eq!(response.status(), 502);
+    let response = client
+        .post(format!(
+            "{}/api/appearances/{appearance_id}/research",
+            server.origin()
+        ))
+        .header("host", "127.0.0.1:3000")
+        .header("origin", "http://127.0.0.1:3000")
+        .header("x-request-id", "diagnostic-request")
+        .header("x-branch-protocol", "2")
+        .header("x-branch-library", state.library_id.as_str())
+        .header(
+            "cookie",
+            format!(
+                "branch_access={}",
+                issue_cookie(config.access_key.expose(), 4102444800000).unwrap()
+            ),
+        )
+        .json(&Command {
+            operation_id: operation_id.clone(),
+            library_epoch: 1,
+            expected_revision: Some(0),
+            payload: ResearchInput {
+                appearance_id,
+                refresh: false,
+                clarification: None,
+            },
+        })
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 202);
     let _ = client
         .get(format!("{}/access?key=private-query-key", server.origin()))
         .send()
@@ -214,7 +271,10 @@ async fn production_logging_fixture() {
         .send()
         .await
         .unwrap();
-    jobs.idle().await;
+    state.knowledge.drain().await.unwrap();
+    let operation = state.store.operation(&operation_id).await.unwrap();
+    assert_eq!(operation.state, OperationState::Failed);
+    assert_eq!(operation.error.unwrap().code, "SEARCH_FAILED");
     let metrics = telemetry.render().unwrap();
     for secret in [
         "private-user-question",

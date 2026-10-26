@@ -6,6 +6,7 @@ use branch_backend::{
     access::issue_cookie,
     app::{AppState, api_router},
     config::Limits,
+    contracts::library::*,
     providers::{HttpProviders, ProviderEndpoints},
     server::Server,
     telemetry::Telemetry,
@@ -23,6 +24,8 @@ struct Running {
     shutdown: CancellationToken,
     task: Option<JoinHandle<Result<(), branch_backend::error::AppError>>>,
     state: Arc<AppState>,
+    appearance: AppearanceId,
+    operation: OperationId,
     _upstream: stubs::StubProviders,
     _data: tempfile::TempDir,
 }
@@ -59,6 +62,27 @@ async fn start(limits: Limits, gate: Option<Arc<tokio::sync::Notify>>) -> Runnin
     let state = AppState::start(config, provider.clone(), Some(provider), telemetry)
         .await
         .unwrap();
+    let created = state
+        .store
+        .create_exploration(&Command {
+            operation_id: OperationId::generate(),
+            library_epoch: 1,
+            expected_revision: None,
+            payload: CreateExploration {
+                question: "q".into(),
+                locale: "en".into(),
+            },
+        })
+        .await
+        .unwrap();
+    let Some(OperationResult::Exploration {
+        appearance_id: appearance,
+        ..
+    }) = created.result
+    else {
+        unreachable!()
+    };
+    let operation = OperationId::generate();
     let server = Server::bind(
         api_router(state.clone()),
         "127.0.0.1:0".parse().unwrap(),
@@ -77,6 +101,8 @@ async fn start(limits: Limits, gate: Option<Arc<tokio::sync::Notify>>) -> Runnin
         shutdown,
         task: Some(task),
         state,
+        appearance,
+        operation,
         _upstream: upstream,
         _data: data,
     }
@@ -99,11 +125,23 @@ async fn wait_for(mut ready: impl FnMut() -> bool) {
     }
     assert!(ready(), "condition did not complete");
 }
-fn research_request() -> String {
-    let body=json!({"explorationId":"e","nodeId":"n","question":"q","clarification":null,"ancestors":[]}).to_string();
+fn research_request(server: &Running) -> String {
+    let body = serde_json::to_string(&Command {
+        operation_id: server.operation.clone(),
+        library_epoch: 1,
+        expected_revision: Some(0),
+        payload: ResearchInput {
+            appearance_id: server.appearance.clone(),
+            refresh: false,
+            clarification: None,
+        },
+    })
+    .unwrap();
     format!(
-        "POST /api/research HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: branch_access={}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        "POST /api/appearances/{}/research HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: branch_access={}\r\nX-Branch-Protocol: 2\r\nX-Branch-Library: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        server.appearance,
         issue_cookie(&"a".repeat(64), 4102444800000).unwrap(),
+        server.state.library_id,
         body.len()
     )
 }
@@ -147,14 +185,18 @@ async fn connection_and_header_limits_are_bounded() {
     assert!(many.starts_with("HTTP/1.1 431"), "{many}");
 }
 #[tokio::test]
-async fn disconnect_releases_only_its_waiter() {
+async fn disconnect_preserves_server_owned_research() {
     let gate = Arc::new(tokio::sync::Notify::new());
     let server = start(Limits::default(), Some(gate.clone())).await;
     let mut a = TcpStream::connect(server.addr).await.unwrap();
-    a.write_all(research_request().as_bytes()).await.unwrap();
+    a.write_all(research_request(&server).as_bytes())
+        .await
+        .unwrap();
     let mut b = TcpStream::connect(server.addr).await.unwrap();
-    b.write_all(research_request().as_bytes()).await.unwrap();
-    wait_for(|| server.state.jobs.snapshot().waiters == 2).await;
+    b.write_all(research_request(&server).as_bytes())
+        .await
+        .unwrap();
+    wait_for(|| server.state.jobs.snapshot().active == 1).await;
     drop(a);
     wait_for(|| server.state.jobs.snapshot().waiters == 1).await;
     gate.notify_one();
@@ -163,8 +205,18 @@ async fn disconnect_releases_only_its_waiter() {
         .await
         .unwrap()
         .unwrap();
-    assert!(reply.starts_with("HTTP/1.1 200"), "{reply}");
-    wait_for(|| server.state.jobs.snapshot().waiters == 0).await;
+    assert!(reply.starts_with("HTTP/1.1 202"), "{reply}");
+    server.state.knowledge.drain().await.unwrap();
+    assert_eq!(
+        server
+            .state
+            .store
+            .operation(&server.operation)
+            .await
+            .unwrap()
+            .state,
+        OperationState::Completed
+    );
 }
 #[tokio::test]
 async fn shutdown_drains_and_exits() {
@@ -172,7 +224,7 @@ async fn shutdown_drains_and_exits() {
     let mut server = start(Limits::default(), Some(gate.clone())).await;
     let mut socket = TcpStream::connect(server.addr).await.unwrap();
     socket
-        .write_all(research_request().as_bytes())
+        .write_all(research_request(&server).as_bytes())
         .await
         .unwrap();
     wait_for(|| server.state.jobs.snapshot().active == 1).await;
@@ -181,12 +233,13 @@ async fn shutdown_drains_and_exits() {
     gate.notify_one();
     let mut reply = String::new();
     socket.read_to_string(&mut reply).await.unwrap();
-    assert!(reply.starts_with("HTTP/1.1 200"));
+    assert!(reply.starts_with("HTTP/1.1 202"));
     tokio::time::timeout(Duration::from_secs(2), server.task.take().unwrap())
         .await
         .unwrap()
         .unwrap()
         .unwrap();
+    server.state.knowledge.drain().await.unwrap();
     assert_eq!(server.state.jobs.snapshot().active, 0);
 }
 #[tokio::test]
@@ -199,7 +252,7 @@ async fn shutdown_cancels_stalled_jobs_after_grace() {
     let mut server = start(limits, Some(Arc::new(tokio::sync::Notify::new()))).await;
     let mut socket = TcpStream::connect(server.addr).await.unwrap();
     socket
-        .write_all(research_request().as_bytes())
+        .write_all(research_request(&server).as_bytes())
         .await
         .unwrap();
     wait_for(|| server.state.jobs.snapshot().active == 1).await;
@@ -209,6 +262,7 @@ async fn shutdown_cancels_stalled_jobs_after_grace() {
         .unwrap()
         .unwrap()
         .unwrap();
+    server.state.knowledge.drain().await.unwrap();
     assert_eq!(server.state.jobs.snapshot().active, 0);
     assert_eq!(server.state.jobs.snapshot().waiters, 0);
 }
@@ -373,12 +427,23 @@ async fn second_signal_forces_exit_while_an_upload_is_pending() {
         .unwrap();
     let token = issue_cookie(&"a".repeat(64), 4102444800000).unwrap();
     let authority = process.origin.strip_prefix("http://").unwrap();
-    socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: {authority}\r\nOrigin: {}\r\nCookie: branch_access={token}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n1\r\n{{\r\n",process.origin).as_bytes()).await.unwrap();
+    let library: serde_json::Value = reqwest::Client::new()
+        .get(format!("{}/api/library", process.origin))
+        .header("cookie", format!("branch_access={token}"))
+        .header("x-branch-protocol", "2")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let library_id = library["libraryId"].as_str().unwrap();
+    socket.write_all(format!("POST /api/explorations HTTP/1.1\r\nHost: {authority}\r\nOrigin: {}\r\nCookie: branch_access={token}\r\nX-Branch-Protocol: 2\r\nX-Branch-Library: {library_id}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n1\r\n{{\r\n",process.origin).as_bytes()).await.unwrap();
     wait_for(|| {
         std::fs::read_to_string(&process.log)
             .unwrap()
             .lines()
-            .any(|line| line.contains("http_started") && line.contains("/api/research"))
+            .any(|line| line.contains("http_started") && line.contains("/api/explorations"))
     })
     .await;
     signal(&process, rustix::process::Signal::TERM);
@@ -433,7 +498,18 @@ async fn unread_log_sink_preserves_health_and_bounded_termination() {
         if forced {
             let authority = process.origin.strip_prefix("http://").unwrap();
             let mut socket = TcpStream::connect(authority).await.unwrap();
-            socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: {authority}\r\nOrigin: {}\r\nCookie: branch_access={cookie}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\n\r\n",process.origin).as_bytes()).await.unwrap();
+            let library: serde_json::Value = reqwest::Client::new()
+                .get(format!("{}/api/library", process.origin))
+                .header("cookie", format!("branch_access={cookie}"))
+                .header("x-branch-protocol", "2")
+                .send()
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            let library_id = library["libraryId"].as_str().unwrap();
+            socket.write_all(format!("POST /api/explorations HTTP/1.1\r\nHost: {authority}\r\nOrigin: {}\r\nCookie: branch_access={cookie}\r\nX-Branch-Protocol: 2\r\nX-Branch-Library: {library_id}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\n\r\n",process.origin).as_bytes()).await.unwrap();
             // Hyper acknowledges only when the handler begins polling the body.
             let mut acknowledgment = Vec::new();
             tokio::time::timeout(Duration::from_secs(1), async {

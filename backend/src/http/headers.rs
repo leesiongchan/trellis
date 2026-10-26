@@ -31,6 +31,11 @@ pub fn request_id(request: &Request) -> String {
 }
 pub fn route_name(path: &str) -> &'static str {
     match path {
+        "/api/library" => "/api/library",
+        "/api/library/purge" => "/api/library/purge",
+        "/api/explorations" => "/api/explorations",
+        "/api/topics" => "/api/topics",
+        "/api/imports" => "/api/imports",
         "/api/research" => "/api/research",
         "/access" => "/access",
         "/health/live" => "/health/live",
@@ -38,7 +43,23 @@ pub fn route_name(path: &str) -> &'static str {
         "/metrics" => "/metrics",
         "/" => "/",
         _ if path.starts_with("/_app/") => "/_app/*",
-        _ => "unknown",
+        _ => match path.split('/').collect::<Vec<_>>().as_slice() {
+            ["", "api", "explorations", _] => "/api/explorations/{id}",
+            ["", "api", "explorations", _, "appearances"] => "/api/explorations/{id}/appearances",
+            ["", "api", "appearances", _, "research"] => "/api/appearances/{id}/research",
+            ["", "api", "appearances", _, "answer"] => "/api/appearances/{id}/answer",
+            ["", "api", "topics", _] => "/api/topics/{id}",
+            ["", "api", "topics", _, "connections"] => "/api/topics/{id}/connections",
+            ["", "api", "topics", _, "neighborhood"] => "/api/topics/{id}/neighborhood",
+            ["", "api", "topics", _, "appearances"] => "/api/topics/{id}/appearances",
+            ["", "api", "topics", _, "explorations"] => "/api/topics/{id}/explorations",
+            ["", "api", "connections", _] => "/api/connections/{id}",
+            ["", "api", "operations", _] => "/api/operations/{id}",
+            ["", "api", "imports", _] => "/api/imports/{id}",
+            ["", "api", "imports", _, "batches"] => "/api/imports/{id}/batches",
+            ["", "api", "imports", _, "completion"] => "/api/imports/{id}/completion",
+            _ => "unknown",
+        },
     }
 }
 pub async fn boundary(
@@ -48,6 +69,7 @@ pub async fn boundary(
 ) -> Response {
     let id = request_id(&request);
     let route = route_name(request.uri().path());
+    let library_api = request.uri().path().starts_with("/api/");
     let method = request.method().clone();
     let started = Instant::now();
     request
@@ -69,6 +91,10 @@ pub async fn boundary(
         .http(route, &method, response.status(), started.elapsed());
     tracing::info!(parent:&span,event="http_completed",status=response.status().as_u16(),durationMs=started.elapsed().as_millis() as u64);
     let headers = response.headers_mut();
+    if library_api {
+        headers.insert("x-branch-protocol", HeaderValue::from_static("2"));
+        headers.insert("cache-control", HeaderValue::from_static("no-store"));
+    }
     if let Ok(id) = HeaderValue::from_str(&id) {
         headers.insert("x-request-id", id);
     }

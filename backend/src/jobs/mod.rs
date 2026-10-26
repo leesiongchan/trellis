@@ -20,6 +20,7 @@ use tokio::{
     time::{Instant, timeout_at},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tracing::Instrument;
 pub use waiter::Waiter;
 /// An internal attempt identity; library callers derive it from the durable attempt.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,7 +197,7 @@ impl Coordinator {
             let outcome=work.unwrap_or_else(|_|Err(AppError::new(ErrorCode::InternalFailure)));
             tracing::info!(event="research_completed",entryPoint="research_endpoint",jobId=%ctx.job_id,code=outcome.as_ref().err().map(AppError::code).unwrap_or("ok"));
             guard.publish(outcome.map(Arc::new).map_err(Arc::new));
-        });
+        }.in_current_span());
         Ok(waiter)
     }
     pub fn begin_drain(&self) {

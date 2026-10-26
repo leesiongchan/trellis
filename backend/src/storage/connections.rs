@@ -207,23 +207,23 @@ impl KnowledgeStore {
         {
             return Err(AppError::invalid_question());
         }
-        tokio::time::timeout(STORAGE_TIMEOUT,async{
-   let root:records::TopicRecord=self.record_data("topic",topic.as_str()).await?;let mut nodes=vec![GraphNode{id:root.id.clone(),question:root.question,current_answer_version_id:root.current_answer_version_id}];let mut seen=BTreeSet::from([root.id.clone()]);let mut edge_ids=HashSet::new();let mut frontier=vec![root.id];let mut edges=vec![];let mut truncated=false;
+        tokio::time::timeout(std::time::Duration::from_secs(2),async{
+   let root_value=self.query_value("SELECT VALUE data FROM ONLY type::record('topic',$key) TIMEOUT 2s;",json!({"key":topic})).await?;if root_value.is_null(){return Err(AppError::new(ErrorCode::NotFound));}let root:records::TopicRecord=serde_json::from_value(root_value).map_err(|_|storage_error())?;let mut nodes=vec![GraphNode{id:root.id.clone(),question:root.question,current_answer_version_id:root.current_answer_version_id}];let mut seen=BTreeSet::from([root.id.clone()]);let mut edge_ids=HashSet::new();let mut frontier=vec![root.id];let mut edges=vec![];let mut truncated=false;
    for _depth in 0..bounds.hops{
-    if frontier.is_empty(){break;}let sql=format!("SELECT VALUE data FROM connection WHERE (data.fromTopicId IN $frontier OR data.toTopicId IN $frontier) AND {VISIBLE} AND key NOT IN $seenEdges ORDER BY key ASC LIMIT $limit;");
+    if frontier.is_empty(){break;}let sql=format!("SELECT VALUE data FROM connection WHERE (data.fromTopicId IN $frontier OR data.toTopicId IN $frontier) AND {VISIBLE} AND key NOT IN $seenEdges ORDER BY key ASC LIMIT $limit TIMEOUT 2s;");
     let value=self.query_value(&sql,json!({"frontier":frontier,"seenEdges":edge_ids.iter().collect::<Vec<_>>(),"limit":bounds.edges.saturating_sub(edges.len())+1})).await?;
     let found:Vec<ConnectionView>=serde_json::from_value(value).map_err(|_|storage_error())?;let mut next=BTreeSet::new();
     for edge in found{
      if edges.len()==bounds.edges{truncated=true;break;}
      let mut missing=vec![];for id in [&edge.from_topic_id,&edge.to_topic_id]{if !seen.contains(id){missing.push(id.clone());}}
      if nodes.len()+missing.len()>bounds.nodes{truncated=true;continue;}
-     for id in missing{let t:records::TopicRecord=self.record_data("topic",id.as_str()).await?;seen.insert(id.clone());next.insert(id);nodes.push(GraphNode{id:t.id,question:t.question,current_answer_version_id:t.current_answer_version_id});}
+     for id in missing{let value=self.query_value("SELECT VALUE data FROM ONLY type::record('topic',$key) TIMEOUT 2s;",json!({"key":id})).await?;let t:records::TopicRecord=serde_json::from_value(value).map_err(|_|storage_error())?;seen.insert(id.clone());next.insert(id);nodes.push(GraphNode{id:t.id,question:t.question,current_answer_version_id:t.current_answer_version_id});}
      edge_ids.insert(edge.id.clone());edges.push(edge);
     }
     frontier=next.into_iter().collect();
    }
    if !frontier.is_empty() && !truncated {
-    let sql=format!("SELECT VALUE key FROM connection WHERE (data.fromTopicId IN $frontier OR data.toTopicId IN $frontier) AND {VISIBLE} AND key NOT IN $seenEdges LIMIT 1;");
+    let sql=format!("SELECT VALUE key FROM connection WHERE (data.fromTopicId IN $frontier OR data.toTopicId IN $frontier) AND {VISIBLE} AND key NOT IN $seenEdges LIMIT 1 TIMEOUT 2s;");
     let more=self.query_value(&sql,json!({"frontier":frontier,"seenEdges":edge_ids.iter().collect::<Vec<_>>()})).await?;
     truncated=more.as_array().is_some_and(|v|!v.is_empty());
    }

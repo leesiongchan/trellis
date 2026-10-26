@@ -27,3 +27,8 @@ export type BeginImport = z.infer<typeof schemas.BeginImportCommandSchema>['payl
 export type ImportBatch = z.infer<typeof schemas.ImportBatchCommandSchema>['payload'];
 export type FinalizeImport = z.infer<typeof schemas.FinalizeImportCommandSchema>['payload'];
 export type ImportView = z.infer<typeof schemas.ImportViewSchema>;
+
+export type StartFromTopic = z.infer<typeof schemas.StartFromTopicCommandSchema>['payload'];
+export type TopicSummary = z.infer<typeof schemas.TopicSummarySchema>;
+export type AppearanceLocation = z.infer<typeof schemas.AppearanceLocationSchema>;
+export type GraphNeighborhood = z.infer<typeof schemas.GraphNeighborhoodSchema>;

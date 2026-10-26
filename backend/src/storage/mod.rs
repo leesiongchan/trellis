@@ -5,6 +5,7 @@ mod config;
 mod recovery;
 pub use backups::BackupManifest;
 pub use recovery::RecoverySummary;
+mod catalog;
 mod connections;
 mod embeddings;
 mod imports;

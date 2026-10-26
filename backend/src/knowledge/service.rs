@@ -11,6 +11,7 @@ use std::sync::{
 };
 use tokio::sync::oneshot;
 use tokio_util::task::TaskTracker;
+use tracing::Instrument;
 pub struct KnowledgeService {
     pub(super) store: Arc<KnowledgeStore>,
     pub(super) jobs: Arc<Coordinator>,
@@ -19,6 +20,7 @@ pub struct KnowledgeService {
     pub(super) failed: Arc<AtomicBool>,
     draining: AtomicBool,
     hooks: Option<super::research::MatchingHooks>,
+    paid_research_enabled: bool,
 }
 impl KnowledgeService {
     pub fn new(
@@ -34,7 +36,12 @@ impl KnowledgeService {
             failed: Arc::new(AtomicBool::new(false)),
             draining: AtomicBool::new(false),
             hooks: None,
+            paid_research_enabled: true,
         }
+    }
+    pub fn with_research_enabled(mut self, enabled: bool) -> Self {
+        self.paid_research_enabled = enabled;
+        self
     }
     pub fn with_matching(
         mut self,
@@ -58,13 +65,17 @@ impl KnowledgeService {
             tasks: self.tasks.clone(),
             failed: self.failed.clone(),
             hooks: self.hooks.clone(),
+            paid_research_enabled: self.paid_research_enabled,
         };
         let (tx, rx) = oneshot::channel();
         // The server owns reservation/admission even if the requesting connection disappears.
-        self.tasks.spawn(async move {
-            let result = runner.start(command).await;
-            let _ = tx.send(result);
-        });
+        self.tasks.spawn(
+            async move {
+                let result = runner.start(command).await;
+                let _ = tx.send(result);
+            }
+            .in_current_span(),
+        );
         rx.await
             .map_err(|_| AppError::new(ErrorCode::WorkInterrupted))?
     }

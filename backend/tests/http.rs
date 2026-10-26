@@ -47,7 +47,7 @@ async fn setup_with_keys(configured: bool) -> (common::TestServer, Arc<AppState>
 
 #[tokio::test]
 async fn ready_without_provider_keys_still_serves_read_only_mode() {
-    let (server, _, stub) = setup_with_keys(false).await;
+    let (server, state, stub) = setup_with_keys(false).await;
     let response = reqwest::get(format!("{}/health/ready", server.origin()))
         .await
         .unwrap();
@@ -56,24 +56,29 @@ async fn ready_without_provider_keys_still_serves_read_only_mode() {
         response.json::<Value>().await.unwrap()["researchConfigured"],
         false
     );
-    assert_error(
-        request(&server).json(&body()).send().await.unwrap(),
-        503,
-        "SETUP_REQUIRED",
-    )
-    .await;
+    assert_eq!(
+        request(&server, &state)
+            .json(&body())
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        200
+    );
     assert_eq!(stub.count(), 0);
 }
 fn body() -> Value {
-    json!({"explorationId":"e","nodeId":"n","question":"private-question","clarification":null,"ancestors":[]})
+    json!({"operationId":"guard-test-operation","libraryEpoch":1,"expectedRevision":null,"payload":{"question":"private-question","locale":"en"}})
 }
-fn request(server: &common::TestServer) -> reqwest::RequestBuilder {
+fn request(server: &common::TestServer, state: &AppState) -> reqwest::RequestBuilder {
     reqwest::Client::new()
-        .post(format!("{}/api/research", server.origin()))
+        .post(format!("{}/api/explorations", server.origin()))
         .header("host", "127.0.0.1:3000")
         .header("origin", "http://127.0.0.1:3000")
         .header("cookie", cookie())
         .header("x-request-id", "known-request")
+        .header("x-branch-protocol", "2")
+        .header("x-branch-library", state.library_id.as_str())
 }
 fn cookie() -> String {
     format!(
@@ -104,9 +109,9 @@ async fn assert_error(response: reqwest::Response, status: u16, code: &str) {
 }
 #[tokio::test]
 async fn access_and_origin_checks_precede_provider_work() {
-    let (server, _, stub) = setup().await;
+    let (server, state, stub) = setup().await;
     assert_error(
-        with_header(request(&server).json(&body()), "cookie", "").await,
+        with_header(request(&server, &state).json(&body()), "cookie", "").await,
         401,
         "ACCESS_REQUIRED",
     )
@@ -118,7 +123,7 @@ async fn access_and_origin_checks_precede_provider_work() {
     ] {
         assert_error(
             with_header(
-                request(&server)
+                request(&server, &state)
                     .header("x-forwarded-host", "127.0.0.1:3000")
                     .json(&body()),
                 header,
@@ -131,20 +136,20 @@ async fn access_and_origin_checks_precede_provider_work() {
         .await;
     }
     assert_eq!(stub.count(), 0);
-    let response = request(&server).json(&body()).send().await.unwrap();
+    let response = request(&server, &state).json(&body()).send().await.unwrap();
     assert_eq!(response.status(), 200);
     assert_eq!(response.headers()["x-request-id"], "known-request");
     assert_eq!(
-        response.json::<Value>().await.unwrap()["kind"],
-        "insufficient-evidence"
+        response.json::<Value>().await.unwrap()["state"],
+        "completed"
     );
 }
 
 #[tokio::test]
 async fn duplicate_origin_is_rejected_before_provider_work() {
-    let (server, _, stub) = setup().await;
+    let (server, state, stub) = setup().await;
     assert_error(
-        request(&server)
+        request(&server, &state)
             .header("origin", "https://evil.example")
             .json(&body())
             .send()
@@ -159,9 +164,9 @@ async fn duplicate_origin_is_rejected_before_provider_work() {
 
 #[tokio::test]
 async fn malformed_request_id_is_replaced_consistently() {
-    let (server, _, _) = setup().await;
+    let (server, state, _) = setup().await;
     let response = with_header(
-        request(&server)
+        request(&server, &state)
             .header("content-type", "application/json")
             .body("{bad"),
         "x-request-id",
@@ -181,15 +186,15 @@ async fn malformed_request_id_is_replaced_consistently() {
 }
 #[tokio::test]
 async fn invalid_requests_use_one_safe_envelope() {
-    let (server, _, stub) = setup().await;
+    let (server, state, stub) = setup().await;
     assert_error(
-        request(&server).body("{}").send().await.unwrap(),
+        request(&server, &state).body("{}").send().await.unwrap(),
         400,
         "INVALID_CONTENT_TYPE",
     )
     .await;
     assert_error(
-        request(&server)
+        request(&server, &state)
             .header("content-type", "application/json")
             .body("{bad")
             .send()
@@ -200,13 +205,17 @@ async fn invalid_requests_use_one_safe_envelope() {
     )
     .await;
     assert_error(
-        request(&server).json(&json!({})).send().await.unwrap(),
+        request(&server, &state)
+            .json(&json!({}))
+            .send()
+            .await
+            .unwrap(),
         422,
         "INVALID_QUESTION",
     )
     .await;
     assert_error(
-        request(&server)
+        request(&server, &state)
             .header("content-type", "application/json")
             .body("x".repeat(65537))
             .send()
@@ -233,11 +242,11 @@ async fn invalid_requests_use_one_safe_envelope() {
 }
 #[tokio::test]
 async fn slow_chunked_body_has_a_total_deadline() {
-    let (server, _, _) = setup().await;
+    let (server, state, _) = setup().await;
     let mut socket = tokio::net::TcpStream::connect(server.address)
         .await
         .unwrap();
-    socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n",cookie()).as_bytes()).await.unwrap();
+    socket.write_all(format!("POST /api/explorations HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: {}\r\nX-Branch-Protocol: 2\r\nX-Branch-Library: {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n",cookie(),state.library_id).as_bytes()).await.unwrap();
     let mut response = String::new();
     tokio::time::timeout(Duration::from_secs(1), socket.read_to_string(&mut response))
         .await
@@ -249,12 +258,12 @@ async fn slow_chunked_body_has_a_total_deadline() {
 
 #[tokio::test]
 async fn chunked_body_is_limited_without_content_length() {
-    let (server, _, stub) = setup().await;
+    let (server, state, stub) = setup().await;
     let mut socket = tokio::net::TcpStream::connect(server.address)
         .await
         .unwrap();
     let body = "x".repeat(65537);
-    socket.write_all(format!("POST /api/research HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n{body}\r\n0\r\n\r\n",cookie(),body.len()).as_bytes()).await.unwrap();
+    socket.write_all(format!("POST /api/explorations HTTP/1.1\r\nHost: 127.0.0.1:3000\r\nOrigin: http://127.0.0.1:3000\r\nCookie: {}\r\nX-Branch-Protocol: 2\r\nX-Branch-Library: {}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n{body}\r\n0\r\n\r\n",cookie(),state.library_id,body.len()).as_bytes()).await.unwrap();
     let mut response = String::new();
     tokio::time::timeout(Duration::from_secs(1), socket.read_to_string(&mut response))
         .await

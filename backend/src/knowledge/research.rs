@@ -12,6 +12,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 use tokio_util::task::TaskTracker;
+use tracing::Instrument;
 pub(super) type MatchingHooks = (Arc<MatchingService>, Arc<dyn ConnectionVerifier>);
 pub(super) struct ResearchRunner {
     pub store: Arc<KnowledgeStore>,
@@ -20,6 +21,7 @@ pub(super) struct ResearchRunner {
     pub tasks: TaskTracker,
     pub failed: Arc<AtomicBool>,
     pub hooks: Option<MatchingHooks>,
+    pub paid_research_enabled: bool,
 }
 impl ResearchRunner {
     pub async fn start(self, command: Command<ResearchInput>) -> Result<OperationView, AppError> {
@@ -30,6 +32,7 @@ impl ResearchRunner {
             tasks,
             failed,
             hooks,
+            paid_research_enabled,
         } = self;
         let reservation = store.reserve_research(&command).await?;
         if !reservation.leader {
@@ -64,6 +67,13 @@ impl ResearchRunner {
             }
             return reused;
         }
+        if !paid_research_enabled {
+            let error = AppError::new(crate::error::ErrorCode::SetupRequired);
+            if store.fail_attempt(&attempt, error.clone()).await.is_err() {
+                failed.store(true, Ordering::SeqCst);
+            }
+            return Err(error);
+        }
         let (store_for_work, attempt_for_work) = (store.clone(), attempt.clone());
         let operation_id = command.operation_id;
         let work: JobWork = Box::new(move |ctx| {
@@ -95,24 +105,27 @@ impl ResearchRunner {
         });
         match jobs.admit_work(JobKey::new(attempt.id.to_string()), work) {
             Ok(mut waiter) => {
-                tasks.spawn(async move {
-                    let outcome = waiter.result().await;
-                    if let Err(error) = &outcome
-                        && store
-                            .fail_attempt(&attempt, (**error).clone())
+                tasks.spawn(
+                    async move {
+                        let outcome = waiter.result().await;
+                        if let Err(error) = &outcome
+                            && store
+                                .fail_attempt(&attempt, (**error).clone())
+                                .await
+                                .is_err()
+                        {
+                            failed.store(true, Ordering::SeqCst);
+                        }
+                        if store
+                            .release_research_attempt(&attempt, outcome.is_err())
                             .await
                             .is_err()
-                    {
-                        failed.store(true, Ordering::SeqCst);
+                        {
+                            failed.store(true, Ordering::SeqCst);
+                        }
                     }
-                    if store
-                        .release_research_attempt(&attempt, outcome.is_err())
-                        .await
-                        .is_err()
-                    {
-                        failed.store(true, Ordering::SeqCst);
-                    }
-                });
+                    .in_current_span(),
+                );
             }
             Err(error) => {
                 if store.fail_attempt(&attempt, error.clone()).await.is_err() {

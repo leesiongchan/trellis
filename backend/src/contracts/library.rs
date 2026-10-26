@@ -111,6 +111,39 @@ impl ValidatedInput for CreateExploration {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct StartFromTopic {
+    pub topic_id: TopicId,
+    pub answer_version_id: Option<AnswerVersionId>,
+}
+impl ValidatedInput for StartFromTopic {
+    fn validate(&mut self) -> Result<(), AppError> {
+        Ok(())
+    }
+    fn required_fields() -> &'static [&'static str] {
+        &["answerVersionId"]
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicSummary {
+    pub id: TopicId,
+    pub question: String,
+    pub current_answer_version_id: Option<AnswerVersionId>,
+    pub answer_version_count: u64,
+    pub updated_at: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppearanceLocation {
+    pub exploration_id: ExplorationId,
+    pub appearance_id: AppearanceId,
+    pub answer_version_id: Option<AnswerVersionId>,
+    pub question: String,
+    pub original_prompt: String,
+    pub revision: u64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AddBranch {
     pub parent_appearance_id: AppearanceId,
     pub question: String,
