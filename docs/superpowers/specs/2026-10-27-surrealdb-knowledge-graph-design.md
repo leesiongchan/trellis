@@ -1,6 +1,6 @@
 # SurrealDB knowledge storage and topic connections
 
-Status: draft for user approval. The user selected SurrealDB and requested this design on 2026-10-27, after approving a database comparison spike. Implementation is not authorized by approval of the spike alone.
+Status: approved by the user on 2026-10-27; ready for implementation planning. The user selected SurrealDB after the approved comparison spike and then approved this written design, including its proposed defaults. Implementation follows review of the implementation plan and selection of an execution method.
 
 Builder check: a fresh software-engineering reviewer read the draft on 2026-10-27 and reported “nothing important left.” This checks design completeness, not implementation correctness.
 
