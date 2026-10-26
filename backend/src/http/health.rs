@@ -21,8 +21,11 @@ pub async fn live() -> Response {
     no_store(Json(serde_json::json!({"status":"live"})).into_response())
 }
 pub async fn ready(State(state): State<Arc<AppState>>) -> Response {
-    let ready = !state.draining.is_cancelled();
-    no_store((if ready{StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},Json(serde_json::json!({"ready":ready,"researchConfigured":state.config.research_configured()}))).into_response())
+    let knowledge = state.knowledge_runtime.status().await;
+    state.telemetry.knowledge_status(&knowledge);
+    let ready =
+        !state.draining.is_cancelled() && knowledge.storage_ready && knowledge.library_ready;
+    no_store((if ready{StatusCode::OK}else{StatusCode::SERVICE_UNAVAILABLE},Json(serde_json::json!({"ready":ready,"researchConfigured":state.config.research_configured(),"storageReady":knowledge.storage_ready,"libraryReady":knowledge.library_ready,"discovery":knowledge.discovery}))).into_response())
 }
 pub async fn metrics(State(state): State<Arc<AppState>>, request: Request) -> Response {
     let id = context_id(&request);
@@ -33,6 +36,9 @@ pub async fn metrics(State(state): State<Arc<AppState>>, request: Request) -> Re
     ) {
         return AppError::new(ErrorCode::AccessRequired).response(id);
     }
+    state
+        .telemetry
+        .knowledge_status(&state.knowledge_runtime.status().await);
     match state.telemetry.render() {
         Ok(text) => {
             let mut response = no_store(text.into_response());

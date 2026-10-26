@@ -6,7 +6,6 @@ use branch_backend::{
     access::issue_cookie,
     app::{AppState, api_router},
     config::Limits,
-    jobs::Coordinator,
     providers::{HttpProviders, ProviderEndpoints},
     server::Server,
     telemetry::Telemetry,
@@ -25,6 +24,7 @@ struct Running {
     task: Option<JoinHandle<Result<(), branch_backend::error::AppError>>>,
     state: Arc<AppState>,
     _upstream: stubs::StubProviders,
+    _data: tempfile::TempDir,
 }
 impl Drop for Running {
     fn drop(&mut self) {
@@ -40,7 +40,8 @@ async fn start(limits: Limits, gate: Option<Arc<tokio::sync::Notify>>) -> Runnin
         ..stubs::Script::json(json!({"results":[]}))
     }])
     .await;
-    let mut config = (*common::config("http://127.0.0.1:3000")).clone();
+    let (config, data) = common::config("http://127.0.0.1:3000");
+    let mut config = (*config).clone();
     config.limits = limits.clone();
     let config = Arc::new(config);
     let telemetry = Arc::new(Telemetry::new());
@@ -55,12 +56,9 @@ async fn start(limits: Limits, gate: Option<Arc<tokio::sync::Notify>>) -> Runnin
         .unwrap()
         .with_telemetry(telemetry.clone()),
     );
-    let state = Arc::new(AppState {
-        jobs: Coordinator::instrumented(provider, limits.clone(), telemetry.clone()),
-        config,
-        telemetry,
-        draining: CancellationToken::new(),
-    });
+    let state = AppState::start(config, provider.clone(), Some(provider), telemetry)
+        .await
+        .unwrap();
     let server = Server::bind(
         api_router(state.clone()),
         "127.0.0.1:0".parse().unwrap(),
@@ -80,6 +78,7 @@ async fn start(limits: Limits, gate: Option<Arc<tokio::sync::Notify>>) -> Runnin
         task: Some(task),
         state,
         _upstream: upstream,
+        _data: data,
     }
 }
 async fn exchange(addr: SocketAddr, request: &str) -> String {
@@ -282,6 +281,7 @@ fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuar
                 std::ffi::OsStr::new("")
             },
         )
+        .env("APP_DATA_DIR", root.path().join("data"))
         .env("APP_ORIGIN", &origin)
         .env("APP_ACCESS_KEY", "a".repeat(64))
         .env("PORT", port.to_string())
@@ -308,7 +308,7 @@ async fn process_ready(process: &mut ProcessGuard) {
         .timeout(Duration::from_millis(100))
         .build()
         .unwrap();
-    for _ in 0..200 {
+    for _ in 0..3000 {
         assert!(
             process.child.try_wait().unwrap().is_none(),
             "server exited before ready"

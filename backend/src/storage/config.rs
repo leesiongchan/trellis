@@ -11,6 +11,7 @@ pub struct StorageConfig {
     pub data_dir: PathBuf,
     pub backup_dir: PathBuf,
     pub model_dir: PathBuf,
+    pub asset_dir: PathBuf,
 }
 
 fn invalid() -> AppError {
@@ -28,12 +29,20 @@ pub(super) fn validate_repository_roots(
     {
         return Err(invalid());
     }
+    for path in [data, backup] {
+        if path
+            .ancestors()
+            .any(|ancestor| ancestor.join(".git").exists())
+        {
+            return Err(invalid());
+        }
+    }
     Ok(())
 }
 
 /// Resolve existing ancestors, including symlinks, before comparing roots.
 /// Reject dot traversal even when its intermediate directory does not exist.
-fn absolute(path: &Path) -> Result<PathBuf, AppError> {
+pub(super) fn absolute(path: &Path) -> Result<PathBuf, AppError> {
     if !path.is_absolute()
         || path
             .components()
@@ -64,6 +73,35 @@ fn absolute(path: &Path) -> Result<PathBuf, AppError> {
 }
 
 impl StorageConfig {
+    pub(super) fn validated(&self) -> Result<Self, AppError> {
+        let data_dir = absolute(&self.data_dir)?;
+        let backup_dir = absolute(&self.backup_dir)?;
+        let model_dir = absolute(&self.model_dir)?;
+        let asset_dir = absolute(&self.asset_dir)?;
+        let roots = [&data_dir, &backup_dir, &model_dir, &asset_dir];
+        for (index, a) in roots.iter().enumerate() {
+            if roots[index + 1..]
+                .iter()
+                .any(|b| a.starts_with(b) || b.starts_with(a))
+            {
+                return Err(invalid());
+            }
+        }
+        validate_repository_roots(
+            &data_dir,
+            &backup_dir,
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .ok_or_else(invalid)?,
+        )?;
+        Ok(Self {
+            data_dir,
+            backup_dir,
+            model_dir,
+            asset_dir,
+        })
+    }
+
     pub fn from_values(
         values: &HashMap<String, String>,
         executable: &Path,
@@ -96,6 +134,7 @@ impl StorageConfig {
             data_dir,
             backup_dir,
             model_dir,
+            asset_dir,
         })
     }
 }

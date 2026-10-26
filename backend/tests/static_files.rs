@@ -4,7 +4,6 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use branch_backend::{
     app::{AppState, router},
     http::static_files::StaticAssets,
-    jobs::Coordinator,
     providers::HttpProviders,
     telemetry::Telemetry,
 };
@@ -38,18 +37,23 @@ fn fixture() -> (tempfile::TempDir, PathBuf, String) {
     (dir, public, hash)
 }
 async fn server(public: PathBuf) -> common::TestServer {
-    let mut config = (*common::config("https://private.example:8443")).clone();
+    let (config, data) = common::config("https://private.example:8443");
+    let mut config = (*config).clone();
     config.asset_dir = public.clone();
     let config = Arc::new(config);
     let provider = Arc::new(HttpProviders::production(config.clone()).unwrap());
-    let state = Arc::new(AppState {
-        jobs: Coordinator::new(provider, config.limits.clone()),
+    let state = AppState::start(
         config,
-        telemetry: Arc::new(Telemetry::new()),
-        draining: tokio_util::sync::CancellationToken::new(),
-    });
+        provider.clone(),
+        Some(provider),
+        Arc::new(Telemetry::new()),
+    )
+    .await
+    .unwrap();
     let assets = Arc::new(StaticAssets::load(&public).unwrap());
-    common::spawn_router(router(state, assets)).await
+    common::spawn_router(router(state, assets))
+        .await
+        .keep_data_directory(data)
 }
 #[tokio::test]
 async fn release_serves_only_verified_assets() {
@@ -140,8 +144,15 @@ fn tampered_missing_or_escaped_assets_are_rejected_at_load() {
 }
 #[test]
 fn asset_path_is_relative_to_executable_not_working_directory() {
+    let data = tempfile::tempdir().unwrap();
     let config = branch_backend::config::Config::from_values(
-        &std::collections::HashMap::from([("APP_ORIGIN".into(), "http://127.0.0.1:3000".into())]),
+        &std::collections::HashMap::from([
+            ("APP_ORIGIN".into(), "http://127.0.0.1:3000".into()),
+            (
+                "APP_DATA_DIR".into(),
+                data.path().join("data").display().to_string(),
+            ),
+        ]),
         std::path::Path::new("/different/release/branch-backend"),
     )
     .unwrap();

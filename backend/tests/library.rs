@@ -9,6 +9,7 @@ async fn store(root: &std::path::Path) -> KnowledgeStore {
         data_dir: root.join("data"),
         backup_dir: root.join("backups"),
         model_dir: root.join("models"),
+        asset_dir: root.join("public"),
     })
     .await
     .unwrap();

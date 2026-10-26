@@ -20,13 +20,19 @@ impl EmbeddingWorker {
         let cancel = cancel.child_token();
         let owned_cancel = cancel.clone();
         let task = tokio::spawn(async move {
-            let result = run(&store, embedder, &owned_cancel).await;
-            if result.is_err() {
-                let _ = store
-                    .set_discovery(DiscoveryStatus::Unavailable, None)
-                    .await;
+            loop {
+                tokio::select! { _=owned_cancel.cancelled()=>return Ok(()),_=store.wait_for_maintenance()=>{} }
+                match run(&store, embedder.clone(), &owned_cancel).await {
+                    Err(error) if error.kind == ErrorCode::StorageBusy => continue,
+                    Err(error) => {
+                        let _ = store
+                            .set_discovery(DiscoveryStatus::Unavailable, None)
+                            .await;
+                        return Err(error);
+                    }
+                    Ok(()) => return Ok(()),
+                }
             }
-            result
         });
         Self {
             cancel,
@@ -64,6 +70,7 @@ async fn run(
         if cancel.is_cancelled() {
             return Ok(());
         }
+        tokio::select! {_=cancel.cancelled()=>return Ok(()),_=store.wait_for_maintenance()=>{}}
         let page = store
             .embedding_sources(cursor.kind, cursor.after.as_deref(), 1)
             .await?;
@@ -97,7 +104,10 @@ async fn run(
                     return Ok(());
                 }
                 if let Err(error) = result {
-                    if error.kind == ErrorCode::RevisionConflict {
+                    if matches!(
+                        error.kind,
+                        ErrorCode::RevisionConflict | ErrorCode::StorageBusy
+                    ) {
                         cursor = store.embedding_cursor(&version).await?;
                         continue;
                     }

@@ -4,9 +4,8 @@
 
 The knowledge-library implementation uses embedded SurrealDB 3.3.4 with its
 RocksDB backend. The application owns one datastore handle; there is no database
-listener or separate database process. The foundation is being integrated through
-the [implementation plan](../superpowers/plans/2026-10-27-surrealdb-knowledge-graph.md).
-Later tasks connect this store to research and browser migration.
+listener or separate database process. Research persistence, immutable answer versions, reversible connections and browser
+migration share this handle. Deploy the protocol-2 frontend and backend together.
 
 `APP_DATA_DIR` is an explicit absolute directory dedicated to this installation.
 Keep it outside the repository, release assets, model directory, and backups.
@@ -105,3 +104,119 @@ node --test tests/build/package-release.test.ts
 The native acceptance check compares query and document vectors against the
 pinned public fixture. Release verification also runs the compiled native check
 with restricted networking and a PATH without language runtimes or database CLIs.
+
+## Startup, recovery, and readiness
+
+Set `APP_DATA_DIR` explicitly before starting the service. Data and backups must be
+outside every Git checkout, public asset root and model directory. The store
+normalizes roots even for typed internal callers, so native engine paths remain
+stable across aliases such as macOS `/var` and `/private/var`.
+
+The ownership marker and `.branch-storage-version.json` protect the directory.
+An incompatible engine marker is rejected before opening RocksDB; an incompatible
+database schema is rejected before changing schema definitions or serving library
+requests. Never edit markers to bypass compatibility checks.
+
+Startup marks unfinished research operations and optional paid connection checks
+as interrupted. It releases stale guards and resumes only local derived work.
+Saved answers and appearance pins remain intact. An interrupted paid stage needs
+an explicit retry; startup and indexing never send provider requests. Missing or
+corrupt model files disable discovery while storage and saved library reads remain
+ready. Startup verifies assets without downloading models.
+
+`/health/ready` reports storage/library readiness separately from discovery and
+provider configuration. Authenticated metrics include `branch_storage_ready`,
+`branch_library_ready`, `branch_discovery_ready`, `branch_backup_age_seconds`
+(`-1` before the first success), `branch_backup_overdue`, and
+`branch_backup_failed`. Metric labels and logs contain no private content, vectors,
+filesystem paths, cookies or provider credentials.
+
+Shutdown drains the existing research budget, cancels background scheduling,
+waits for the one local inference batch, and closes storage. Existing 125-second
+grace and 130-second hard deadline remain in force; runtime teardown also has a
+bounded wait for blocking tasks. Synchronous commits do not depend on shutdown.
+
+## Backups while the service runs
+
+The runtime uses its existing handle for native SDK exports. The first eligible
+start creates a snapshot; a running service then checks once per minute and
+creates the next snapshot when the last completed backup is at least 24 hours
+old. Busy paid work defers export. A maintenance lease pauses mutations and
+local derived writes, while library reads remain available. No transaction spans
+inference or provider HTTP.
+
+Each completed private backup directory contains `database.surql`,
+`manifest.json`, and an ownership marker. Files have mode 0600 and directories
+0700. The manifest records engine/schema/model versions, source library identity
+and epoch, source application checksum, record counts, export byte length and
+SHA-256. Completion uses fsync and an atomic rename that refuses to replace an
+existing destination. Incomplete owned export directories are cleaned up on
+failure or cancellation. Never copy an open RocksDB directory as a backup.
+
+Keep seven completed daily snapshots for this library. Separate `pre-upgrade-*`
+snapshots remain outside daily retention. Before a compatible application release
+changes, startup takes a pre-upgrade export labelled with the previous release's
+checksum. Retain that old release bundle alongside its backup. Unsupported engine
+or schema transitions stop startup and require a supported migration; do not point
+another engine version at the live data directory.
+
+Backups contain private questions, answers and citation snapshots. They are not
+public assets. Purging the live library does not erase retained backups, exported
+files, or offline browser originals. Clear those separately when required. Seven
+completed snapshots can span more than seven calendar days if the app was stopped
+or backups were deferred; monitor age and failure metrics.
+
+## Standalone backup and restore
+
+The standalone backup command requires the service stopped. It takes the same
+exclusive directory lock and refuses a second writer. It needs storage settings,
+without requiring an origin, public assets or provider credentials:
+
+```sh
+APP_ENV_FILE='' APP_DATA_DIR=/private/branch-data release/branch-backend storage backup --output /private/branch-backups/manual-snapshot
+```
+
+Use an absolute output outside data, public assets, models and repositories. The
+destination must not exist. The backup command prints the completed manifest,
+which contains metadata rather than question or answer text.
+
+Restore into a **nonexistent** absolute destination, which the command creates
+empty. Verify the selected backup and retain its matching application release:
+
+```sh
+APP_ENV_FILE='' release/branch-backend storage restore --input /private/branch-backups/manual-snapshot --data-dir /private/branch-restored
+```
+
+Restore validates manifest format, engine/schema compatibility, export hash and
+length, source library identity/epoch and record counts before declaring success.
+A durable in-progress marker prevents an incomplete restore from being served.
+If restore fails, preserve the original backup and use another fresh destination;
+inspect and discard the failed owned target separately. Never delete the marker
+to treat an incomplete restore as a valid library.
+
+The restored library gets a fresh epoch. Old browser caches, paid operation
+intents and automatic legacy imports cannot replay against it. Previously saved
+content and pinned versions retain their IDs. Deliberate re-import of a preserved
+browser original requires the explicit restore action.
+
+Rollback means restoring the pre-upgrade backup into a fresh directory and
+running the matching old application release with `APP_DATA_DIR` pointed there.
+Do not reuse a data directory that a newer engine has upgraded. Validate counts,
+representative nested answers/citations, appearance pins and retrieval before
+switching traffic. The native automated checks cover this fresh-directory path.
+
+## Native maintenance checks
+
+The 32 MiB import gate runs separately from compiler jobs to measure application
+work rather than build contention:
+
+```sh
+cargo test --manifest-path backend/Cargo.toml --locked --test migration thirty_two_mib_native_finalization_is_atomic_and_bounded -- --ignored --nocapture
+cargo test --manifest-path backend/Cargo.toml --locked --lib --test backups --test storage_lifecycle --test lifecycle
+```
+
+The verified 32 MiB public fixture published 1,000 immutable answers atomically in
+6.85 seconds and read back all appearances/answers. The standalone debug test
+peaked at approximately 848 MiB RSS on the development Mac. Leave memory headroom
+for imports and local inference; this is a measured fixture, not a production
+capacity promise. Ordinary requests still use the documented graph/list limits.

@@ -36,7 +36,7 @@ pub enum ClaimOutcome {
 impl KnowledgeStore {
     pub async fn library_info(&self) -> Result<LibraryInfo, AppError> {
         let mut result = self
-            .query("SELECT * FROM ONLY library:main;", json!({}))
+            .read_query("SELECT * FROM ONLY library:main;", json!({}))
             .await?;
         let value: Value = result
             .take::<surrealdb::types::Value>(0)
@@ -56,7 +56,7 @@ impl KnowledgeStore {
     }
     async fn operation_record(&self, id: &OperationId) -> Result<Option<Value>, AppError> {
         let mut result = self
-            .query(
+            .read_query(
                 "SELECT * FROM ONLY type::record('operation',$key);",
                 json!({"key":id}),
             )

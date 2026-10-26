@@ -57,6 +57,12 @@ pub struct Telemetry {
     deduplicated: Counter,
     rejections: Family<RejectionLabels, Counter>,
     log_drops: Counter,
+    storage_ready: Gauge,
+    library_ready: Gauge,
+    discovery_ready: Gauge,
+    backup_age: Gauge,
+    backup_overdue: Gauge,
+    backup_failed: Gauge,
 }
 impl Default for Telemetry {
     fn default() -> Self {
@@ -84,6 +90,46 @@ impl Telemetry {
         let deduplicated = Counter::default();
         let rejections = Family::<RejectionLabels, Counter>::default();
         let log_drops = Counter::default();
+        let storage_ready = Gauge::default();
+        let library_ready = Gauge::default();
+        let discovery_ready = Gauge::default();
+        let backup_age = Gauge::default();
+        let backup_overdue = Gauge::default();
+        let backup_failed = Gauge::default();
+        for (name, description, gauge) in [
+            (
+                "branch_storage_ready",
+                "Persistent storage readiness",
+                storage_ready.clone(),
+            ),
+            (
+                "branch_library_ready",
+                "Private library readiness",
+                library_ready.clone(),
+            ),
+            (
+                "branch_discovery_ready",
+                "Local discovery readiness",
+                discovery_ready.clone(),
+            ),
+            (
+                "branch_backup_age_seconds",
+                "Age of last completed backup; -1 before first backup",
+                backup_age.clone(),
+            ),
+            (
+                "branch_backup_overdue",
+                "Daily backup is overdue",
+                backup_overdue.clone(),
+            ),
+            (
+                "branch_backup_failed",
+                "Last eligible backup failed",
+                backup_failed.clone(),
+            ),
+        ] {
+            registry.register(name, description, gauge);
+        }
         registry.register(
             "branch_log_events_dropped",
             "Log events dropped by the bounded output queue or failed sink",
@@ -140,7 +186,28 @@ impl Telemetry {
             deduplicated,
             rejections,
             log_drops,
+            storage_ready,
+            library_ready,
+            discovery_ready,
+            backup_age,
+            backup_overdue,
+            backup_failed,
         }
+    }
+    pub fn knowledge_status(&self, status: &crate::knowledge::KnowledgeStatus) {
+        self.storage_ready.set(i64::from(status.storage_ready));
+        self.library_ready.set(i64::from(status.library_ready));
+        self.discovery_ready.set(i64::from(
+            status.discovery == crate::contracts::library::DiscoveryStatus::Ready,
+        ));
+        self.backup_age.set(
+            status
+                .backup_age_seconds
+                .and_then(|v| i64::try_from(v).ok())
+                .unwrap_or(-1),
+        );
+        self.backup_overdue.set(i64::from(status.backup_overdue));
+        self.backup_failed.set(i64::from(status.backup_failed));
     }
     pub fn render(&self) -> Result<String, AppError> {
         let mut text = String::new();

@@ -1,6 +1,10 @@
 //! The sole embedded datastore and its bounded access boundary.
 pub(crate) mod answers;
+mod backups;
 mod config;
+mod recovery;
+pub use backups::BackupManifest;
+pub use recovery::RecoverySummary;
 mod connections;
 mod embeddings;
 mod imports;
@@ -51,6 +55,8 @@ fn root_query_error(mut errors: Vec<(usize, surrealdb::Error)>) -> Option<surrea
 }
 
 pub struct KnowledgeStore {
+    config: StorageConfig,
+    maintenance: RwLock<()>,
     client: RwLock<Option<Surreal<Db>>>,
     pub(crate) admission: Semaphore,
     lock: Mutex<Option<File>>,
@@ -58,6 +64,12 @@ pub struct KnowledgeStore {
 
 impl KnowledgeStore {
     pub async fn open(config: &StorageConfig) -> Result<Self, AppError> {
+        // A stable canonical engine path is required even for typed internal callers.
+        // Alias paths on macOS otherwise reopen RocksDB with inconsistent blob paths.
+        let config = config.validated()?;
+        if std::fs::symlink_metadata(config.data_dir.join(".branch-restore-in-progress")).is_ok() {
+            return Err(storage_error());
+        }
         std::fs::DirBuilder::new()
             .recursive(true)
             .mode(0o700)
@@ -96,8 +108,15 @@ impl KnowledgeStore {
             .mode(0o600)
             .open(lock_path)
             .map_err(|_| storage_error())?;
-        rustix::fs::flock(&lock, rustix::fs::FlockOperation::NonBlockingLockExclusive)
-            .map_err(|_| storage_error())?;
+        rustix::fs::flock(&lock, rustix::fs::FlockOperation::NonBlockingLockExclusive).map_err(
+            |e| {
+                if e == rustix::io::Errno::WOULDBLOCK {
+                    AppError::new(ErrorCode::StorageLocked)
+                } else {
+                    storage_error()
+                }
+            },
+        )?;
         // Recheck after acquiring the lock: another initializer may have written the marker.
         match OpenOptions::new()
             .write(true)
@@ -123,6 +142,41 @@ impl KnowledgeStore {
         }
         std::fs::set_permissions(&config.data_dir, std::fs::Permissions::from_mode(0o700))
             .map_err(|_| storage_error())?;
+        let version_path = config.data_dir.join(".branch-storage-version.json");
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&version_path)
+        {
+            Ok(mut version) => {
+                version
+                    .write_all(b"{\"engineVersion\":\"3.3.4\",\"schemaVersion\":1}\n")
+                    .map_err(|_| storage_error())?;
+                version.sync_all().map_err(|_| storage_error())?;
+                File::open(&config.data_dir)
+                    .and_then(|d| d.sync_all())
+                    .map_err(|_| storage_error())?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                let metadata =
+                    std::fs::symlink_metadata(&version_path).map_err(|_| storage_error())?;
+                if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() > 1024
+                {
+                    return Err(storage_error());
+                }
+                let version: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(&version_path).map_err(|_| storage_error())?,
+                )
+                .map_err(|_| storage_error())?;
+                if version["engineVersion"] != backups::ENGINE_VERSION
+                    || version["schemaVersion"] != schema::SCHEMA_VERSION
+                {
+                    return Err(AppError::new(ErrorCode::StorageVersionMismatch));
+                }
+            }
+            Err(_) => return Err(storage_error()),
+        }
         let path = config.data_dir.join("store");
         let options = Config::new()
             .query_timeout(Duration::from_secs(30))
@@ -144,6 +198,9 @@ impl KnowledgeStore {
                 {
                     tokio::time::sleep(Duration::from_millis(20)).await
                 }
+                Err(error) if error.to_string().to_lowercase().contains("lock") => {
+                    return Err(AppError::new(ErrorCode::StorageLocked));
+                }
                 Err(_) => return Err(storage_error()),
             }
         };
@@ -158,6 +215,8 @@ impl KnowledgeStore {
             .map_err(|_| storage_error())?;
         Ok(Self {
             client: RwLock::new(Some(db)),
+            config: config.clone(),
+            maintenance: RwLock::new(()),
             admission: Semaphore::new(16),
             lock: Mutex::new(Some(lock)),
         })
@@ -166,6 +225,17 @@ impl KnowledgeStore {
     /// Only repository-owned SQL enters here; values always use bound parameters.
     /// Retry local serialization conflicts only. No external effect is in this boundary.
     pub(crate) async fn query(
+        &self,
+        sql: &str,
+        bindings: serde_json::Value,
+    ) -> Result<surrealdb::IndexedResults, AppError> {
+        let _lease = tokio::time::timeout(STORAGE_TIMEOUT, self.maintenance.read())
+            .await
+            .map_err(|_| AppError::new(ErrorCode::StorageBusy))?;
+        self.read_query(sql, bindings).await
+    }
+    /// Repository-owned, read-only SQL can continue during a maintenance export.
+    pub(crate) async fn read_query(
         &self,
         sql: &str,
         bindings: serde_json::Value,
@@ -233,6 +303,9 @@ impl KnowledgeStore {
         Err(AppError::new(ErrorCode::StorageBusy))
     }
 
+    pub(crate) async fn wait_for_maintenance(&self) {
+        drop(self.maintenance.read().await);
+    }
     /// Finish outstanding local queries and drop the sole SDK connection.
     /// Every successful transaction already used the engine's `sync=every`.
     pub async fn close(&self) -> Result<(), AppError> {
@@ -246,3 +319,7 @@ impl KnowledgeStore {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "../../tests/support/matching.rs"]
+mod matching_fixture;

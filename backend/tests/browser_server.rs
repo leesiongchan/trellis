@@ -6,7 +6,6 @@ use branch_backend::{
     app::{AppState, router},
     config::Config,
     http::static_files::StaticAssets,
-    jobs::Coordinator,
     providers::{HttpProviders, ProviderEndpoints},
     server::Server,
     telemetry::{Telemetry, init_logging, install_redacted_panic_hook},
@@ -79,11 +78,22 @@ async fn serve_browser_fixtures() {
     let assets = Arc::new(StaticAssets::load(&root.join("release/public")).unwrap());
     let shutdown = CancellationToken::new();
     let mut tasks = tokio::task::JoinSet::new();
+    let mut data_roots = vec![];
+    let mut runtimes = vec![];
     for (port, origin) in [
         (5184, "http://127.0.0.1:5184"),
         (5186, "https://127.0.0.1:5185"),
     ] {
+        let data = tempfile::tempdir().unwrap();
         let values = HashMap::from([
+            (
+                "APP_DATA_DIR".into(),
+                data.path().join("data").display().to_string(),
+            ),
+            (
+                "APP_MODEL_DIR".into(),
+                data.path().join("models").display().to_string(),
+            ),
             ("APP_ORIGIN".into(), origin.into()),
             ("PORT".into(), port.to_string()),
             ("APP_ACCESS_KEY".into(), "fixture-access-key-".repeat(4)),
@@ -104,14 +114,13 @@ async fn serve_browser_fixtures() {
             .unwrap()
             .with_telemetry(telemetry.clone()),
         );
-        let jobs = Coordinator::instrumented(provider, config.limits.clone(), telemetry.clone());
-        let draining = CancellationToken::new();
-        let state = Arc::new(AppState {
-            config: config.clone(),
-            jobs: jobs.clone(),
-            telemetry,
-            draining: draining.clone(),
-        });
+        let state = AppState::start(config.clone(), provider.clone(), Some(provider), telemetry)
+            .await
+            .unwrap();
+        let jobs = state.jobs.clone();
+        let draining = state.draining.clone();
+        runtimes.push(state.knowledge_runtime.clone());
+        data_roots.push(data);
         let server = Server::bind(
             router(state, assets.clone()),
             config.bind,
@@ -130,5 +139,8 @@ async fn serve_browser_fixtures() {
     shutdown.cancel();
     while let Some(result) = tasks.join_next().await {
         result.unwrap().unwrap();
+    }
+    for runtime in runtimes {
+        runtime.shutdown().await.unwrap();
     }
 }

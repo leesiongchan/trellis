@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 pub(crate) const ENSURE_TOPIC: &str = "IF !record::exists(type::record('topic',$topicKey)) { CREATE ONLY type::record('topic',$topicKey) CONTENT $topicRecord; }; IF !record::exists(type::record('question_variant',$topicKey)) { CREATE ONLY type::record('question_variant',$topicKey) CONTENT $variantRecord; };";
 impl KnowledgeStore {
     pub(crate) async fn query_value(&self, sql: &str, bindings: Value) -> Result<Value, AppError> {
-        let mut response = self.query(sql, bindings).await?;
+        let mut response = self.read_query(sql, bindings).await?;
         Ok(response
             .take::<surrealdb::types::Value>(0)
             .map_err(|_| storage_error())?

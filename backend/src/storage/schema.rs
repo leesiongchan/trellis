@@ -3,11 +3,64 @@ use super::*;
 use crate::contracts::library::LibraryId;
 pub(crate) const SCHEMA_VERSION: u64 = 1;
 impl KnowledgeStore {
+    pub async fn initialize_schema(&self) -> Result<(), AppError> {
+        self.check_schema().await?;
+        let info = self
+            .query_value("INFO FOR DB;", serde_json::json!({}))
+            .await?;
+        if info["tables"].get("library").is_none() {
+            self.install_schema().await?;
+        }
+        let current = super::backups::executable_hash().await?;
+        let previous = self
+            .query_value(
+                "SELECT VALUE releaseChecksum FROM ONLY library:main;",
+                serde_json::json!({}),
+            )
+            .await?;
+        if previous.as_str().is_some_and(|p| p != current) {
+            // Startup owns this handle; clear abandoned paid guards before exporting.
+            self.recover_interrupted().await?;
+            self.backup(
+                &self
+                    .config
+                    .backup_dir
+                    .join(format!("pre-upgrade-{}", uuid::Uuid::new_v4())),
+            )
+            .await?;
+        }
+        self.install_schema().await?;
+        self.query(
+            "UPDATE library:main SET releaseChecksum=$checksum;",
+            serde_json::json!({"checksum":current}),
+        )
+        .await?;
+        Ok(())
+    }
+    pub async fn check_schema(&self) -> Result<(), AppError> {
+        let info = self
+            .query_value("INFO FOR DB;", serde_json::json!({}))
+            .await?;
+        if info["tables"].get("library").is_none() {
+            return Ok(());
+        }
+        let version = self
+            .query_value(
+                "SELECT VALUE schemaVersion FROM ONLY library:main;",
+                serde_json::json!({}),
+            )
+            .await?;
+        if !version.is_null() && version != SCHEMA_VERSION {
+            return Err(AppError::new(ErrorCode::StorageVersionMismatch));
+        }
+        Ok(())
+    }
     pub async fn install_schema(&self) -> Result<(), AppError> {
+        self.check_schema().await?;
         let mut sql = String::from(
             "BEGIN TRANSACTION; DEFINE TABLE IF NOT EXISTS library SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON library TYPE string; DEFINE FIELD IF NOT EXISTS epoch ON library TYPE int; DEFINE FIELD IF NOT EXISTS schemaVersion ON library TYPE int; ",
         );
-        sql.push_str("DEFINE FIELD IF NOT EXISTS importSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
+        sql.push_str("DEFINE FIELD IF NOT EXISTS releaseChecksum ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS importSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
         let tables: &[(&str, &[(&str, &str)])] = &[
             (
                 "verification_stage",

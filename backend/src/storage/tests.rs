@@ -87,6 +87,7 @@ async fn branch_edges_retain_only_live_occurrence_support() {
         data_dir: root.path().join("data"),
         backup_dir: root.path().join("backups"),
         model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
     };
     let store = KnowledgeStore::open(&config).await.unwrap();
     store.install_schema().await.unwrap();
@@ -181,6 +182,7 @@ async fn failed_mutation_rolls_back_content_and_operation_together() {
         data_dir: root.path().join("data"),
         backup_dir: root.path().join("backups"),
         model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
     };
     let store = KnowledgeStore::open(&config).await.unwrap();
     store.install_schema().await.unwrap();
@@ -218,6 +220,7 @@ async fn topic_versions_are_scoped_and_exact_reuse_keeps_the_pin() {
         data_dir: root.path().join("data"),
         backup_dir: root.path().join("backups"),
         model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
     })
     .await
     .unwrap();
@@ -317,6 +320,7 @@ async fn commit_precedes_completion() {
             data_dir: root.path().join("data"),
             backup_dir: root.path().join("backups"),
             model_dir: root.path().join("models"),
+            asset_dir: root.path().join("public"),
         })
         .await
         .unwrap(),
@@ -406,4 +410,204 @@ async fn commit_precedes_completion() {
     );
     service.drain().await.unwrap();
     store.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn schema_probe_before_initial_install() {
+    let root = tempfile::tempdir().unwrap();
+    let store = KnowledgeStore::open(&StorageConfig {
+        data_dir: root.path().join("data"),
+        backup_dir: root.path().join("backups"),
+        model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
+    })
+    .await
+    .unwrap();
+    assert!(store.check_schema().await.is_ok());
+    store.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn native_backup_counts_are_scalar() {
+    let root = tempfile::tempdir().unwrap();
+    let store = KnowledgeStore::open(&StorageConfig {
+        data_dir: root.path().join("data"),
+        backup_dir: root.path().join("backups"),
+        model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
+    })
+    .await
+    .unwrap();
+    store.install_schema().await.unwrap();
+    let counts=store.query_value("RETURN {library:((SELECT count() AS total FROM library GROUP ALL)[0].total ?? 0),topic:((SELECT count() AS total FROM topic GROUP ALL)[0].total ?? 0)};",serde_json::json!({})).await.unwrap();
+    assert_eq!(counts, serde_json::json!({"library":1,"topic":0}));
+    store.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn maintenance_keeps_reads_available_and_defers_writes() {
+    use crate::contracts::library::*;
+    use std::sync::Arc;
+    let root = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        KnowledgeStore::open(&StorageConfig {
+            data_dir: root.path().join("data"),
+            backup_dir: root.path().join("backups"),
+            model_dir: root.path().join("models"),
+            asset_dir: root.path().join("public"),
+        })
+        .await
+        .unwrap(),
+    );
+    store.install_schema().await.unwrap();
+    let lease = store.maintenance.write().await;
+    tokio::time::timeout(std::time::Duration::from_millis(100), store.library_info())
+        .await
+        .unwrap()
+        .unwrap();
+    let db = store.clone();
+    let task = tokio::spawn(async move {
+        db.create_exploration(&Command {
+            operation_id: OperationId::generate(),
+            library_epoch: 1,
+            expected_revision: None,
+            payload: CreateExploration {
+                question: "Pending write".into(),
+                locale: "en".into(),
+            },
+        })
+        .await
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+    assert!(!task.is_finished());
+    drop(lease);
+    assert_eq!(
+        task.await.unwrap().unwrap().state,
+        OperationState::Completed
+    );
+    store.close().await.unwrap();
+}
+#[tokio::test]
+async fn incompatible_versions_fail_before_schema_mutation_or_engine_reopen() {
+    let root = tempfile::tempdir().unwrap();
+    let config = StorageConfig {
+        data_dir: root.path().join("data"),
+        backup_dir: root.path().join("backups"),
+        model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
+    };
+    let store = KnowledgeStore::open(&config).await.unwrap();
+    store.install_schema().await.unwrap();
+    store
+        .query(
+            "UPDATE library:main SET schemaVersion=999;",
+            serde_json::json!({}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        store.install_schema().await.unwrap_err().code(),
+        "STORAGE_VERSION_MISMATCH"
+    );
+    assert_eq!(
+        store
+            .query_value(
+                "SELECT VALUE schemaVersion FROM ONLY library:main;",
+                serde_json::json!({})
+            )
+            .await
+            .unwrap(),
+        serde_json::json!(999)
+    );
+    store.close().await.unwrap();
+    std::fs::write(
+        config.data_dir.join(".branch-storage-version.json"),
+        b"{\"engineVersion\":\"999\",\"schemaVersion\":1}",
+    )
+    .unwrap();
+    assert_eq!(
+        KnowledgeStore::open(&config).await.err().unwrap().code(),
+        "STORAGE_VERSION_MISMATCH"
+    );
+}
+
+#[tokio::test]
+async fn preupgrade_backup_records_the_old_release_and_restores_to_fresh_storage() {
+    use crate::contracts::library::*;
+    let root = tempfile::tempdir().unwrap();
+    let config = StorageConfig {
+        data_dir: root.path().join("data"),
+        backup_dir: root.path().join("backups"),
+        model_dir: root.path().join("models"),
+        asset_dir: root.path().join("public"),
+    };
+    let store = KnowledgeStore::open(&config).await.unwrap();
+    store.install_schema().await.unwrap();
+    store
+        .create_exploration(&Command {
+            operation_id: OperationId::generate(),
+            library_epoch: 1,
+            expected_revision: None,
+            payload: CreateExploration {
+                question: "Preupgrade retained topic".into(),
+                locale: "en".into(),
+            },
+        })
+        .await
+        .unwrap();
+    let old = "a".repeat(64);
+    store
+        .query(
+            "UPDATE library:main SET releaseChecksum=$old;",
+            serde_json::json!({"old":old}),
+        )
+        .await
+        .unwrap();
+    store.initialize_schema().await.unwrap();
+    let backups = std::fs::read_dir(&config.backup_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+    assert_eq!(backups.len(), 1);
+    assert!(
+        backups[0]
+            .file_name()
+            .to_str()
+            .unwrap()
+            .starts_with("pre-upgrade-")
+    );
+    let manifest: super::BackupManifest =
+        serde_json::from_slice(&std::fs::read(backups[0].path().join("manifest.json")).unwrap())
+            .unwrap();
+    assert_eq!(manifest.application_checksum, old);
+    let restored = KnowledgeStore::restore(&backups[0].path(), &root.path().join("rollback"))
+        .await
+        .unwrap();
+    assert_eq!(restored.counts, manifest.counts);
+    store.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn local_worker_resumes_after_a_long_maintenance_pause() {
+    let s = super::matching_fixture::Setup::new().await;
+    s.create("Local maintenance question").await;
+    let lease = s.store.maintenance.write().await;
+    tokio::time::pause();
+    let worker = crate::embeddings::EmbeddingWorker::start(
+        s.store.clone(),
+        s.embedder.clone(),
+        tokio_util::sync::CancellationToken::new(),
+    );
+    tokio::task::yield_now().await;
+    tokio::time::advance(std::time::Duration::from_secs(6)).await;
+    tokio::task::yield_now().await;
+    tokio::time::resume();
+    drop(lease);
+    super::matching_fixture::until(async || {
+        s.store.library_info().await.unwrap().discovery
+            == crate::contracts::library::DiscoveryStatus::Ready
+    })
+    .await;
+    worker.shutdown().await.unwrap();
+    s.store.close().await.unwrap();
 }

@@ -6,7 +6,6 @@ mod stubs;
 use branch_backend::{
     access::issue_cookie,
     app::{AppState, api_router},
-    jobs::Coordinator,
     providers::{HttpProviders, ProviderEndpoints},
 };
 use serde_json::json;
@@ -79,7 +78,7 @@ fn failed_research_is_correlated_and_redacted_in_actual_logs() {
                 .spawn()
                 .unwrap(),
         );
-        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
         let status = loop {
             if let Some(status) = child.0.try_wait().unwrap() {
                 break status;
@@ -179,7 +178,7 @@ async fn production_logging_fixture() {
         )
     }])
     .await;
-    let config = common::config("http://127.0.0.1:3000");
+    let (config, _data) = common::config("http://127.0.0.1:3000");
     let provider = Arc::new(
         HttpProviders::with_endpoints(
             config.clone(),
@@ -191,13 +190,15 @@ async fn production_logging_fixture() {
         .unwrap()
         .with_telemetry(telemetry.clone()),
     );
-    let jobs = Coordinator::instrumented(provider, config.limits.clone(), telemetry.clone());
-    let state = Arc::new(AppState {
-        config: config.clone(),
-        jobs: jobs.clone(),
-        telemetry: telemetry.clone(),
-        draining: tokio_util::sync::CancellationToken::new(),
-    });
+    let state = AppState::start(
+        config.clone(),
+        provider.clone(),
+        Some(provider),
+        telemetry.clone(),
+    )
+    .await
+    .unwrap();
+    let jobs = state.jobs.clone();
     let server = common::spawn_router(api_router(state)).await;
     let client = reqwest::Client::new();
     let response=client.post(format!("{}/api/research",server.origin())).header("host","127.0.0.1:3000").header("origin","http://127.0.0.1:3000").header("x-request-id","diagnostic-request").header("cookie",format!("branch_access={}",issue_cookie(config.access_key.expose(),4102444800000).unwrap())).json(&json!({"explorationId":"e","nodeId":"n","question":"private-user-question","clarification":null,"ancestors":[{"title":"private-ancestor-title","summary":"private-ancestor-summary"}]})).send().await.unwrap();

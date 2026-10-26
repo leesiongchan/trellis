@@ -27,6 +27,7 @@ impl Setup {
                 data_dir: root.path().join("data"),
                 backup_dir: root.path().join("backups"),
                 model_dir: root.path().join("models"),
+                asset_dir: root.path().join("public"),
             })
             .await
             .unwrap(),
@@ -415,6 +416,7 @@ async fn storage_failure_keeps_old_answer_and_never_retries_provider_work() {
         data_dir: root.join("data"),
         backup_dir: root.join("backups"),
         model_dir: root.join("models"),
+        asset_dir: root.join("public"),
     })
     .await
     .unwrap();

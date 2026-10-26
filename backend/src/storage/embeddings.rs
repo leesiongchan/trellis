@@ -3,7 +3,7 @@ use super::*;
 use crate::{contracts::library::*, embeddings::*};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-const RETRIEVAL_FILTER: &str = "modelVersion=$model AND data.sourceKind=$kind AND ($exclude=NULL OR data.topicId!=$exclude) AND ($cursor=NULL OR key>$cursor) AND ($kind='question' OR !$visible OR data.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.answerVersionId LIMIT 1))>0)";
+pub(super) const RETRIEVAL_FILTER: &str = "modelVersion=$model AND data.sourceKind=$kind AND ($exclude=NULL OR data.topicId!=$exclude) AND ($cursor=NULL OR key>$cursor) AND ($kind='question' OR !$visible OR data.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.answerVersionId LIMIT 1))>0)";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EmbeddingCursor {

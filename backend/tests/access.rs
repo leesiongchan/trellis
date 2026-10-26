@@ -43,7 +43,14 @@ fn legacy_cookie_roundtrips() {
 
 #[test]
 fn config_requires_valid_explicit_origin_and_loopback() {
-    let mut values = HashMap::from([("APP_ORIGIN".into(), "http://127.0.0.1:3000".into())]);
+    let root = tempfile::tempdir().unwrap();
+    let mut values = HashMap::from([
+        ("APP_ORIGIN".into(), "http://127.0.0.1:3000".into()),
+        (
+            "APP_DATA_DIR".into(),
+            root.path().join("data").display().to_string(),
+        ),
+    ]);
     assert!(Config::from_values(&values, Path::new("/tmp/release/branch-backend")).is_ok());
     for (key, value) in [
         ("HOST", "0.0.0.0"),
@@ -68,7 +75,8 @@ fn config_requires_valid_explicit_origin_and_loopback() {
 
 #[tokio::test]
 async fn private_access_redirect_sets_compatible_cookie() {
-    let server = common::spawn_router(routes(common::config("https://private.example:8443"))).await;
+    let (config, _data) = common::config("https://private.example:8443");
+    let server = common::spawn_router(routes(config)).await;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()

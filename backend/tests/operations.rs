@@ -16,6 +16,7 @@ async fn operation_claim_is_atomic() {
             data_dir: root.path().join("data"),
             backup_dir: root.path().join("backups"),
             model_dir: root.path().join("models"),
+            asset_dir: root.path().join("public"),
         })
         .await
         .unwrap(),

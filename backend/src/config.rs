@@ -64,6 +64,7 @@ impl Default for Limits {
 }
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub storage: crate::storage::StorageConfig,
     pub origin: url::Url,
     pub bind: SocketAddr,
     pub access_key: Secret,
@@ -130,6 +131,7 @@ impl Config {
                     .join("public")
             });
         Ok(Self {
+            storage: crate::storage::StorageConfig::from_values(values, executable)?,
             origin,
             bind: SocketAddr::new(ip, port),
             access_key,

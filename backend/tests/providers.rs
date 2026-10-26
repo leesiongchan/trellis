@@ -18,8 +18,9 @@ fn input() -> ResearchRequest {
     ResearchRequest::from_json(json!({"explorationId":"e","nodeId":"n","question":"microSD","clarification":null,"ancestors":[]})).unwrap()
 }
 fn adapter(stub: &StubProviders) -> HttpProviders {
+    let (config, _data) = common::config("http://127.0.0.1:3000");
     HttpProviders::with_endpoints(
-        common::config("http://127.0.0.1:3000"),
+        config,
         ProviderEndpoints {
             openai: stub.url(),
             tavily: stub.url(),

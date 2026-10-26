@@ -5,7 +5,6 @@ mod stubs;
 use branch_backend::{
     access::issue_cookie,
     app::{AppState, api_router},
-    jobs::Coordinator,
     providers::{HttpProviders, ProviderEndpoints},
     telemetry::Telemetry,
 };
@@ -18,7 +17,8 @@ async fn setup() -> (common::TestServer, Arc<AppState>, StubProviders) {
 }
 async fn setup_with_keys(configured: bool) -> (common::TestServer, Arc<AppState>, StubProviders) {
     let stub = StubProviders::start(vec![Script::json(json!({"results":[]}))]).await;
-    let mut config = (*common::config("http://127.0.0.1:3000")).clone();
+    let (config, data) = common::config("http://127.0.0.1:3000");
+    let mut config = (*config).clone();
     config.limits.body_read = Duration::from_millis(30);
     if !configured {
         config.openai_key = Default::default();
@@ -36,13 +36,12 @@ async fn setup_with_keys(configured: bool) -> (common::TestServer, Arc<AppState>
         .unwrap(),
     );
     let telemetry = Arc::new(Telemetry::new());
-    let state = Arc::new(AppState {
-        jobs: Coordinator::instrumented(provider, config.limits.clone(), telemetry.clone()),
-        config,
-        telemetry,
-        draining: tokio_util::sync::CancellationToken::new(),
-    });
-    let server = common::spawn_router(api_router(state.clone())).await;
+    let state = AppState::start(config, provider.clone(), Some(provider), telemetry)
+        .await
+        .unwrap();
+    let server = common::spawn_router(api_router(state.clone()))
+        .await
+        .keep_data_directory(data);
     (server, state, stub)
 }
 
