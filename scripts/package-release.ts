@@ -47,10 +47,56 @@ async function collect(root: string, path = ''): Promise<{ path: string; bytes: 
   }
   return files;
 }
+export interface ModelAssetsManifest {
+  modelId: string;
+  revision: string;
+  dimensions: number;
+  maxTokens: number;
+  artifactHashes: Record<string, string>;
+  preprocessingVersion: string;
+}
+export async function packageModelAssets(
+  modelDir: string,
+  outputDir: string,
+  manifest: ModelAssetsManifest
+): Promise<void> {
+  const allowed = new Set([
+    'model_optimized.onnx',
+    'tokenizer.json',
+    'config.json',
+    'tokenizer_config.json',
+    'special_tokens_map.json'
+  ]);
+  const files = [];
+  for (const [name, hash] of Object.entries(manifest.artifactHashes)) {
+    if (!allowed.has(name) || !/^[0-9a-f]{64}$/.test(hash))
+      throw new Error('Invalid model artifact manifest.');
+    const path = join(modelDir, name),
+      stat = await lstat(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 128 * 1024 * 1024)
+      throw new Error('Model artifact is unsafe.');
+    const bytes = await readFile(path);
+    if (createHash('sha256').update(bytes).digest('hex') !== hash)
+      throw new Error('Model artifact checksum mismatch.');
+    files.push({ name, bytes });
+  }
+  const destination = join(outputDir, 'models');
+  await directory(destination);
+  for (const file of files) {
+    const temp = join(destination, '.model-' + randomUUID());
+    await writeFile(temp, file.bytes, { flag: 'wx', mode: 0o644 });
+    await rename(temp, join(destination, file.name));
+  }
+  const temp = join(destination, '.manifest-' + randomUUID());
+  await writeFile(temp, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
+  await rename(temp, join(destination, 'model-manifest.json'));
+}
 export async function packageRelease(input: {
   frontendDir: string;
   executable: string;
   outputDir: string;
+  modelDir?: string;
+  modelManifest?: ModelAssetsManifest;
 }): Promise<void> {
   const frontendDir = resolve(input.frontendDir),
     outputDir = resolve(input.outputDir);
@@ -75,6 +121,24 @@ export async function packageRelease(input: {
   const executable = await readFile(input.executable);
   await directory(outputDir);
   await directory(join(outputDir, 'public'));
+  if (input.modelDir) {
+    const modelManifest =
+      input.modelManifest ??
+      JSON.parse(
+        await readFile(
+          new URL('../tests/fixtures/library/model-manifest.json', import.meta.url),
+          'utf8'
+        )
+      );
+    await packageModelAssets(resolve(input.modelDir), outputDir, modelManifest);
+  }
+  const runtime = await readFile(
+    new URL('../tests/fixtures/library/native-runtime-manifest.json', import.meta.url)
+  );
+  const runtimeTemp = join(outputDir, '.runtime-' + randomUUID());
+  await writeFile(runtimeTemp, runtime, { flag: 'wx' });
+  await rename(runtimeTemp, join(outputDir, 'native-runtime-manifest.json'));
+
   for (const file of files) {
     const parts = file.path.split('/');
     let parent = join(outputDir, 'public');
@@ -105,10 +169,20 @@ export async function packageRelease(input: {
   await rename(temporaryManifest, join(outputDir, 'frontend-manifest.json'));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const defaultModelDir = resolve('.artifacts/embedding-model');
+  const modelDir =
+    process.argv[5] ??
+    (await lstat(defaultModelDir)
+      .then(() => defaultModelDir)
+      .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return undefined;
+        throw error;
+      }));
   await packageRelease({
     frontendDir: process.argv[2] ?? 'build',
     executable: process.argv[3] ?? 'backend/target/release/branch-backend',
-    outputDir: process.argv[4] ?? 'release'
+    outputDir: process.argv[4] ?? 'release',
+    modelDir
   });
   console.log('Packaged Rust executable and verified frontend assets in release/.');
 }

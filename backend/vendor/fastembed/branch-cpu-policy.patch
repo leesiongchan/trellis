@@ -1,0 +1,58 @@
+--- a/src/text_embedding/init.rs
++++ b/src/text_embedding/init.rs
+@@ -36,6 +36,8 @@
+     /// every available CPU core via `std::thread::available_parallelism`.
+     /// Set this to cap CPU usage (e.g. on laptops) at the cost of throughput.
+     pub intra_threads: Option<usize>,
++    /// Explicit automatic device policy for application portability.
++    pub auto_device_policy: Option<ort::session::builder::AutoDevicePolicy>,
+     /// Refuse session creation when any graph node would fall back to the CPU
+     /// execution provider. This is useful for accelerator conformance tests
+     /// and for applications where silent partial placement is incorrect.
+@@ -100,6 +102,12 @@
+         self
+     }
+ 
++    /// Override ort's automatic device policy (for example, force CPU execution).
++    pub fn with_auto_device(mut self, policy: ort::session::builder::AutoDevicePolicy) -> Self {
++        self.auto_device_policy = Some(policy);
++        self
++    }
++
+     pub fn with_disable_cpu_fallback(mut self, disable: bool) -> Self {
+         self.disable_cpu_fallback = disable;
+         self
+@@ -125,6 +133,7 @@
+             execution_providers,
+             max_length,
+             intra_threads,
++            auto_device_policy,
+             disable_cpu_fallback,
+             dimension_overrides,
+             session_config,
+@@ -137,6 +146,9 @@
+             intra_threads,
+             session_config,
+         )?;
++        if let Some(policy) = auto_device_policy {
++            builder = builder.with_auto_device(policy).map_err(builder_error)?;
++        }
+         if disable_cpu_fallback {
+             builder = builder.with_disable_cpu_fallback().map_err(builder_error)?;
+         }
+@@ -156,6 +168,7 @@
+             execution_providers: Default::default(),
+             max_length: DEFAULT_MAX_LENGTH,
+             intra_threads: None,
++            auto_device_policy: None,
+             disable_cpu_fallback: false,
+             dimension_overrides: Vec::new(),
+             session_config: Vec::new(),
+@@ -173,6 +186,7 @@
+             execution_providers: options.execution_providers,
+             max_length: options.max_length,
+             intra_threads: options.intra_threads,
++            auto_device_policy: None,
+             disable_cpu_fallback: false,
+             dimension_overrides: Vec::new(),
+             session_config: options.session_config,

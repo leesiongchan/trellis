@@ -47,7 +47,11 @@ impl KnowledgeStore {
             schema_version: 2,
             library_id: LibraryId::new(value["key"].as_str().ok_or_else(storage_error)?)?,
             library_epoch: value["epoch"].as_u64().ok_or_else(storage_error)?,
-            discovery: DiscoveryStatus::Unavailable,
+            discovery: match value["discoveryStatus"].as_str() {
+                Some("ready") => DiscoveryStatus::Ready,
+                Some("indexing") => DiscoveryStatus::Indexing,
+                _ => DiscoveryStatus::Unavailable,
+            },
         })
     }
     async fn operation_record(&self, id: &OperationId) -> Result<Option<Value>, AppError> {

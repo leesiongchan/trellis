@@ -34,6 +34,9 @@ hyper-util = { version = "0.1", features = ["server", "http1", "tokio", "service
 tokio-io-timeout = "=1.2.1"
 dotenvy = "0.15"
 surrealdb = { version = "=3.3.4", default-features = false, features = ["kv-rocksdb"] }
+fastembed = { version = "=7.5.0", default-features = false, features = ["onnx", "ort-download-binaries-rustls-tls"] }
+tokenizers = { version = "=0.23.2", default-features = false, features = ["onig"] }
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "api-24"] }
 
 [dev-dependencies]
 tokio = { version = "=1.54.1", features = ["test-util"] }
@@ -52,3 +55,6 @@ panic = "deny"
 [profile.release]
 lto = "thin"
 strip = true
+
+[patch.crates-io]
+fastembed = { path = "vendor/fastembed" }

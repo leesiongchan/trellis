@@ -7,7 +7,19 @@ impl KnowledgeStore {
         let mut sql = String::from(
             "BEGIN TRANSACTION; DEFINE TABLE IF NOT EXISTS library SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON library TYPE string; DEFINE FIELD IF NOT EXISTS epoch ON library TYPE int; DEFINE FIELD IF NOT EXISTS schemaVersion ON library TYPE int; ",
         );
+        sql.push_str("DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
         let tables: &[(&str, &[(&str, &str)])] = &[
+            ("embedding_model", &[("key", "string")]),
+            ("embedding_cursor", &[("key", "string")]),
+            (
+                "embedding_state",
+                &[
+                    ("key", "string"),
+                    ("modelVersion", "string"),
+                    ("sourceKey", "string"),
+                    ("inputHash", "string"),
+                ],
+            ),
             ("topic", &[("key", "string")]),
             (
                 "question_variant",
@@ -93,6 +105,7 @@ impl KnowledgeStore {
                     ("modelVersion", "string"),
                     ("sourceKey", "string"),
                     ("inputHash", "string"),
+                    ("partIndex", "int"),
                 ],
             ),
             (
@@ -124,7 +137,16 @@ impl KnowledgeStore {
             ));
         }
         sql.push_str("DEFINE TABLE IF NOT EXISTS connection TYPE RELATION IN topic OUT topic SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON connection TYPE string; DEFINE FIELD IF NOT EXISTS identityKey ON connection TYPE string; DEFINE FIELD IF NOT EXISTS data ON connection TYPE object FLEXIBLE; DEFINE INDEX IF NOT EXISTS unique_key ON connection FIELDS key UNIQUE; DEFINE INDEX IF NOT EXISTS unique_pair ON connection FIELDS identityKey UNIQUE; ");
+        sql.push_str("REMOVE INDEX IF EXISTS model_input ON embedding; ");
         for (table, name, fields, unique) in [
+            ("embedding", "model_scan", "modelVersion,key", false),
+            (
+                "embedding_state",
+                "source_generation",
+                "modelVersion,sourceKey,inputHash",
+                true,
+            ),
+            ("appearance", "pinned_versions", "answerVersionKey", false),
             (
                 "research_follower",
                 "attempt_followers",
@@ -155,8 +177,8 @@ impl KnowledgeStore {
             ),
             (
                 "embedding",
-                "model_input",
-                "modelVersion,sourceKey,inputHash",
+                "model_input_part",
+                "modelVersion,sourceKey,inputHash,partIndex",
                 true,
             ),
             ("migration_manifest", "import_digest", "identityKey", true),

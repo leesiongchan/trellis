@@ -3,6 +3,7 @@ pub mod access;
 pub mod app;
 pub mod config;
 pub mod contracts;
+pub mod embeddings;
 pub mod error;
 pub mod http;
 pub mod jobs;
