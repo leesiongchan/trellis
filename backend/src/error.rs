@@ -215,7 +215,7 @@ impl AppError {
             ),
             InvalidImport => (
                 "INVALID_IMPORT",
-                "The saved exploration could not be imported.",
+                "The saved exploration could not be imported. Keep the browser copy and export it for recovery.",
                 StatusCode::UNPROCESSABLE_ENTITY,
                 false,
             ),

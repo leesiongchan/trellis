@@ -300,7 +300,21 @@ impl KnowledgeStore {
                                     })
                             })
                         });
-                        if supported {
+                        let mut grounded = supported;
+                        if grounded {
+                            for endpoint in [&c.from, &c.to] {
+                                if let Some(passage) = &endpoint.passage {
+                                    let answer: AnswerVersionView = self
+                                        .record_data(
+                                            "answer_version",
+                                            passage.location.answer_version_id.as_str(),
+                                        )
+                                        .await?;
+                                    grounded &= answer.origin == AnswerOrigin::Research;
+                                }
+                            }
+                        }
+                        if grounded {
                             view.kind = ConnectionKind::RelatedTopic;
                             view.status = ConnectionStatus::Accepted;
                             view.reason = decision.reason.clone();

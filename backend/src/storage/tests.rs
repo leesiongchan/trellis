@@ -263,6 +263,7 @@ async fn topic_versions_are_scoped_and_exact_reuse_keeps_the_pin() {
     };
     let version = AnswerVersionId::generate();
     let answer = AnswerVersionView {
+        origin: AnswerOrigin::Research,
         id: version.clone(),
         topic_id: topics[0].clone(),
         revision: 1,

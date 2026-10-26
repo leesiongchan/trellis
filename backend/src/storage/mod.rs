@@ -3,6 +3,7 @@ pub(crate) mod answers;
 mod config;
 mod connections;
 mod embeddings;
+mod imports;
 mod library;
 pub mod operations;
 pub mod records;
@@ -212,11 +213,19 @@ impl KnowledgeStore {
                             "content_limit" => ErrorCode::BodyTooLarge,
                             "research_limit" => ErrorCode::ResearchLimit,
                             "work_interrupted" => ErrorCode::WorkInterrupted,
+                            "invalid_import" | "import_limit" => ErrorCode::InvalidImport,
                             _ => ErrorCode::StorageUnavailable,
                         };
                         return Err(AppError::new(kind));
                     }
-                    tracing::error!(error_kind = error.kind_str(), "library query failed");
+                    tracing::error!(
+                        error_kind = error.kind_str(),
+                        query_timed_out = matches!(
+                            error.query_details(),
+                            Some(surrealdb::types::QueryError::TimedOut { .. })
+                        ),
+                        "library query failed"
+                    );
                     return Err(storage_error());
                 }
             }

@@ -1,6 +1,6 @@
 //! Repository records and versioned, conservative exact identity.
 use crate::{
-    contracts::{Ancestor, ecma_whitespace, library::question},
+    contracts::{Ancestor, ecma_whitespace},
     error::AppError,
 };
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,6 @@ impl ResolvedQuestion {
         request = crate::contracts::ResearchRequest::from_json(
             serde_json::to_value(request).map_err(|_| AppError::invalid_question())?,
         )?;
-        question(&mut request.question)?;
         if locale.is_empty() || locale.len() > 35 || interpretation.len() > 500 {
             return Err(AppError::invalid_question());
         }

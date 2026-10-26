@@ -7,7 +7,7 @@ impl KnowledgeStore {
         let mut sql = String::from(
             "BEGIN TRANSACTION; DEFINE TABLE IF NOT EXISTS library SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON library TYPE string; DEFINE FIELD IF NOT EXISTS epoch ON library TYPE int; DEFINE FIELD IF NOT EXISTS schemaVersion ON library TYPE int; ",
         );
-        sql.push_str("DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
+        sql.push_str("DEFINE FIELD IF NOT EXISTS importSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
         let tables: &[(&str, &[(&str, &str)])] = &[
             (
                 "verification_stage",

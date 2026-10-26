@@ -50,9 +50,10 @@ export const LibraryInfoSchema = z.object({
   libraryEpoch: epoch,
   discovery: z.enum(['ready', 'unavailable', 'indexing'])
 });
+const storedQuestion = z.string().trim().min(1).max(500);
 export const ExplorationSummarySchema = z.object({
   id,
-  originalPrompt: question,
+  originalPrompt: storedQuestion,
   rootId: id,
   revision: integer,
   createdAt: timestamp,
@@ -63,7 +64,7 @@ export const AppearanceSchema = z.object({
   explorationId: id,
   parentId: id.nullable(),
   topicId: id,
-  question,
+  question: storedQuestion,
   locale,
   clarification: question.nullable(),
   ancestors: z
@@ -71,6 +72,7 @@ export const AppearanceSchema = z.object({
     .max(50),
   interpretation: z.string().max(500),
   relationship: z.string().max(100),
+  teaser: z.string().max(6000).default(''),
   reason: ParagraphSchema.nullable(),
   reasonSources: z.array(SourceSchema).max(5),
   reasonAnswerVersionId: id.nullable(),
@@ -78,6 +80,7 @@ export const AppearanceSchema = z.object({
   childIds: z.array(id).max(2000)
 });
 export const AnswerVersionSchema = z.object({
+  origin: z.enum(['research', 'legacy']).default('research'),
   id,
   topicId: id,
   revision: integer,
@@ -93,7 +96,7 @@ export const ExplorationSnapshotSchema = z.object({
 });
 export const TopicViewSchema = z.object({
   id,
-  question,
+  question: storedQuestion,
   currentAnswerVersionId: id.nullable(),
   selectedAnswer: AnswerVersionSchema.nullable(),
   versions: z.array(z.object({ id, revision: integer, createdAt: timestamp }))
@@ -121,7 +124,17 @@ export const ConnectionViewSchema = z.object({
   score: z.number().finite().min(-1).max(1).nullable(),
   passages: z.array(PassageLocationSchema).max(6),
   evidence: z.array(EvidenceRefSchema).max(10),
-  citationSources:z.array(z.object({topicId:id,answerVersionId:id,paragraphId:z.string().min(1).max(200),source:SourceSchema,quote:z.string().min(1).max(600)})).max(10)
+  citationSources: z
+    .array(
+      z.object({
+        topicId: id,
+        answerVersionId: id,
+        paragraphId: z.string().min(1).max(200),
+        source: SourceSchema,
+        quote: z.string().min(1).max(600)
+      })
+    )
+    .max(10)
 });
 export const pageSchema = <T extends z.ZodType>(item: T) =>
   z.object({ items: z.array(item).max(100), nextCursor: z.string().max(1000).nullable() });
@@ -158,7 +171,8 @@ export const BeginImportCommandSchema = commandSchema(
     legacyExplorationId: z.string().min(1).max(200),
     contentDigest: z.string().regex(/^[0-9a-fA-F]{64}$/),
     expectedBytes: integer.min(1).max(32 * 1024 * 1024),
-    expectedNodes: integer.min(1).max(2000)
+    expectedNodes: integer.min(1).max(2000),
+    explicitRestore: z.boolean().default(false)
   })
 );
 export const ImportBatchCommandSchema = commandSchema(
@@ -174,6 +188,8 @@ export const ImportBatchCommandSchema = commandSchema(
 );
 export const FinalizeImportCommandSchema = commandSchema(z.object({ importId: id }));
 export const ImportViewSchema = z.object({
+  uploadOperationId: id,
+  explorationId: id.nullable(),
   id,
   state: z.enum(['staging', 'completed', 'failed', 'suppressed']),
   mapping: z.record(z.string(), id),

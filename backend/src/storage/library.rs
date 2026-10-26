@@ -92,6 +92,7 @@ impl KnowledgeStore {
             ancestors: vec![],
             interpretation: "literal".into(),
             relationship: String::new(),
+            teaser: String::new(),
             reason: None,
             reason_sources: vec![],
             reason_answer_version_id: None,
@@ -186,6 +187,7 @@ impl KnowledgeStore {
             ancestors: resolved.ancestors,
             interpretation: resolved.interpretation,
             relationship: "branch".into(),
+            teaser: String::new(),
             reason: None,
             reason_sources: vec![],
             reason_answer_version_id: None,
@@ -218,7 +220,7 @@ impl KnowledgeStore {
         .await
     }
     pub async fn exploration(&self, id: &ExplorationId) -> Result<ExplorationSnapshot, AppError> {
-        let value=self.query_value("RETURN {epoch:library:main.epoch,exploration:(SELECT VALUE data FROM ONLY type::record('exploration',$key)),appearances:(SELECT VALUE data FROM appearance WHERE explorationKey=$key LIMIT 2001),answers:(SELECT VALUE data FROM answer_version WHERE key IN (SELECT VALUE answerVersionKey FROM appearance WHERE explorationKey=$key LIMIT 2001) LIMIT 2001)};",json!({"key":id})).await?;
+        let value=self.query_value("RETURN { LET $appearances=(SELECT VALUE data FROM appearance WHERE explorationKey=$key LIMIT 2001); LET $pins=array::map(array::filter(array::distinct($appearances.answerVersionId),|$id| $id!=NULL),|$id| type::record('answer_version',$id)); RETURN {epoch:library:main.epoch,exploration:(SELECT VALUE data FROM ONLY type::record('exploration',$key)),appearances:$appearances,answers:(SELECT VALUE data FROM $pins LIMIT 2001)}; };",json!({"key":id})).await?;
         if value["exploration"].is_null() {
             return Err(AppError::new(ErrorCode::NotFound));
         }

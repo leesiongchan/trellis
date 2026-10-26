@@ -218,6 +218,8 @@ pub struct AppearanceView {
     pub ancestors: Vec<Ancestor>,
     pub interpretation: String,
     pub relationship: String,
+    #[serde(default)]
+    pub teaser: String,
     pub reason: Option<Paragraph>,
     pub reason_sources: Vec<super::Source>,
     pub reason_answer_version_id: Option<AnswerVersionId>,
@@ -233,9 +235,18 @@ pub struct ExplorationSnapshot {
     pub appearances: Vec<AppearanceView>,
     pub answers: Vec<AnswerVersionView>,
 }
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnswerOrigin {
+    #[default]
+    Research,
+    Legacy,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnswerVersionView {
+    #[serde(default)]
+    pub origin: AnswerOrigin,
     pub id: AnswerVersionId,
     pub topic_id: TopicId,
     pub revision: u64,
@@ -389,11 +400,14 @@ pub struct BeginImport {
     pub content_digest: String,
     pub expected_bytes: u64,
     pub expected_nodes: u64,
+    #[serde(default)]
+    pub explicit_restore: bool,
 }
 impl ValidatedInput for BeginImport {
     fn validate(&mut self) -> Result<(), AppError> {
+        self.content_digest.make_ascii_lowercase();
         if self.legacy_exploration_id.is_empty()
-            || utf16_len(&self.legacy_exploration_id) > 200
+            || self.legacy_exploration_id.chars().count() > 200
             || self.content_digest.len() != 64
             || !self.content_digest.bytes().all(|b| b.is_ascii_hexdigit())
             || self.expected_bytes == 0
@@ -446,6 +460,8 @@ pub enum ImportState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportView {
+    pub upload_operation_id: OperationId,
+    pub exploration_id: Option<ExplorationId>,
     pub id: ImportId,
     pub state: ImportState,
     pub mapping: std::collections::BTreeMap<String, String>,
