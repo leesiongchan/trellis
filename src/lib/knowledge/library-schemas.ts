@@ -3,7 +3,8 @@ import {
   EvidenceRefSchema,
   ParagraphSchema,
   ResearchResultSchema,
-  TopicContentSchema
+  TopicContentSchema,
+  SourceSchema
 } from './schemas';
 export const OpaqueIdSchema = z
   .string()
@@ -71,6 +72,8 @@ export const AppearanceSchema = z.object({
   interpretation: z.string().max(500),
   relationship: z.string().max(100),
   reason: ParagraphSchema.nullable(),
+  reasonSources: z.array(SourceSchema).max(5),
+  reasonAnswerVersionId: id.nullable(),
   answerVersionId: id.nullable(),
   childIds: z.array(id).max(2000)
 });

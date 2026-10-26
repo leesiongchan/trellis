@@ -180,3 +180,26 @@ async fn drain_rejects_admission_but_finishes_existing_work() {
     drop(w);
     c.idle().await;
 }
+
+#[tokio::test(start_paused = true)]
+async fn admitted_work_uses_the_existing_budget_and_deadline() {
+    use branch_backend::jobs::{JobKey, JobWork};
+    let c = Coordinator::new(Provider::new(1), Limits::default());
+    let work: JobWork = Box::new(|ctx| {
+        Box::pin(async move {
+            ctx.check()?;
+            Ok(ResearchResult::Clarification {
+                question: "Which memory?".into(),
+            })
+        })
+    });
+    let mut waiter = c.admit_work(JobKey::new("attempt-one"), work).unwrap();
+    assert!(matches!(
+        *waiter.result().await.unwrap(),
+        ResearchResult::Clarification { .. }
+    ));
+    drop(waiter);
+    c.idle().await;
+    assert_eq!(c.snapshot().new_starts, 1);
+    assert_eq!(c.snapshot().active, 0);
+}

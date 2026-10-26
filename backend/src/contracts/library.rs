@@ -219,6 +219,8 @@ pub struct AppearanceView {
     pub interpretation: String,
     pub relationship: String,
     pub reason: Option<Paragraph>,
+    pub reason_sources: Vec<super::Source>,
+    pub reason_answer_version_id: Option<AnswerVersionId>,
     pub answer_version_id: Option<AnswerVersionId>,
     pub child_ids: Vec<AppearanceId>,
 }

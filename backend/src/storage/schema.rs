@@ -33,6 +33,7 @@ impl KnowledgeStore {
                     ("topicKey", "string"),
                     ("parentKey", "option<string | null>"),
                     ("answerVersionKey", "option<string | null>"),
+                    ("pinRevision", "option<int>"),
                 ],
             ),
             (
@@ -50,6 +51,7 @@ impl KnowledgeStore {
                     ("requestHash", "string"),
                     ("libraryEpoch", "int"),
                     ("target", "string"),
+                    ("attemptKey", "option<string>"),
                 ],
             ),
             (
@@ -58,6 +60,14 @@ impl KnowledgeStore {
                     ("key", "string"),
                     ("topicKey", "string"),
                     ("operationKey", "string"),
+                ],
+            ),
+            (
+                "research_follower",
+                &[
+                    ("key", "string"),
+                    ("attemptKey", "string"),
+                    ("appearanceKey", "string"),
                 ],
             ),
             (
@@ -115,6 +125,12 @@ impl KnowledgeStore {
         }
         sql.push_str("DEFINE TABLE IF NOT EXISTS connection TYPE RELATION IN topic OUT topic SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON connection TYPE string; DEFINE FIELD IF NOT EXISTS identityKey ON connection TYPE string; DEFINE FIELD IF NOT EXISTS data ON connection TYPE object FLEXIBLE; DEFINE INDEX IF NOT EXISTS unique_key ON connection FIELDS key UNIQUE; DEFINE INDEX IF NOT EXISTS unique_pair ON connection FIELDS identityKey UNIQUE; ");
         for (table, name, fields, unique) in [
+            (
+                "research_follower",
+                "attempt_followers",
+                "attemptKey,key",
+                false,
+            ),
             ("question_variant", "exact_question", "exactKey", true),
             ("question_variant", "topic_variants", "topicKey", false),
             (

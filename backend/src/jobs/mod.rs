@@ -4,7 +4,7 @@ use crate::{
     config::Limits,
     contracts::{ResearchRequest, ResearchResult},
     error::{AppError, ErrorCode},
-    providers::ResearchProvider,
+    providers::{ProviderFuture, ResearchProvider},
     research::{context::JobContext, research_topic},
 };
 use futures_util::FutureExt;
@@ -21,6 +21,16 @@ use tokio::{
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 pub use waiter::Waiter;
+/// An internal attempt identity; library callers derive it from the durable attempt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JobKey(String);
+impl JobKey {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+}
+pub type JobWork =
+    Box<dyn FnOnce(JobContext) -> ProviderFuture<'static, ResearchResult> + Send + 'static>;
 type Outcome = Result<Arc<ResearchResult>, Arc<AppError>>;
 struct Entry {
     generation: String,
@@ -89,6 +99,16 @@ impl Coordinator {
         let canonical =
             serde_json::to_vec(&input).map_err(|_| AppError::new(ErrorCode::InternalFailure))?;
         let key = format!("{:x}", Sha256::digest(canonical));
+        let provider = self.provider.clone();
+        self.admit_work(
+            JobKey(key),
+            Box::new(move |ctx| {
+                Box::pin(async move { research_topic(&input, &ctx, provider.as_ref()).await })
+            }),
+        )
+    }
+    pub fn admit_work(self: &Arc<Self>, key: JobKey, work: JobWork) -> Result<Waiter, AppError> {
+        let key = key.0;
         let mut state = self.lock();
         let now = Instant::now();
         while state
@@ -159,7 +179,6 @@ impl Coordinator {
             published: false,
             permit: Some(permit),
         };
-        let owner = self.clone();
         let ctx = JobContext {
             deadline: now + self.limits.research,
             cancel,
@@ -171,7 +190,7 @@ impl Coordinator {
                 tokio::select! {
                     biased;
                     _=ctx.cancel.cancelled()=>Err(AppError::new(ErrorCode::ResearchTimeout)),
-                    result=timeout_at(ctx.deadline,research_topic(&input,&ctx,owner.provider.as_ref()))=>result.map_err(|_|AppError::new(ErrorCode::ResearchTimeout))?,
+                    result=timeout_at(ctx.deadline,work(ctx.clone()))=>result.map_err(|_|AppError::new(ErrorCode::ResearchTimeout))?,
                 }
             }).catch_unwind().await;
             let outcome=work.unwrap_or_else(|_|Err(AppError::new(ErrorCode::InternalFailure)));

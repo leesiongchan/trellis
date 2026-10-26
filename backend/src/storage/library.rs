@@ -7,7 +7,7 @@ use crate::contracts::{Ancestor, library::*, truncate_utf16};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
-const ENSURE_TOPIC: &str = "IF !record::exists(type::record('topic',$topicKey)) { CREATE ONLY type::record('topic',$topicKey) CONTENT $topicRecord; }; IF !record::exists(type::record('question_variant',$topicKey)) { CREATE ONLY type::record('question_variant',$topicKey) CONTENT $variantRecord; };";
+pub(crate) const ENSURE_TOPIC: &str = "IF !record::exists(type::record('topic',$topicKey)) { CREATE ONLY type::record('topic',$topicKey) CONTENT $topicRecord; }; IF !record::exists(type::record('question_variant',$topicKey)) { CREATE ONLY type::record('question_variant',$topicKey) CONTENT $variantRecord; };";
 impl KnowledgeStore {
     pub(crate) async fn query_value(&self, sql: &str, bindings: Value) -> Result<Value, AppError> {
         let mut response = self.query(sql, bindings).await?;
@@ -32,7 +32,7 @@ impl KnowledgeStore {
         }
         serde_json::from_value(value).map_err(|_| storage_error())
     }
-    fn topic_bindings(
+    pub(crate) fn topic_bindings(
         input: &ResolvedQuestion,
         question: &str,
         now: &str,
@@ -93,6 +93,8 @@ impl KnowledgeStore {
             interpretation: "literal".into(),
             relationship: String::new(),
             reason: None,
+            reason_sources: vec![],
+            reason_answer_version_id: None,
             answer_version_id: None,
             child_ids: vec![],
         };
@@ -185,6 +187,8 @@ impl KnowledgeStore {
             interpretation: resolved.interpretation,
             relationship: "branch".into(),
             reason: None,
+            reason_sources: vec![],
+            reason_answer_version_id: None,
             answer_version_id: None,
             child_ids: vec![],
         };
@@ -311,7 +315,7 @@ impl KnowledgeStore {
             .checked_add(1)
             .filter(|v| *v <= MAX_SAFE_INTEGER)
             .ok_or_else(storage_error)?;
-        let body = "DELETE embedding; DELETE edge_support; DELETE connection; DELETE active_attempt; DELETE research_attempt; DELETE appearance; DELETE exploration; DELETE question_variant; DELETE answer_version; DELETE topic; DELETE migration_stage; DELETE migration_manifest; DELETE operation WHERE target!='purge'; UPDATE import_receipt SET data.deleted=true; UPDATE library:main SET epoch=$nextEpoch;";
+        let body = "DELETE embedding; DELETE edge_support; DELETE connection; DELETE active_attempt; DELETE research_follower; DELETE research_attempt; DELETE appearance; DELETE exploration; DELETE question_variant; DELETE answer_version; DELETE topic; DELETE migration_stage; DELETE migration_manifest; DELETE operation WHERE target!='purge'; UPDATE import_receipt SET data.deleted=true; UPDATE library:main SET epoch=$nextEpoch;";
         self.commit_mutation(
             &intent,
             body,
@@ -327,7 +331,7 @@ fn decode<T: DeserializeOwned>(value: Value) -> Result<T, AppError> {
     serde_json::from_value(value).map_err(|_| storage_error())
 }
 pub(crate) fn appearance_record(a: &AppearanceView) -> Value {
-    json!({"key":a.id,"explorationKey":a.exploration_id,"topicKey":a.topic_id,"parentKey":a.parent_id,"answerVersionKey":a.answer_version_id,"data":a})
+    json!({"key":a.id,"explorationKey":a.exploration_id,"topicKey":a.topic_id,"parentKey":a.parent_id,"answerVersionKey":a.answer_version_id,"pinRevision":0,"data":a})
 }
 pub(crate) fn add_branch_bindings(
     bindings: &mut Value,

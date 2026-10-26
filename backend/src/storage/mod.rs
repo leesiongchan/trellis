@@ -1,4 +1,5 @@
 //! The sole embedded datastore and its bounded access boundary.
+pub(crate) mod answers;
 mod config;
 mod library;
 pub mod operations;
@@ -207,6 +208,8 @@ impl KnowledgeStore {
                             "intent_conflict" => ErrorCode::IntentConflict,
                             "missing_reference" => ErrorCode::NotFound,
                             "content_limit" => ErrorCode::BodyTooLarge,
+                            "research_limit" => ErrorCode::ResearchLimit,
+                            "work_interrupted" => ErrorCode::WorkInterrupted,
                             _ => ErrorCode::StorageUnavailable,
                         };
                         return Err(AppError::new(kind));

@@ -300,3 +300,109 @@ async fn topic_versions_are_scoped_and_exact_reuse_keeps_the_pin() {
     );
     store.close().await.unwrap();
 }
+
+#[path = "../../tests/support/saved_provider.rs"]
+mod saved_provider;
+#[tokio::test]
+async fn commit_precedes_completion() {
+    use crate::{
+        config::Limits, contracts::library::*, jobs::Coordinator, knowledge::KnowledgeService,
+    };
+    use serde_json::json;
+    use std::sync::{Arc, atomic::Ordering};
+    let root = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        KnowledgeStore::open(&StorageConfig {
+            data_dir: root.path().join("data"),
+            backup_dir: root.path().join("backups"),
+            model_dir: root.path().join("models"),
+        })
+        .await
+        .unwrap(),
+    );
+    store.install_schema().await.unwrap();
+    let created = store
+        .create_exploration(&Command {
+            operation_id: OperationId::generate(),
+            library_epoch: 1,
+            expected_revision: None,
+            payload: CreateExploration {
+                question: "Memory".into(),
+                locale: "en".into(),
+            },
+        })
+        .await
+        .unwrap();
+    let Some(OperationResult::Exploration {
+        exploration_id,
+        appearance_id,
+        ..
+    }) = created.result
+    else {
+        unreachable!()
+    };
+    let provider = saved_provider::Provider::new();
+    let service = KnowledgeService::new(
+        store.clone(),
+        Coordinator::new(provider.clone(), Limits::default()),
+        provider.clone(),
+    );
+    let command = Command {
+        operation_id: OperationId::generate(),
+        library_epoch: 1,
+        expected_revision: Some(0),
+        payload: ResearchInput {
+            appearance_id: appearance_id.clone(),
+            refresh: false,
+            clarification: None,
+        },
+    };
+    service.start_research(command.clone()).await.unwrap();
+    let pause = store.admission.acquire_many(16).await.unwrap();
+    provider.release.add_permits(1);
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while provider.verifications.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    // Bypass the admission gate only in this private test to inspect the actual durable state.
+    let value = {
+        let guard = store.client.read().await;
+        let mut response=guard.as_ref().unwrap().query("RETURN {operation:(SELECT VALUE data FROM ONLY type::record('operation',$key)),answers:array::len((SELECT VALUE key FROM answer_version LIMIT 10))};").bind(json!({"key":command.operation_id})).await.unwrap().check().unwrap();
+        response
+            .take::<surrealdb::types::Value>(0)
+            .unwrap()
+            .into_json_value()
+    };
+    assert_eq!(value["operation"]["state"], "pending");
+    assert_eq!(value["answers"], 0);
+    drop(pause);
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while store.operation(&command.operation_id).await.unwrap().state == OperationState::Pending
+        {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        store.operation(&command.operation_id).await.unwrap().state,
+        OperationState::Completed
+    );
+    assert!(
+        store
+            .exploration(&exploration_id)
+            .await
+            .unwrap()
+            .appearances
+            .iter()
+            .find(|a| a.id == appearance_id)
+            .unwrap()
+            .answer_version_id
+            .is_some()
+    );
+    service.drain().await.unwrap();
+    store.close().await.unwrap();
+}
