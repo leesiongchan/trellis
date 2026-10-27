@@ -8,7 +8,8 @@
     onRefresh,
     onClarify,
     clarification,
-    demo = false
+    demo = false,
+    readOnly = false
   }: {
     node: TopicNode;
     onFollow: (question: string) => void;
@@ -16,6 +17,7 @@
     onClarify: (answer: string) => void;
     clarification: string | null;
     demo?: boolean;
+    readOnly?: boolean;
   } = $props();
   let answer = $state('');
   const content = $derived(node.content);
@@ -32,7 +34,7 @@
         class="icon-button"
         aria-label="Refresh research"
         title="Research this topic again"
-        disabled={node.isRefreshing}
+        disabled={readOnly || node.isRefreshing}
         onclick={onRefresh}>↻</button
       >{/if}
   </div>
@@ -59,8 +61,10 @@
             : 'This thread needs another try'}</strong
       >
       <p>{node.lastError.message}</p>
-      {#if node.lastError.retryable}<button class="quiet-button" onclick={onRefresh}
-          >Retry research</button
+      {#if node.lastError.retryable}<button
+          class="quiet-button"
+          disabled={readOnly}
+          onclick={onRefresh}>Retry research</button
         >{/if}{#if node.lastError.requestId !== 'local'}<small
           >Reference: {node.lastError.requestId}</small
         >{/if}
@@ -69,7 +73,7 @@
       class="clarification"
       onsubmit={(event) => {
         event.preventDefault();
-        if (answer.trim()) {
+        if (!readOnly && answer.trim()) {
           onClarify(answer.trim());
           answer = '';
         }
@@ -81,7 +85,9 @@
         maxlength="500"
         required
         placeholder="A little more context…"
-      /><button class="primary-button" type="submit">Continue exploring ↗</button>
+      /><button class="primary-button" type="submit" disabled={readOnly}
+        >Continue exploring ↗</button
+      >
     </form>{/if}
   {#if demo && !content}
     <div class="demo-question">
@@ -91,7 +97,7 @@
         this tree, but are not researched.
       </p>
     </div>
-    <BranchQuestion {onFollow} />
+    <BranchQuestion {onFollow} disabled={readOnly} />
   {/if}
   {#if content}
     <div class="reader-prose">
@@ -130,7 +136,7 @@
             ></button
           >{/each}
       </section>{/if}
-    <BranchQuestion {onFollow} />
+    <BranchQuestion {onFollow} disabled={readOnly} />
     <section class="reader-sources">
       <div class="section-label">FOLLOW THE SOURCES <span>{content.sources.length}</span></div>
       {#each content.sources as source, i (source.id)}<CitationLink {source} index={i + 1} />{/each}

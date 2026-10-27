@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test';
-import { mockResearch, startExample } from './helpers';
+import { expect, test } from './fixtures';
+import { observeResearch, startExample } from './helpers';
 test('phone switches between reader and map without losing the selected branch', async ({
   page
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockResearch(page);
+  await observeResearch(page);
   await startExample(page);
   await page.getByRole('button', { name: 'Read NAND flash', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
@@ -17,7 +17,7 @@ test('phone switches between reader and map without losing the selected branch',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('keyboard can select, expand and refocus topics', async ({ page }) => {
-  await mockResearch(page);
+  await observeResearch(page);
   await startExample(page);
   const expand = page.getByRole('button', { name: 'Expand NAND flash', exact: true });
   await expand.focus();

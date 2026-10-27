@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test';
-import { mockResearch, startExample } from './helpers';
+import { expect, test } from './fixtures';
+import { observeResearch, startExample } from './helpers';
 test('opens three branch levels, reads sources and reuses completed content', async ({ page }) => {
-  const requests = await mockResearch(page);
+  const requests = await observeResearch(page);
   await startExample(page);
   await expect(page.getByRole('heading', { name: 'microSD cards', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'MicroSD reference', exact: true })).toHaveAttribute(
@@ -12,6 +12,8 @@ test('opens three branch levels, reads sources and reuses completed content', as
   await page.getByRole('button', { name: 'Expand Memory cells', exact: true }).click();
   await page.getByRole('button', { name: 'Read Quantum tunneling', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Quantum tunneling', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Refresh research', exact: true })).toBeVisible();
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
   const before = requests.length;
   await page.getByRole('button', { name: 'Return to root', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'microSD cards', exact: true })).toBeVisible();
@@ -20,7 +22,7 @@ test('opens three branch levels, reads sources and reuses completed content', as
 test('selects without expanding and allows a custom question without duplicate siblings', async ({
   page
 }) => {
-  const requests = await mockResearch(page);
+  const requests = await observeResearch(page);
   await startExample(page);
   await page.getByRole('button', { name: 'Read NAND flash', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
@@ -32,5 +34,5 @@ test('selects without expanding and allows a custom question without duplicate s
   await expect(
     page.getByRole('heading', { name: 'Why does memory wear out?', exact: true })
   ).toBeVisible();
-  expect(requests).toContain('Why does memory wear out?');
+  await expect.poll(() => requests.includes('Why does memory wear out?')).toBe(true);
 });

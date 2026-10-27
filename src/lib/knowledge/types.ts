@@ -34,3 +34,28 @@ export interface ExplorationRepository {
   save(value: Exploration, expectedRevision: number): Promise<Exploration>;
   remove(id: string): Promise<void>;
 }
+
+// Rendering shape shared by local demos and acknowledged server snapshots.
+export type WorkspaceExploration = Omit<Exploration, 'schemaVersion'> & {
+  libraryEpoch?: number;
+  viewRestored?: boolean;
+  nodes: Record<string, TopicNode & { topicId?: string; answerVersionId?: string | null }>;
+};
+export interface WorkspaceSession {
+  readOnly?: boolean;
+  exploration: WorkspaceExploration | null;
+  clarification: { nodeId: string; question: string } | null;
+  notice: string;
+  select(id: string): Promise<void>;
+  expand(id: string): Promise<void>;
+  collapse(id: string): void;
+  addQuestion(parentId: string, question: string): Promise<string | undefined>;
+  refresh(id: string): Promise<void>;
+  clarify(id: string, answer: string): Promise<void>;
+  setView(patch: Partial<ViewState>): void;
+}
+
+export type SavedExploration = Pick<
+  WorkspaceExploration,
+  'id' | 'originalPrompt' | 'updatedAt' | 'revision'
+> & { mode: 'research' | 'demo'; topicCount?: number };

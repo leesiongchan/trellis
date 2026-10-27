@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { readFileSync } from 'node:fs';
 const legacy = JSON.parse(
   readFileSync(new URL('../fixtures/contracts/legacy-exploration.json', import.meta.url), 'utf8')
@@ -14,7 +14,7 @@ test('pre-Rust browser data and Node-signed cookies survive the same-origin upgr
   const requests: string[] = [];
   const errors: string[] = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/research') requests.push(request.url());
+    if (/\/api\/appearances\/[^/]+\/research$/.test(new URL(request.url()).pathname)) requests.push(request.url());
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await context.addCookies([

@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test';
-import { mockResearch, startExample } from './helpers';
+import { expect, test } from './fixtures';
+import { observeResearch, startExample } from './helpers';
 import { makeExploration } from '../fixtures/knowledge';
 
 test('switching saved explorations restores each exact pan and zoom without research', async ({
   page
 }) => {
-  const requests = await mockResearch(page);
+  const requests = await observeResearch(page);
   await page.goto('/');
   await expect(
     page.getByRole('heading', { name: 'A little curiosity. An entire world.', exact: true })
@@ -56,7 +56,7 @@ test('switching saved explorations restores each exact pan and zoom without rese
 test('reloads saved content, expansion, selection and viewport without new research', async ({
   page
 }) => {
-  const requests = await mockResearch(page);
+  const requests = await observeResearch(page);
   await startExample(page);
   await page.getByRole('button', { name: 'Expand NAND flash', exact: true }).click();
   await expect(

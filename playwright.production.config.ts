@@ -16,7 +16,7 @@ export default defineConfig({
     {
       name: 'production',
       testIgnore: /rust-backend\.spec\.ts/,
-      use: { baseURL: 'http://127.0.0.1:5183' }
+      use: { baseURL: 'http://127.0.0.1:5184' }
     },
     {
       name: 'fixture-http',

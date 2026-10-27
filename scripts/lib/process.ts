@@ -7,9 +7,14 @@ export type ManagedProcess = {
 export function startProcess(
   command: string,
   args: string[],
-  options: { env: NodeJS.ProcessEnv; cwd: string }
+  options: { env: NodeJS.ProcessEnv; cwd: string; singleProcess?: boolean }
 ): ManagedProcess {
-  const child = spawn(command, args, { ...options, stdio: 'inherit', detached: true });
+  const child = spawn(command, args, {
+    env: options.env,
+    cwd: options.cwd,
+    stdio: 'inherit',
+    detached: !options.singleProcess
+  });
   const exited = new Promise<number>((resolve, reject) => {
     child.once('error', reject);
     child.once('exit', (code) => resolve(code ?? 1));
@@ -38,6 +43,24 @@ export function startProcess(
       (stopping ??= (async () => {
         const pid = child.pid;
         if (!pid || pid <= 0 || pid === process.pid) return;
+        if (options.singleProcess) {
+          if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const finished = await Promise.race([
+            exited.then(
+              () => true,
+              () => true
+            ),
+            new Promise<false>((resolve) => {
+              timer = setTimeout(() => resolve(false), 130_000);
+              timer.unref();
+            })
+          ]);
+          if (timer) clearTimeout(timer);
+          if (!finished) child.kill('SIGKILL');
+          await exited.catch(() => {});
+          return;
+        }
         send(pid, 'SIGTERM');
         const deadline = Date.now() + 130000;
         while (groupAlive(pid) && Date.now() < deadline)

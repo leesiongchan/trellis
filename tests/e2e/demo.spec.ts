@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test';
-import { mockResearch } from './helpers';
+import { expect, test } from './fixtures';
+import { observeResearch } from './helpers';
 
 test('unsubmitted questions do not carry between separate demo copies', async ({ page }) => {
-  await page.route('**/api/research', (route) => route.abort());
+  await page.route('**/api/**', (route) => route.abort());
   await page.goto('/');
   await page.getByRole('button', { name: 'Try the microSD demo', exact: true }).click();
   await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
@@ -23,9 +23,9 @@ test('demo branches, citations and saved questions work without research request
 }) => {
   const requests: string[] = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/research') requests.push(request.url());
+    if (new URL(request.url()).pathname.startsWith('/api/')) requests.push(request.url());
   });
-  await page.route('**/api/research', (route) => route.abort());
+  await page.route('**/api/**', (route) => route.abort());
   await page.goto('/');
   await page.getByRole('button', { name: 'Try the microSD demo', exact: true }).click();
   await expect(page.getByRole('note', { name: 'Demo content' })).toBeVisible();
@@ -65,24 +65,27 @@ test('demo branches, citations and saved questions work without research request
   ).toBeVisible();
   expect(requests).toHaveLength(0);
 
-  // An explicit new research exploration keeps the original behavior; this response is mocked.
-  await mockResearch(page);
+  // Explicit research leaves the local demo and uses real fixture storage.
+  await page.unroute('**/api/**');
+  await observeResearch(page);
   await page.getByRole('button', { name: 'Branch home', exact: true }).click();
   await page.getByLabel('What would you like to understand?').fill('How cities grow');
   await page.getByRole('button', { name: 'Start exploring', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'How cities grow', exact: true })).toBeVisible();
   await expect(page.getByRole('note', { name: 'Demo content' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Refresh research', exact: true })).toBeVisible();
-  expect(requests).toHaveLength(1);
+  expect(
+    requests.some((url) => /\/appearances\/[^/]+\/research$/.test(new URL(url).pathname))
+  ).toBe(true);
 });
 
 test('phone demo preserves local questions when switching map and reader', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const requests: string[] = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/research') requests.push(request.url());
+    if (new URL(request.url()).pathname.startsWith('/api/')) requests.push(request.url());
   });
-  await page.route('**/api/research', (route) => route.abort());
+  await page.route('**/api/**', (route) => route.abort());
   await page.goto('/');
   await page.getByRole('button', { name: 'Try the microSD demo', exact: true }).click();
   await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();

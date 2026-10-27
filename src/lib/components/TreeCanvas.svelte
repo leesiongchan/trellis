@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteFlow, Background, useSvelteFlow, type Viewport } from '@xyflow/svelte';
   import { tick, untrack } from 'svelte';
-  import type { Exploration } from '#lib/knowledge/types.ts';
+  import type { WorkspaceExploration } from '#lib/knowledge/types.ts';
   import { layoutTree, visibleTree } from '#lib/knowledge/tree.ts';
   import TopicNode, { type FlowTopicNode } from './TopicNode.svelte';
   import WorkspaceControls from './WorkspaceControls.svelte';
@@ -12,7 +12,7 @@
     onCollapse,
     onViewportChange
   }: {
-    exploration: Exploration;
+    exploration: WorkspaceExploration;
     onSelect: (id: string) => void;
     onExpand: (id: string) => void;
     onCollapse: (id: string) => void;
@@ -74,7 +74,7 @@
       ':' +
       nodes.map((n) => n.id).join(',');
     if (signature !== previousSignature) {
-      const shouldFocus = mounted || exploration.revision === 0;
+      const shouldFocus = mounted || (!exploration.viewRestored && exploration.revision === 0);
       previousSignature = signature;
       mounted = true;
       if (shouldFocus) void tick().then(refocus);

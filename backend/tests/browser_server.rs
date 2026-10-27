@@ -19,7 +19,7 @@ async fn search(Json(input): Json<Value>) -> Result<Json<Value>, StatusCode> {
         return Err(StatusCode::BAD_REQUEST);
     }
     Ok(Json(
-        json!({"results":[{"title":"Fixture memory reference","url":"https://example.org/memory","raw_content":EVIDENCE}]}),
+        json!({"results":[{"title":"MicroSD reference","url":"https://example.org/memory","raw_content":EVIDENCE}]}),
     ))
 }
 async fn respond(Json(input): Json<Value>) -> Result<Json<Value>, StatusCode> {
@@ -46,14 +46,29 @@ async fn respond(Json(input): Json<Value>) -> Result<Json<Value>, StatusCode> {
             .ok_or(StatusCode::BAD_REQUEST)?;
         let paragraph =
             |text: &str| json!({"text":text,"evidence":[{"sourceId":source,"quote":text}]});
+        let clarification = data["topic"]["clarification"].as_str();
+        if title == "Java" && clarification.is_none() {
+            let output =
+                json!({"result":{"kind":"clarification","question":"Which Java do you mean?"}});
+            return Ok(Json(
+                json!({"id":"resp_fixture","object":"response","status":"completed","error":null,"incomplete_details":null,"output":[{"id":"msg_fixture","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":output.to_string(),"annotations":[]}]}]}),
+            ));
+        }
+        let display_title = if title == "Java" {
+            "Java the programming language"
+        } else {
+            title
+        };
         let child = match title {
-            "microSD cards" => Some("NAND flash"),
+            q if q == "microSD cards" || q.starts_with("Rust fixture microSD ") => {
+                Some("NAND flash")
+            }
             "NAND flash" => Some("Memory cells"),
             "Memory cells" => Some("Quantum tunneling"),
             _ => None,
         };
         let branches=child.map(|title|vec![json!({"title":title,"question":title,"relationship":"Component","reason":paragraph("Flash retains data without power.")})]).unwrap_or_default();
-        json!({"result":{"kind":"topic","title":title,"summary":[paragraph("Flash retains data without power.")],"sections":[{"heading":"Mechanism","paragraphs":[paragraph("A controller manages flash storage.")]}],"analogy":null,"limitations":null,"branches":branches}})
+        json!({"result":{"kind":"topic","title":display_title,"summary":[paragraph("Flash retains data without power.")],"sections":[{"heading":"Mechanism","paragraphs":[paragraph("A controller manages flash storage.")]}],"analogy":null,"limitations":null,"branches":branches}})
     };
     Ok(Json(
         json!({"id":"resp_fixture","object":"response","status":"completed","error":null,"incomplete_details":null,"output":[{"id":"msg_fixture","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":output.to_string(),"annotations":[]}]}]}),
@@ -100,8 +115,12 @@ async fn serve_browser_fixtures() {
             ("OPENAI_API_KEY".into(), "fixture-openai".into()),
             ("TAVILY_API_KEY".into(), "fixture-tavily".into()),
         ]);
-        let config =
-            Arc::new(Config::from_values(&values, &root.join("release/branch-backend")).unwrap());
+        let mut config =
+            Config::from_values(&values, &root.join("release/branch-backend")).unwrap();
+        // Browser scenarios share this test-only process; production admission caps are
+        // independently exercised in jobs/socket tests. Keep its concurrency/deadline.
+        config.limits.per_minute = 10_000;
+        let config = Arc::new(config);
         let telemetry = Arc::new(Telemetry::new());
         let provider = Arc::new(
             HttpProviders::with_endpoints(

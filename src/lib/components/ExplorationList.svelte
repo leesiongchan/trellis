@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Exploration } from '#lib/knowledge/types.ts';
+  import type { SavedExploration } from '#lib/knowledge/types.ts';
   let {
     explorations,
     onResume,
     onDelete
   }: {
-    explorations: Exploration[];
+    explorations: SavedExploration[];
     onResume: (id: string) => void;
     onDelete: (id: string) => void;
   } = $props();
@@ -25,9 +25,11 @@
           <span class="saved-icon">↗</span><span
             ><strong>{item.originalPrompt}</strong><small
               >{#if item.mode === 'demo'}<span class="demo-tag">Demo</span> ·
-              {/if}{Object.keys(item.nodes).length} topics · {new Date(
-                item.updatedAt
-              ).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</small
+              {/if}{item.topicCount !== undefined ? item.topicCount + ' topics · ' : ''}
+              {new Date(item.updatedAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric'
+              })}</small
             ></span
           >
         </button>
@@ -37,7 +39,11 @@
           onclick={() => (deleting = item.id)}>×</button
         >
         {#if deleting === item.id}<div class="delete-confirm" role="alert">
-            <p>Delete this exploration from this browser?</p>
+            <p>
+              {item.mode === 'demo'
+                ? 'Delete this demo exploration from this browser?'
+                : 'Delete this exploration? Saved topics and answer history remain in the library.'}
+            </p>
             <button class="quiet-button" onclick={() => (deleting = null)}>Keep it</button><button
               class="danger-button"
               onclick={() => {

@@ -1,9 +1,10 @@
 <script lang="ts">
-  let { onFollow }: { onFollow: (question: string) => void } = $props();
+  let { onFollow, disabled = false }: { onFollow: (question: string) => void; disabled?: boolean } =
+    $props();
   let question = $state('');
   function submit(event: SubmitEvent) {
     event.preventDefault();
-    if (question.trim()) {
+    if (!disabled && question.trim()) {
       onFollow(question.trim());
       question = '';
     }
@@ -19,9 +20,13 @@
       bind:value={question}
       maxlength="500"
       placeholder="What else are you wondering?"
+      {disabled}
       required
-    /><button type="submit" class="icon-button" aria-label="Add branch" disabled={!question.trim()}
-      >↗</button
+    /><button
+      type="submit"
+      class="icon-button"
+      aria-label="Add branch"
+      disabled={disabled || !question.trim()}>↗</button
     >
   </div>
 </form>

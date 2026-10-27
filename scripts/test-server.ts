@@ -1,6 +1,9 @@
 import { createServer } from 'node:https';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { request } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startProcess, testEnvironment, type ManagedProcess } from './lib/process.ts';
@@ -37,6 +40,7 @@ const proxy = createServer(
     incoming.pipe(upstream);
   }
 );
+const dataRoot = await mkdtemp(resolve(tmpdir(), 'branch-browser-release-'));
 let stopping = false;
 async function stop(code: number) {
   if (stopping) return;
@@ -47,6 +51,7 @@ async function stop(code: number) {
     else resolve();
   });
   await Promise.all(children.map((child) => child.stop()));
+  await rm(dataRoot, { recursive: true, force: true });
   process.exitCode = code;
 }
 for (const signal of ['SIGINT', 'SIGTERM'] as const)
@@ -62,26 +67,49 @@ try {
   children.push(
     startProcess(resolve(root, 'release/branch-backend'), [], {
       cwd: root,
-      env: { ...env, APP_ORIGIN: 'http://127.0.0.1:5183', PORT: '5183' }
+      singleProcess: true,
+      env: {
+        ...env,
+        APP_ORIGIN: 'http://127.0.0.1:5183',
+        PORT: '5183',
+        APP_DATA_DIR: resolve(dataRoot, 'data')
+      }
     })
   );
+  const build = await promisify(execFile)(
+    'cargo',
+    [
+      'test',
+      '--manifest-path',
+      'backend/Cargo.toml',
+      '--locked',
+      '--test',
+      'browser_server',
+      '--no-run',
+      '--message-format=json'
+    ],
+    { cwd: root, env, maxBuffer: 16 * 1024 * 1024 }
+  );
+  const fixture = build.stdout
+    .split('\n')
+    .flatMap((line) => {
+      if (!line.trim()) return [];
+      const artifact = JSON.parse(line);
+      return artifact.reason === 'compiler-artifact' &&
+        artifact.target?.name === 'browser_server' &&
+        artifact.profile?.test &&
+        typeof artifact.executable === 'string'
+        ? [artifact.executable as string]
+        : [];
+    })
+    .at(-1);
+  if (!fixture) throw new Error('Native browser fixture executable was not built.');
   children.push(
-    startProcess(
-      'cargo',
-      [
-        'test',
-        '--manifest-path',
-        'backend/Cargo.toml',
-        '--locked',
-        '--test',
-        'browser_server',
-        'serve_browser_fixtures',
-        '--',
-        '--ignored',
-        '--nocapture'
-      ],
-      { cwd: root, env }
-    )
+    startProcess(fixture, ['serve_browser_fixtures', '--ignored', '--nocapture'], {
+      cwd: root,
+      env,
+      singleProcess: true
+    })
   );
   for (const child of children)
     void child.exited

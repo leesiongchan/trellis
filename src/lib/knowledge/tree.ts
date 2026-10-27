@@ -1,6 +1,6 @@
-import type { Exploration, TopicNode } from './types';
+import type { WorkspaceExploration, TopicNode } from './types';
 
-export function visibleTree(value: Exploration) {
+export function visibleTree(value: WorkspaceExploration) {
   const expanded = new Set(value.view.expandedNodeIds),
     nodes: TopicNode[] = [],
     edges: { id: string; source: string; target: string }[] = [];
@@ -22,7 +22,7 @@ export function visibleTree(value: Exploration) {
   }
   return { nodes, edges };
 }
-export function layoutTree(value: Exploration): { id: string; x: number; y: number }[] {
+export function layoutTree(value: WorkspaceExploration): { id: string; x: number; y: number }[] {
   const { nodes } = visibleTree(value),
     visible = new Set(nodes.map((n) => n.id)),
     positions = new Map<string, { id: string; x: number; y: number }>();
@@ -42,7 +42,7 @@ export function layoutTree(value: Exploration): { id: string; x: number; y: numb
     return { ...p, y: Math.max(0, leafY - 174) - p.y };
   });
 }
-export function ancestorPath(value: Exploration, nodeId: string): TopicNode[] {
+export function ancestorPath(value: WorkspaceExploration, nodeId: string): TopicNode[] {
   const nodes: TopicNode[] = [],
     seen = new Set<string>();
   let node = value.nodes[nodeId];
