@@ -49,7 +49,7 @@ The standalone 32 MiB import published/read back 1,000 answers atomically in
 7.57 seconds, approximately 771 MiB maximum RSS (808,091,648 bytes). `otool -L`
 showed only macOS system libraries/frameworks. The scoped Cargo audit passed after
 the documented triage; the unfiltered advisory findings remain recorded below.
-The required whole-branch review is recorded below once completed. Linux/macOS hosted CI has not been run here; native execution evidence
+A final disposal-boundary regression also passed: an empty asynchronous recovery scan cannot admit work after disposal. The final frontend unit count is 68, with all 26 browser cases and seven build/release checks passing again. The required whole-branch review is recorded below once completed. Linux/macOS hosted CI has not been run here; native execution evidence
 is Apple Silicon macOS. Physical-phone testing, paid live research and deployment
 through the actual Tailscale route are unperformed. Phone-sized Chromium and
 keyboard checks do not substitute for a physical device.

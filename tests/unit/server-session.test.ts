@@ -395,3 +395,35 @@ it('different literal punctuation never silently selects an existing sibling ans
   expect(branchCalls).toBe(1);
   expect(id).toBe('new-child');
 });
+
+it('disposal during an empty recovery scan cannot start a new action', async () => {
+  const cache = createLibraryCache('scan-cancel-' + crypto.randomUUID());
+  const client = createLibraryClient(
+    vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+      if (path === '/api/library') return jsonResponse(library);
+      if (init?.method === 'POST')
+        return jsonResponse(completed(JSON.parse(init.body as string).operationId));
+      return jsonResponse(snapshot());
+    })
+  );
+  const session = createResearchSession({ client, cache, onChange: vi.fn() });
+  await session.connect();
+  let scanning = false;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  cache.intents = async () => {
+    scanning = true;
+    await gate;
+    return [];
+  };
+  const submit = vi.spyOn(client, 'submit');
+  const action = session.start('An action cancelled before admission').catch(() => {});
+  await vi.waitFor(() => expect(scanning).toBe(true));
+  session.dispose();
+  release();
+  await action;
+  expect(submit).not.toHaveBeenCalled();
+  expect(session.exploration).toBeNull();
+});

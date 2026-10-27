@@ -334,6 +334,7 @@ export class ResearchSession implements WorkspaceSession {
         try {
           this.requireOnline();
           await this.recover();
+          if (generation !== this.generation) throw new Error('The open exploration changed.');
           return await work();
         } finally {
           this.busy = false;
