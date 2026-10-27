@@ -164,6 +164,17 @@ export async function packageRelease(input: {
     })),
     inlineScriptHashes
   };
+  const releaseManifest = {
+    protocolVersion: 2,
+    storageSchemaVersion: 1,
+    engineVersion: '3.3.4',
+    executableSha256: createHash('sha256').update(executable).digest('hex')
+  };
+  const releaseTemporary = join(outputDir, '.release-' + randomUUID());
+  await writeFile(releaseTemporary, JSON.stringify(releaseManifest, null, 2) + '\n', {
+    flag: 'wx'
+  });
+  await rename(releaseTemporary, join(outputDir, 'release-manifest.json'));
   const temporaryManifest = join(outputDir, '.manifest-' + randomUUID());
   await writeFile(temporaryManifest, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
   await rename(temporaryManifest, join(outputDir, 'frontend-manifest.json'));

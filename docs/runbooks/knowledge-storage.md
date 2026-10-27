@@ -102,8 +102,7 @@ node --test tests/build/package-release.test.ts
 ```
 
 The native acceptance check compares query and document vectors against the
-pinned public fixture. Release verification also runs the compiled native check
-with restricted networking and a PATH without language runtimes or database CLIs.
+pinned public fixture. The explicit native parity gate can run its compiled test executable with restricted networking and an empty PATH. Packaged-release verification separately loads the native model with an empty child PATH.
 
 ## Startup, recovery, and readiness
 
@@ -216,7 +215,45 @@ cargo test --manifest-path backend/Cargo.toml --locked --lib --test backups --te
 ```
 
 The verified 32 MiB public fixture published 1,000 immutable answers atomically in
-6.85 seconds and read back all appearances/answers. The standalone debug test
-peaked at approximately 848 MiB RSS on the development Mac. Leave memory headroom
+7.57 seconds and read back all appearances/answers. The standalone debug test
+peaked at approximately 771 MiB RSS on the development Mac. Leave memory headroom
 for imports and local inference; this is a measured fixture, not a production
 capacity promise. Ordinary requests still use the documented graph/list limits.
+
+## Browser upgrade and saved navigation
+
+Keep the existing scheme, hostname, port and access key. Authenticated protocol-2
+clients import v1 research originals in bounded JSON batches, atomically publishing
+only a complete validated tree. Originals and demos are untouched. Changed original
+content becomes a separate labelled copy; invalid/over-32-MiB or over-2,000-node
+originals stay on the device and can be exported. Import receipts plus the library
+epoch prevent deleted or purged content from returning automatically. Restoring a
+preserved original is an explicit action, creating another copy.
+
+The shared cookie grants access to the entire library; there is no per-user
+isolation. A second device with private access can list/resume saved explorations.
+Offline copies are acknowledged, read-only snapshots. Pending intents recover by
+operation ID after reconnection, without queuing new offline mutations. A stale
+revision requires explicit reload; purge/restore invalidates old cache scopes.
+
+Question wording and bounded resolved context determine exact identity. Semantic
+matches never substitute an answer. Accepted edges retain original model evidence
+through model upgrades; dismissed content pairs remain dismissed across model
+generations. New answer versions can produce new candidates. Model/index upgrades
+are generation-based; old vectors are never mixed with the new generation. Exact
+cosine search remains enabled; HNSW requires a separately measured change.
+
+Saved links open existing appearances or retained knowledge without paid work.
+Answer history is immutable and each appearance retains its chosen pin. Refreshing
+one appearance never advances the others. Deleting an exploration retains topics
+and answers; confirmed purge removes live content and derived records. Purge does
+not clear backups, exported files, or browser originals: use the separate controls
+and retention procedure for each.
+
+All lists are capped at 100; graph walks at 3 hops, 100 nodes, 200 edges and two
+seconds. Research uses the original 120-second budget, two concurrent jobs,
+10 new jobs per minute and at most 32 waiters. A commit may optionally verify up to
+three candidate pairs in one existing-provider call; local indexing performs no
+paid backfill. Import staging allows two active manifests and finalization admits
+at most two preparations, retaining admission even when blocking parsing outlives
+its cancelled caller.

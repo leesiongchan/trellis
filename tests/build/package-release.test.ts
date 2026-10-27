@@ -17,6 +17,7 @@ test('release contains only static assets with exact script hashes',async()=>{
     assert.equal(await readFile(join(outputDir,'public','index.html'),'utf8'),html);
     const manifest=JSON.parse(await readFile(join(outputDir,'frontend-manifest.json'),'utf8'));
     assert.deepEqual(manifest.inlineScriptHashes,['sha256-'+createHash('sha256').update(script).digest('base64')]);
+    assert.deepEqual(JSON.parse(await readFile(join(outputDir,'release-manifest.json'),'utf8')), {protocolVersion:2,storageSchemaVersion:1,engineVersion:'3.3.4',executableSha256:createHash('sha256').update('fixture executable').digest('hex')});
     assert.equal(manifest.files.length,2);assert.equal(manifest.files.find((f:{path:string})=>f.path.endsWith('chunk.js')).immutable,true);
     await assert.rejects(readFile(join(outputDir,'public','.env')));await assert.rejects(readFile(join(outputDir,'public','chunk.js.map')));
     assert.equal(await readFile(join(outputDir,'branch-backend'),'utf8'),'fixture executable');

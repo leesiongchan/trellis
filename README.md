@@ -1,6 +1,6 @@
 # Branch
 
-A private knowledge tree. Start with a question, read a detailed explanation, and expand related topics without losing your place. Every opened topic is researched on demand, with links to supporting sources.
+A private knowledge tree. Start with a question, read a detailed explanation, and expand related topics without losing your place. Questions, immutable answers and citations live in a private embedded SurrealDB library. Saved topics open without another paid research call.
 
 ## Try the demo without credentials
 
@@ -14,11 +14,12 @@ Builds use Rust 1.98.0, Node 26.5.0 and pnpm 11.21.0. The packaged runtime is on
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
+node scripts/fetch-embedding-model.ts .artifacts/embedding-model
 pnpm build
 cp .env.example .env
 ```
 
-Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env`. Generate `APP_ACCESS_KEY` with the command shown in `.env.example`. Keep these values local; `.env` is ignored by Git. `OPENAI_MODEL` is configurable and defaults to `gpt-5.6-terra`; availability depends on the API project. A model with Responses structured-output support is required.
+Set `APP_DATA_DIR` to an absolute private directory outside the repository and release. Optionally set a separate `APP_BACKUP_DIR`; both directories must remain separate from public assets and models. Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env` for new paid research. Generate `APP_ACCESS_KEY` with the command shown in `.env.example`. Keep these values local; `.env` is ignored by Git. `OPENAI_MODEL` is configurable and defaults to `gpt-5.6-terra`; availability depends on the API project. A model with Responses structured-output support is required.
 
 For development after the initial build:
 
@@ -57,11 +58,14 @@ tailscale serve --https=8443 off
 
 - Clicking a topic opens its explanation. The separate expand button reveals children.
 - Only opening unexplored topics or explicitly refreshing triggers research. Ready topics are reused.
-- The tree, explanations, sources, selected topic and viewport save in IndexedDB in the current browser. Devices and browser profiles do not synchronize. Clearing browser data removes those explorations.
-- Conflicting saves from another tab require reloading the saved version. Storage failures keep the current work in memory and show a retry action.
+- Research questions, tree appearances, answer versions and citations save on the server and are available to browsers holding the same access cookie. IndexedDB stores acknowledged offline copies and this device’s selected topic/viewport. Offline research copies are read-only. Demo trees remain local.
+- Conflicting revisions require reloading the saved version. Durable operation IDs recover lost responses; research remains server-owned when a tab closes. Interrupted paid work requires an explicit retry.
 - Topic questions and a bounded ancestor context go to Tavily and OpenAI. API credentials and raw retrieved page text stay on the server; saved explanations retain short evidence quotes and source links.
 - Source checks combine exact evidence matching with a separate model-assisted support check. They do not guarantee factual accuracy; original sources remain available to inspect.
-- No accounts, analytics, cross-device synchronization or server-side exploration database are included.
+- Similar questions and answer passages connect through reversible graph edges. Local semantic search suggests candidates; accepted connections carry verification provenance. Similarity never merges topics or silently replaces an answer.
+- Answers remain pinned per exploration appearance. Refresh advances the chosen appearance; selecting an older saved version is explicit. Deleting an exploration retains its knowledge. Confirmed library purge removes live server content; backups and browser copies require separate clearing.
+- Existing browser originals import only after private access and remain untouched. Changed originals become separate labelled copies. Oversized or invalid originals remain available to export. Deleted/purged content cannot silently reappear through automatic import.
+- One private shared library is included; there are no accounts or analytics. Holders of the same access key share access.
 
 ## Verify
 
@@ -80,17 +84,12 @@ pnpm verify:release
 pnpm audit
 ```
 
-Browser acceptance runs against the packaged Rust service. Existing UI scenarios mock research responses; additional HTTP/HTTPS scenarios exercise the real Rust request pipeline with local provider fixtures and test cookie upgrades. All routine checks use fake credentials and consume no research credits. Release verification starts the executable from another directory with no Node on its PATH and checks readiness, access, metrics, asset integrity, redaction and SIGTERM exit.
+Browser acceptance uses the real Rust/storage pipeline with local provider fixtures, including HTTP/HTTPS cookies, migration, saved navigation and immutable answer history. All routine checks use fake credentials and consume no research credits. Release verification starts the executable from another directory with no Node on its PATH and checks readiness, access, native model degradation, durable imports, exclusive locking, forced restart, backup/restore, fresh epochs, asset integrity, redaction and SIGTERM exit.
 
 With both providers configured and the built app running, `pnpm live-smoke` makes at most two live research requests. It checks one root and one child, their detailed sections, sources and further branches. Missing credentials cause a clear non-success exit without making requests.
 
 See [the approved design](docs/superpowers/specs/2026-10-25-knowledge-tree-design.md), [implementation plan](docs/superpowers/plans/2026-10-25-knowledge-tree.md) and [research runbook](docs/runbooks/research.md).
 
-## Verification recorded on 2026-10-26
+## Embedded library verification
 
-The migration passed 44 Rust tests, 43 frontend/domain/contract tests, four build checks and 21 browser scenarios on macOS. Type checking, strict Clippy, release packaging and dependency audits passed. CI covers Linux and macOS; those hosted jobs have not been run locally.
-
-Live provider research, model availability, a separate physical phone and the Rust release through the actual Tailscale route remain **unverified**. Forwarding was inspected read-only and left unchanged.
-
-See [implementation and review notes](docs/superpowers/2026-10-25-implementation-notes.md) for verification scope and review fixes.
-The [offline demo handoff](docs/superpowers/2026-10-25-offline-demo-notes.md) records the demo's behavior, review and verification. See [Rust migration evidence](docs/superpowers/2026-10-26-rust-backend-notes.md) and the [approved Rust design](docs/superpowers/specs/2026-10-25-rust-backend-design.md) for this migration.
+See [current storage evidence](docs/superpowers/2026-10-27-knowledge-storage-notes.md) and the [storage operations runbook](docs/runbooks/knowledge-storage.md) for measured native gates, platform limits and recovery. Linux/macOS hosted CI, live paid research, a physical phone and deployment through the actual Tailscale route remain unperformed in this workspace. Forwarding and the original checkout are unchanged.

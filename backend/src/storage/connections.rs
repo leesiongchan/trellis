@@ -10,7 +10,18 @@ struct Cursor {
     rank: f64,
     key: ConnectionId,
 }
-const VISIBLE: &str = "data.status!='dismissed' AND (IF data.kind='branches_to' { true } ELSE { (library:main.activeModelVersion=NONE OR data.modelVersion=library:main.activeModelVersion) AND (data.candidate.from.passage=NULL OR data.candidate.from.passage.location.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.candidate.from.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.candidate.from.passage.location.answerVersionId LIMIT 1))>0) AND (data.candidate.to.passage=NULL OR data.candidate.to.passage.location.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.candidate.to.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.candidate.to.passage.location.answerVersionId LIMIT 1))>0) })";
+const VISIBLE: &str = "data.status!='dismissed' AND (IF data.kind='branches_to' { true } ELSE { (data.status='accepted' OR library:main.activeModelVersion=NONE OR data.modelVersion=library:main.activeModelVersion) AND (data.candidate.from.passage=NULL OR data.candidate.from.passage.location.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.candidate.from.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.candidate.from.passage.location.answerVersionId LIMIT 1))>0) AND (data.candidate.to.passage=NULL OR data.candidate.to.passage.location.answerVersionId=(SELECT VALUE data.currentAnswerVersionId FROM ONLY type::record('topic',$parent.data.candidate.to.topicId)) OR array::len((SELECT VALUE key FROM appearance WHERE answerVersionKey=$parent.data.candidate.to.passage.location.answerVersionId LIMIT 1))>0) })";
+fn dismissal_key(c: &MatchCandidate) -> String {
+    format!(
+        "dismissed-{}",
+        records::canonical_hash(&json!([
+            c.from.source_key,
+            c.from.input_hash,
+            c.to.source_key,
+            c.to.input_hash
+        ]))
+    )
+}
 impl KnowledgeStore {
     pub(crate) async fn embedding_source(
         &self,
@@ -119,9 +130,9 @@ impl KnowledgeStore {
             let mut data = serde_json::to_value(&view).map_err(|_| storage_error())?;
             data["candidate"] = json!(c);
             data["orderRank"] = json!(c.order_rank);
-            entries.push(json!({"key":c.id,"from":view.from_topic_id,"to":view.to_topic_id,"record":{"key":c.id,"identityKey":c.id,"data":data}}));
+            entries.push(json!({"dismissalKey":dismissal_key(c),"key":c.id,"from":view.from_topic_id,"to":view.to_topic_id,"record":{"key":c.id,"identityKey":c.id,"data":data}}));
         }
-        self.query("BEGIN TRANSACTION; IF library:main.epoch!=$epoch { THROW 'library_epoch_changed'; }; FOR $entry IN $entries { IF !record::exists(type::record('topic',$entry.from)) OR !record::exists(type::record('topic',$entry.to)) { THROW 'missing_reference'; }; LET $edge=type::record('connection',$entry.key); IF !record::exists($edge) { LET $from=type::record('topic',$entry.from); LET $to=type::record('topic',$entry.to); RELATE $from->$edge->$to CONTENT $entry.record; } ELSE { IF (SELECT VALUE data.status FROM ONLY $edge)='candidate' AND (SELECT VALUE data.score FROM ONLY $edge)<$entry.record.data.score { UPDATE ONLY $edge SET data=$entry.record.data; }; }; }; COMMIT TRANSACTION;",json!({"epoch":epoch,"entries":entries})).await?;
+        self.query("BEGIN TRANSACTION; IF library:main.epoch!=$epoch { THROW 'library_epoch_changed'; }; UPDATE library:main SET connectionSerial=(connectionSerial ?? 0)+1; FOR $entry IN $entries { IF !record::exists(type::record('topic',$entry.from)) OR !record::exists(type::record('topic',$entry.to)) { THROW 'missing_reference'; }; LET $edge=type::record('connection',$entry.key); LET $candidate=$entry.record.data.candidate; LET $dismissed=record::exists(type::record('match_state',$entry.dismissalKey)) OR array::len((SELECT VALUE key FROM connection WHERE data.candidate.from.sourceKey=$candidate.from.sourceKey AND data.candidate.from.inputHash=$candidate.from.inputHash AND data.candidate.to.sourceKey=$candidate.to.sourceKey AND data.candidate.to.inputHash=$candidate.to.inputHash AND data.status='dismissed' LIMIT 1))>0; IF !record::exists($edge) { LET $from=type::record('topic',$entry.from); LET $to=type::record('topic',$entry.to); RELATE $from->$edge->$to CONTENT $entry.record; } ELSE { IF (SELECT VALUE data.status FROM ONLY $edge)='candidate' AND (SELECT VALUE data.score FROM ONLY $edge)<$entry.record.data.score { UPDATE ONLY $edge SET data=$entry.record.data; }; }; IF $dismissed { UPSERT type::record('match_state',$entry.dismissalKey) CONTENT {key:$entry.dismissalKey,data:{state:'dismissed'}}; UPDATE ONLY $edge SET data.status='dismissed'; }; }; COMMIT TRANSACTION;",json!({"epoch":epoch,"entries":entries})).await?;
         let values = self
             .query_value(
                 "SELECT VALUE data FROM connection WHERE key IN $keys LIMIT 10;",
@@ -220,7 +231,12 @@ impl KnowledgeStore {
         if view.kind == ConnectionKind::BranchesTo {
             return Err(AppError::invalid_question());
         }
-        self.commit_mutation(&intent,"IF !record::exists(type::record('connection',$key)) { THROW 'missing_reference'; }; UPDATE ONLY type::record('connection',$key) SET data.status='dismissed';",json!({"key":command.payload.connection_id}),OperationResult::Connection{connection_id:command.payload.connection_id}).await
+        let data: Value = self
+            .record_data("connection", command.payload.connection_id.as_str())
+            .await?;
+        let candidate: MatchCandidate =
+            serde_json::from_value(data["candidate"].clone()).map_err(|_| storage_error())?;
+        self.commit_mutation(&intent,"UPDATE library:main SET connectionSerial=(connectionSerial ?? 0)+1; IF !record::exists(type::record('connection',$key)) { THROW 'missing_reference'; }; UPSERT type::record('match_state',$dismissalKey) CONTENT {key:$dismissalKey,data:{state:'dismissed'}}; UPDATE connection SET data.status='dismissed' WHERE data.candidate.from.sourceKey=$candidate.from.sourceKey AND data.candidate.from.inputHash=$candidate.from.inputHash AND data.candidate.to.sourceKey=$candidate.to.sourceKey AND data.candidate.to.inputHash=$candidate.to.inputHash;",json!({"key":command.payload.connection_id,"candidate":candidate,"dismissalKey":dismissal_key(&candidate)}),OperationResult::Connection{connection_id:command.payload.connection_id}).await
     }
     pub async fn neighborhood(
         &self,

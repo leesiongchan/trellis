@@ -2,7 +2,7 @@
 
 **Means:** a request failed at access, configuration, retrieval, generation, evidence checking, or its deadline. Earlier content remains readable; failed refreshes retain the previous explanation.
 
-**First check:** find the reference shown in the interface in the server's JSON logs. `requestId` correlates events; `entryPoint` is `research_endpoint`. Logs omit questions, source text, URL keys and credentials.
+**First check:** find the reference shown in the interface in the server's JSON logs. `requestId` correlates events; Durable operation IDs connect a submitted command to its stored receipt. Logs omit questions, source text, URL keys and credentials.
 
 | Code or condition | What to check |
 | --- | --- |
@@ -17,11 +17,14 @@
 | `BODY_TIMEOUT` / 408 or `BODY_TOO_LARGE` / 413 | The complete request body has ten seconds and a 65,536-byte cap. Check the client/proxy rather than increasing limits to hide stalled uploads. |
 | `SERVER_DRAINING` / 503 | Shutdown has begun; allow the supervisor's 130-second termination window. Retry explicitly after the replacement is ready. |
 | Startup `INVALID_CONFIG` | Check the exact origin, loopback binding, access-key length, environment-file path and complete executable/assets/manifest release. Configuration errors omit secret values. |
-| `OFFLINE` | Check that the Mac, app process and Tailscale client are running. Completed browser-local content still opens. |
-| `INTERRUPTED` | Reload happened during research. Previously completed content is preserved; retry is explicit. |
+| `OFFLINE` | Check that the Mac, app process and Tailscale client are running. Acknowledged browser copies still open read-only. |
+| `WORK_INTERRUPTED` | The server restarted during paid work. Previously completed content is preserved; retry is explicit. |
+| `RELOAD_REQUIRED` / 426 | An older frontend called the legacy endpoint. Reload the paired protocol-2 frontend before any new research. |
+| `REVISION_CONFLICT` / 409 | Reload the saved version. A restored/purged library has a fresh epoch; stale commands cannot replay. |
+| Discovery unavailable | Check pinned model assets and hashes. Saved answers still open; startup never downloads models or starts paid backfill. |
 | Saving failure | Keep the tab open. Free browser storage and use Retry saving. Do not clear site data to repair saving. |
 | Changed in another tab | Reload the saved version explicitly. The app refuses stale overwrites. |
 
 **Escalate:** reproduce once with the reference ID, stage and elapsed time. Keep secrets and page contents out of reports. Run the fixture-backed checks before changing the providers. Use the two-request live smoke only when provider configuration is ready.
 
-Runtime scope is one Rust process on loopback with private Tailscale forwarding. Process-local limits and request sharing do not provide distributed coordination or replay after restarts. Public hosting requires a separate design for access control and shared limits. See [Rust service operation](rust-service.md) for configuration, release checks, metrics, graceful shutdown and rollback.
+Runtime scope is one Rust process on loopback with private Tailscale forwarding. The embedded library persists operation receipts and immutable answers across restarts. Limits and storage ownership are single-process; this is a private shared library, not a distributed or multiuser service. Public hosting requires a separate design for access control and shared limits. See [Rust service operation](rust-service.md) for configuration, release checks, metrics, graceful shutdown and rollback.

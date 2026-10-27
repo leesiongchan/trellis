@@ -76,16 +76,25 @@ async fn runtime_is_ready_with_missing_model_and_never_restarts_paid_work() {
     assert_eq!(p.searches.load(std::sync::atomic::Ordering::SeqCst), 0);
     runtime.shutdown().await.unwrap();
 }
+struct OwnedChild(std::process::Child);
+impl Drop for OwnedChild {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
 #[tokio::test]
 async fn acknowledged_nested_save_survives_sigkill_and_recovery_is_provider_free() {
     let root = tempfile::tempdir().unwrap();
-    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
-        .args(["--ignored", "--exact", "durability_child", "--nocapture"])
-        .env("BRANCH_DURABILITY_ROOT", root.path())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .unwrap();
+    let mut child = OwnedChild(
+        std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "durability_child", "--nocapture"])
+            .env("BRANCH_DURABILITY_ROOT", root.path())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
     tokio::time::timeout(std::time::Duration::from_secs(15), async {
         while !root.path().join("ack.json").exists() {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
@@ -93,8 +102,8 @@ async fn acknowledged_nested_save_survives_sigkill_and_recovery_is_provider_free
     })
     .await
     .unwrap();
-    child.kill().unwrap();
-    child.wait().unwrap();
+    child.0.kill().unwrap();
+    child.0.wait().unwrap();
     let ack: Value =
         serde_json::from_slice(&std::fs::read(root.path().join("ack.json")).unwrap()).unwrap();
     let store = open(root.path()).await;

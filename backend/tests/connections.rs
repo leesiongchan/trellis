@@ -156,3 +156,43 @@ async fn vector_evidence_upgrades_a_keyword_only_candidate() {
     );
     s.store.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn same_content_dismissal_survives_model_replacement() {
+    use branch_backend::knowledge::matching::MatchCandidate;
+    let s = fixture::Setup::new().await;
+    let (_, _, a) = s.create("Flash retention mechanism").await;
+    let (_, _, b) = s.create("How flash retains information").await;
+    let old = s.candidate(&a, &b).await;
+    s.store
+        .save_candidates(std::slice::from_ref(&old))
+        .await
+        .unwrap();
+    s.store
+        .dismiss_connection(&fixture::command(
+            DismissConnection {
+                connection_id: old.id.clone(),
+            },
+            None,
+        ))
+        .await
+        .unwrap();
+    let next = MatchCandidate::questions(
+        &s.source(&a).await,
+        &s.source(&b).await,
+        "replacement-model-generation",
+        0.98,
+    )
+    .unwrap();
+    let saved = s.store.save_candidates(&[next]).await.unwrap();
+    assert_eq!(saved[0].status, ConnectionStatus::Dismissed);
+    assert!(
+        s.store
+            .connections(&a, None, 100)
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    s.store.close().await.unwrap();
+}

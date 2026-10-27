@@ -18,10 +18,11 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 90
     env:
       APP_ENV_FILE: ''
       CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: 2
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -32,11 +33,27 @@ jobs:
           npm install --global --ignore-scripts pnpm@11.21.0
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
           pnpm install --frozen-lockfile --ignore-scripts
+      - name: Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes build-essential clang libclang-dev cmake pkg-config
+      - name: macOS native prerequisites
+        if: runner.os == 'macOS'
+        run: |
+          xcrun --find clang
+          echo "LIBCLANG_PATH=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib" >> "$GITHUB_ENV"
+      - name: Set up checksummed local model explicitly
+        run: node scripts/fetch-embedding-model.ts .artifacts/embedding-model
       - name: Verify backend
         run: |
           cargo fmt --manifest-path backend/Cargo.toml -- --check
           cargo clippy --manifest-path backend/Cargo.toml --all-targets --all-features --locked -- -D warnings
           cargo test --manifest-path backend/Cargo.toml --all-targets --all-features --locked
+      - name: Explicit native model and maximum import gates
+        env:
+          BRANCH_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/.artifacts/embedding-model
+        run: |
+          cargo test --manifest-path backend/Cargo.toml --locked --test embeddings native_embedding_matches_pinned_public_fixture -- --ignored --exact
+          cargo test --manifest-path backend/Cargo.toml --locked --test migration thirty_two_mib_native_finalization_is_atomic_and_bounded -- --ignored --exact
       - name: Verify frontend and packaged runtime
         run: |
           pnpm check

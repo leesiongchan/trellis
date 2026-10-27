@@ -188,11 +188,20 @@ impl KnowledgeStore {
         if manifest.view.state != ImportState::Staging {
             return self.commit_import(&intent,"LET $selected=(SELECT * FROM ONLY type::record('migration_manifest',$importKey));",json!({"importKey":id})).await;
         }
+        // Keep admission alive through publication, including cancelled blocking preparation.
+        let preparation = std::sync::Arc::new(
+            self.import_preparations
+                .clone()
+                .try_acquire_owned()
+                .map_err(|_| AppError::new(ErrorCode::StorageBusy))?,
+        );
+        let blocking_preparation = preparation.clone();
         let fragments=self.query_value("SELECT VALUE data.fragment FROM migration_stage WHERE importKey=$key ORDER BY batchIndex ASC LIMIT 2001;",json!({"key":id})).await?;
         let fragments: Vec<String> =
             serde_json::from_value(fragments).map_err(|_| storage_error())?;
         let copy = manifest.clone();
         let prepared = tokio::task::spawn_blocking(move || {
+            let _admission = blocking_preparation;
             if copy.created_at < cutoff()?
                 || copy.received_bytes != copy.input.expected_bytes as usize
                 || fragments.len() != copy.batches
@@ -426,6 +435,49 @@ mod tests {
             .await
             .unwrap();
         (view, encoded)
+    }
+    #[tokio::test]
+    async fn concurrent_finalization_is_bounded_but_completed_replays_remain_free() {
+        let (_root, store) = setup().await;
+        let (view, _) = start(&store, "bounded").await;
+        let finish = command(FinalizeImport { import_id: view.id });
+        let first = store
+            .import_preparations
+            .clone()
+            .try_acquire_owned()
+            .unwrap();
+        let second = store
+            .import_preparations
+            .clone()
+            .try_acquire_owned()
+            .unwrap();
+        assert_eq!(
+            store.finalize_import(&finish).await.unwrap_err().code(),
+            "STORAGE_BUSY"
+        );
+        drop((first, second));
+        let completed = store.finalize_import(&finish).await.unwrap();
+        let all = store
+            .import_preparations
+            .clone()
+            .try_acquire_many_owned(2)
+            .unwrap();
+        assert_eq!(
+            store.finalize_import(&finish).await.unwrap().state,
+            ImportState::Completed
+        );
+        assert_eq!(
+            store
+                .finalize_import(&command(FinalizeImport {
+                    import_id: completed.id
+                }))
+                .await
+                .unwrap()
+                .state,
+            ImportState::Completed
+        );
+        drop(all);
+        store.close().await.unwrap();
     }
     #[tokio::test]
     async fn expired_staging_cleanup_cannot_delete_published_content() {

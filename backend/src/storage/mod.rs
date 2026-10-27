@@ -20,7 +20,7 @@ use std::{
     fs::{File, OpenOptions},
     io::Write,
     os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt},
-    sync::Mutex,
+    sync::{Arc, Mutex},
     time::Duration,
 };
 use surrealdb::{
@@ -60,6 +60,7 @@ pub struct KnowledgeStore {
     maintenance: RwLock<()>,
     client: RwLock<Option<Surreal<Db>>>,
     pub(crate) admission: Semaphore,
+    import_preparations: Arc<Semaphore>,
     lock: Mutex<Option<File>>,
 }
 
@@ -219,6 +220,7 @@ impl KnowledgeStore {
             config: config.clone(),
             maintenance: RwLock::new(()),
             admission: Semaphore::new(16),
+            import_preparations: Arc::new(Semaphore::new(2)),
             lock: Mutex::new(Some(lock)),
         })
     }

@@ -1,9 +1,13 @@
 import { access } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startProcess, type ManagedProcess } from './lib/process.ts';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const children: ManagedProcess[] = [];
+if (!process.env.APP_DATA_DIR || !isAbsolute(process.env.APP_DATA_DIR))
+  throw new Error(
+    'Set APP_DATA_DIR to an absolute private directory outside the checkout before starting development.'
+  );
 const portFlag = process.argv.indexOf('--port');
 const port = portFlag < 0 ? 5173 : Number(process.argv[portFlag + 1]);
 if (!Number.isInteger(port) || port < 1 || port > 65535 || port === 3001)

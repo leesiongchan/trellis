@@ -305,3 +305,93 @@ it('a late mutation conflict cannot mark a newly loaded exploration as stale', a
   expect(session.exploration!.id).toBe('e2');
   expect(session.conflict).toBe(false);
 });
+
+it('disposal while persisting an intent cannot submit work using a replacement signal', async () => {
+  const cache = createLibraryCache('persist-cancel-' + crypto.randomUUID());
+  const put = cache.putIntent;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let storing = false;
+  cache.putIntent = async (intent) => {
+    await put(intent);
+    storing = true;
+    await gate;
+  };
+  let writes = 0;
+  const client = createLibraryClient(
+    vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+      if (path === '/api/library') return jsonResponse(library);
+      if (init?.method === 'POST') {
+        writes++;
+        return jsonResponse(completed(JSON.parse(init.body as string).operationId));
+      }
+      return jsonResponse(snapshot());
+    })
+  );
+  const session = createResearchSession({ client, cache, onChange: vi.fn() });
+  await session.connect();
+  await session.load('e1');
+  const refresh = session.refresh('root').catch(() => {});
+  await vi.waitFor(() => expect(storing).toBe(true));
+  session.dispose();
+  release();
+  await refresh;
+  expect(writes).toBe(0);
+  expect(await cache.intents(library)).toHaveLength(1);
+});
+it('different literal punctuation never silently selects an existing sibling answer', async () => {
+  const saved = snapshot();
+  saved.appearances[0].childIds = ['old-child'];
+  saved.appearances.push({
+    ...saved.appearances[0],
+    id: 'old-child',
+    parentId: 'root',
+    topicId: 'old-topic',
+    question: 'Memory?',
+    answerVersionId: null,
+    childIds: []
+  });
+  let branchCalls = 0;
+  const client = createLibraryClient(
+    vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+      if (path === '/api/library') return jsonResponse(library);
+      if (init?.method === 'POST') {
+        branchCalls++;
+        const command = JSON.parse(init.body as string);
+        expect(command.payload.question).toBe('Memory');
+        saved.exploration.revision = 1;
+        saved.appearances[0].childIds.push('new-child');
+        saved.appearances.push({
+          ...saved.appearances[1],
+          id: 'new-child',
+          topicId: 'new-topic',
+          question: 'Memory',
+          answerVersionId: 'new-answer'
+        });
+        saved.answers.push({ ...saved.answers[0], id: 'new-answer', topicId: 'new-topic' });
+        return jsonResponse({
+          ...completed(command.operationId),
+          result: {
+            kind: 'exploration',
+            explorationId: 'e1',
+            appearanceId: 'new-child',
+            revision: 1
+          }
+        });
+      }
+      return jsonResponse(saved);
+    })
+  );
+  const session = createResearchSession({
+    client,
+    cache: createLibraryCache('literal-sibling-' + crypto.randomUUID()),
+    onChange: vi.fn()
+  });
+  await session.connect();
+  await session.load('e1');
+  const id = await session.addQuestion('root', 'Memory');
+  expect(branchCalls).toBe(1);
+  expect(id).toBe('new-child');
+});

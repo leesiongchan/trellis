@@ -1,6 +1,6 @@
 # Rust service operation
 
-Branch runs as one Rust process serving the static Svelte frontend, private access, research, health and metrics. Node/pnpm are build and development tools. The packaged executable does not require them at runtime.
+Branch runs as one Rust process serving the static Svelte frontend, private access, durable knowledge, research, health and metrics using one embedded SurrealDB/RocksDB handle. Node/pnpm are build and development tools. The packaged executable does not require them at runtime.
 
 ## Build and start
 
@@ -8,11 +8,12 @@ Use the committed Rust 1.98.0 toolchain (rustfmt/Clippy), Node 26.5.0 and pnpm 1
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
+node scripts/fetch-embedding-model.ts .artifacts/embedding-model
 pnpm build
 cp .env.example .env
 ```
 
-Set the exact browser-facing `APP_ORIGIN` in `.env` and an access key generated with `openssl rand -hex 32`. Add OpenAI/Tavily keys only for live research. Empty keys are a supported demo/read-only configuration. An explicitly supplied access key shorter than 32 UTF-16 units is rejected. Preserve the existing model setting; the default remains `gpt-5.6-terra`, with availability and live operation unverified.
+Set `APP_DATA_DIR` to an absolute private directory outside the repository, assets, models and backups. See [storage operations](knowledge-storage.md) for native prerequisites and optional backup/model roots. Set the exact browser-facing `APP_ORIGIN` in `.env` and an access key generated with `openssl rand -hex 32`. Add OpenAI/Tavily keys only for live research. Empty keys are a supported demo/read-only configuration. An explicitly supplied access key shorter than 32 UTF-16 units is rejected. Preserve the existing model setting; the default remains `gpt-5.6-terra`, with availability and live operation unverified.
 
 ```sh
 pnpm start
@@ -20,7 +21,7 @@ pnpm start
 ./release/branch-backend
 ```
 
-The artifact consists of `release/branch-backend`, `release/public/`, and `release/frontend-manifest.json`. Keep them together. By default assets resolve beside the executable, regardless of the working directory. The optional `.env` resolves from the working directory; `scripts/start.sh` first enters the repository root. For an extracted release, inject environment values or set `APP_ENV_FILE` to an absolute path outside the public directory.
+The artifact consists of `release/branch-backend`, `release/public/`, `release/frontend-manifest.json`, `release/release-manifest.json`, `release/native-runtime-manifest.json` and verified `release/models/`. Keep them together. By default assets resolve beside the executable, regardless of the working directory. The optional `.env` resolves from the working directory; `scripts/start.sh` first enters the repository root. For an extracted release, inject environment values or set `APP_ENV_FILE` to an absolute path outside the public directory.
 
 Configuration is read once. Process environment overrides file values. Unset `APP_ENV_FILE` loads `.env` if present; an empty process value disables loading; an explicit path must exist. `FRONTEND_DIR` overrides the asset directory, and the manifest must be its sibling. `HOST` defaults to `127.0.0.1`, `PORT` to 3000; only loopback bindings are accepted. `APP_ORIGIN` is required and must be a root HTTPS origin, or HTTP on loopback. `RUST_LOG` defaults to `info`. Restart after configuration changes. Never print configuration maps or put secrets into command-line arguments, shared logs, build artifacts or browser storage.
 
@@ -34,7 +35,7 @@ For a separately authorized deployment, preserve the existing scheme, hostname a
 
 IndexedDB is scoped to the complete browser origin. Changing a hostname or port makes previous explorations inaccessible at the new origin. No server copy, cross-device synchronization or automatic browser backup exists. Do not clear site data to repair startup, research or saving failures.
 
-Build into a separate release directory for deployment and retain the previous complete executable/assets/manifest. Stop the old service gracefully, switch the release as one unit, and start with the same origin/configuration. Roll back the complete previous artifact with the same procedure. There is no server database migration; in-flight jobs are not durable or replayed across restarts.
+Build into a separate release directory for deployment and retain the previous complete executable/assets/manifest. Stop the old service gracefully, switch the release as one unit, and start with the same origin/configuration. Roll back the complete previous artifact with the same procedure. Deploy the protocol-2 frontend and backend together. Startup makes a separate pre-upgrade native backup before a compatible release change; incompatible engine/schema markers stop startup. Retain the old release and its backup. Rollback restores that backup into a fresh, nonexistent data directory and starts its matching old release. Never point an older engine at upgraded live data. See [the restore procedure](knowledge-storage.md#standalone-backup-and-restore).
 
 ## Health, limits and shutdown
 
@@ -42,7 +43,7 @@ Build into a separate release directory for deployment and retain the previous c
 
 Research limits per process: two distinct active jobs, ten new jobs per rolling minute, 32 total research waiters, 65,536 request bytes, ten seconds for the complete body, 20 seconds for search, and 120 seconds for the whole job. Each provider connection has a five-second establishment cap and each response a 2 MiB read cap. The server admits 128 connections, 64 headers/32 KiB per header section, and ten seconds for headers; stalled writes time out after 15 seconds. Rejected transport parsing/connection admission may close the socket before an application JSON response exists. API-level errors use the documented envelope.
 
-Identical validated requests share active work. One disconnected caller does not cancel other callers; the last departing waiter cancels local work. Later retries can incur a new charge. Local cancellation cannot guarantee that a remote provider stops processing or refunds a call. There are no automatic provider retries and no completed-job cache on the server.
+Identical resolved questions share active work. Durable operation IDs and request hashes replay the original receipt; a changed payload under the same ID conflicts. The server owns admitted work when callers disconnect. Saved-answer reuse is free. Startup marks incomplete paid operations interrupted and resumes only local indexing. Explicit retry may incur a new charge; there are no automatic provider retries. Local cancellation cannot guarantee that a remote provider stops processing or refunds a call.
 
 SIGINT/SIGTERM stops acceptance and drains existing connections/jobs for up to 125 seconds. Remaining work is cancelled and the process must exit by 130 seconds. Supervisors must allow at least 130 seconds; a second termination signal forces exit. Check the request/job logs before escalating a stalled shutdown. Do not kill unrelated processes by port or process-name matching.
 
@@ -72,6 +73,8 @@ pnpm verify:release
 pnpm audit
 ```
 
-Tests and release verification use only fake credentials/local providers. Browser tests own ports 5183–5186 and never reuse a running app. The fixture harness is an explicitly ignored test, not a production endpoint override. Release verification starts its own server on a temporary port with an empty child PATH and no provider keys. The optional `pnpm live-smoke` remains manual, makes at most two paid requests, and is excluded from routine verification.
+Tests and release verification use only fake credentials/local providers. Browser tests own ports 5183–5187 and never reuse a running app. The fixture harnesses are explicitly ignored tests, not a production endpoint override. Release verification starts its own server on a temporary port with an empty child PATH and no provider keys. The optional `pnpm live-smoke` remains manual, makes at most two paid requests, and is excluded from routine verification.
+
+The release verifier uses only temporary private storage and the packaged native executable, with no Node/Python/container/database CLI on its child PATH. It covers v1 import, SIGKILL/reopen, native CLI backup/restore and valid/missing/corrupt model assets. The separate native crash fixture proves pending paid research and verifier stages become interrupted without provider replay.
 
 See [research diagnostics](research.md) for error meanings and [migration evidence](../superpowers/2026-10-26-rust-backend-notes.md) for actual verification scope.

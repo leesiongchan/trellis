@@ -2,13 +2,15 @@ import { LibraryError, type Intent, type LibraryClient } from './library-client'
 import type { LibraryCache } from './cache';
 import type { Command, ExplorationSnapshot, LibraryInfo, OperationView } from './library-types';
 import type { ApiError, ViewState, WorkspaceExploration, WorkspaceSession } from './types';
-import { newId, normalizeQuestion, questionKey } from './normalize';
+import { newId, normalizeQuestion } from './normalize';
 import { ancestorPath } from './tree';
 import {
   CreateExplorationCommandSchema,
   AddBranchCommandSchema,
   ResearchCommandSchema
 } from './library-schemas';
+const questionKey = (value: string) =>
+  value.normalize('NFC').trim().toLowerCase().replace(/\s+/gu, ' ');
 const errorView = (error: unknown): ApiError => ({
   code: error instanceof LibraryError ? error.code : 'LIBRARY_FAILED',
   message: error instanceof Error ? error.message : 'The library request did not finish.',
@@ -220,8 +222,8 @@ export class ResearchSession implements WorkspaceSession {
         });
     }
   }
-  private async finish(intent: Intent, known?: OperationView) {
-    const signal = this.controller.signal;
+  private async finish(intent: Intent, known?: OperationView, signal = this.controller.signal) {
+    signal.throwIfAborted();
     let operation = known ?? (await this.options.client.submit(intent, signal));
     let delay = 250;
     while (operation.state === 'pending') {
@@ -253,17 +255,17 @@ export class ResearchSession implements WorkspaceSession {
       if (this.offline) await this.connect(false);
       this.requireOnline();
       const generation = this.generation;
+      const signal = this.controller.signal;
       for (const intent of await this.options.cache.intents(this.library!)) {
+        signal.throwIfAborted();
+        if (generation !== this.generation) return;
         let operation: OperationView | undefined;
         try {
-          operation = await this.options.client.operation(
-            intent.command.operationId,
-            this.controller.signal
-          );
+          operation = await this.options.client.operation(intent.command.operationId, signal);
         } catch (error) {
           if (!(error instanceof LibraryError) || error.status !== 404) throw error;
         }
-        operation = await this.finish(intent, operation);
+        operation = await this.finish(intent, operation, signal);
         if (operation.state !== 'completed') {
           this.notice =
             operation.error?.message ?? 'Research was interrupted. Retry explicitly when ready.';
@@ -285,10 +287,13 @@ export class ResearchSession implements WorkspaceSession {
   ) {
     this.requireOnline();
     if (generation !== this.generation) throw new Error('The open exploration changed.');
+    const signal = this.controller.signal;
     const intent = { library: this.library!, path, method, command };
     await this.options.cache.putIntent(intent);
     try {
-      const operation = await this.finish(intent);
+      signal.throwIfAborted();
+      if (generation !== this.generation) throw new Error('The open exploration changed.');
+      const operation = await this.finish(intent, undefined, signal);
       await this.apply(operation, generation);
       await this.options.cache.removeIntent(intent.library, intent.command.operationId);
       return operation;

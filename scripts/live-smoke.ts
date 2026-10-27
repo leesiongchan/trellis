@@ -39,25 +39,53 @@ const Content = z.object({
   sources: z.array(z.object({ id: z.string(), url: z.url() })).min(1),
   branches: z.array(z.object({ question: z.string().min(1) })).min(1)
 });
-const explorationId = randomUUID();
-async function research(question: string, ancestors: { title: string; summary: string }[] = []) {
-  const response = await fetch(new URL('/api/research', origin), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', origin, cookie },
-    body: JSON.stringify({
-      explorationId,
-      nodeId: randomUUID(),
-      question,
-      clarification: null,
-      ancestors
-    }),
+let info: { libraryId: string; libraryEpoch: number };
+async function api(path: string, method = 'GET', body?: unknown) {
+  const response = await fetch(new URL('/api' + path, origin), {
+    method,
+    headers: {
+      cookie,
+      origin,
+      'content-type': 'application/json',
+      'x-branch-protocol': '2',
+      ...(info ? { 'x-branch-library': info.libraryId } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
     signal: AbortSignal.timeout(125000)
   });
   if (!response.ok)
     throw new Error(
-      'Live research failed with HTTP ' + response.status + '. Check the server by its request ID.'
+      'Live library request failed with HTTP ' +
+        response.status +
+        '. Check the server by its request ID.'
     );
-  const result = await response.json();
+  return response.json();
+}
+const command = (payload: unknown, revision: number | null = null) => ({
+  operationId: randomUUID(),
+  libraryEpoch: info.libraryEpoch,
+  expectedRevision: revision,
+  payload
+});
+async function research(explorationId: string, appearanceId: string) {
+  const snapshot = await api('/explorations/' + explorationId);
+  let operation = await api(
+    '/appearances/' + appearanceId + '/research',
+    'POST',
+    command({ appearanceId, refresh: false, clarification: null }, snapshot.exploration.revision)
+  );
+  const deadline = Date.now() + 125000;
+  while (operation.state === 'pending') {
+    if (Date.now() >= deadline)
+      throw new Error(
+        'Live research polling exceeded its deadline; inspect the durable operation before retrying.'
+      );
+    await new Promise((yes) => setTimeout(yes, 500));
+    operation = await api('/operations/' + operation.id);
+  }
+  if (operation.state !== 'completed')
+    throw new Error('Live research failed; inspect its durable receipt.');
+  const result = operation.result.outcome;
   assert.equal(result.kind, 'topic', 'Research did not return a complete explanation.');
   const content = Content.parse(result.content),
     sourceIds = new Set(content.sources.map((s) => s.id));
@@ -72,16 +100,19 @@ async function research(question: string, ancestors: { title: string; summary: s
   return content;
 }
 try {
-  const root = await research('How does a microSD card store data?');
-  await research(root.branches[0].question, [
-    {
-      title: root.title,
-      summary: root.summary
-        .map((p) => p.text)
-        .join(' ')
-        .slice(0, 400)
-    }
-  ]);
+  info = await api('/library');
+  const created = await api(
+    '/explorations',
+    'POST',
+    command({ question: 'How does a microSD card store data?', locale: 'en' })
+  );
+  await research(created.result.explorationId, created.result.appearanceId);
+  const saved = await api('/explorations/' + created.result.explorationId);
+  const child = saved.appearances.find(
+    (a: { parentId: string | null }) => a.parentId === created.result.appearanceId
+  );
+  assert.ok(child, 'No saved research branch was created.');
+  await research(created.result.explorationId, child.id);
   console.log(
     'Live smoke passed: two researched topics, detailed explanations, valid source references and further branches.'
   );

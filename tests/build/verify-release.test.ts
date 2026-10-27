@@ -7,8 +7,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const script=fileURLToPath(new URL('../../scripts/verify-release.ts',import.meta.url));
 test('release verifier exercises runtime with no Node on its child PATH',()=>{
-  const result=spawnSync(process.execPath,[script],{encoding:'utf8',timeout:20000});assert.equal(result.status,0,result.stderr);
-  const summary=JSON.parse(result.stdout.trim().split('\n').at(-1)!);assert.equal(summary.ok,true);for(const check of ['no-node-runtime','research-disabled','private-metrics','asset-integrity','secret-redaction','sigterm-exit'])assert.ok(summary.checks.includes(check),check);
+  const result=spawnSync(process.execPath,[script],{encoding:'utf8',timeout:90000});assert.equal(result.status,0,result.stderr);
+  const summary=JSON.parse(result.stdout.trim().split('\n').at(-1)!);assert.equal(summary.ok,true);for(const check of ['no-node-runtime','research-disabled','private-metrics','asset-integrity','secret-redaction','sigterm-exit','durable-library','legacy-upgrade','exclusive-writer','restart-persistence','backup-restore','model-degradation','native-model','private-storage-assets','epoch-fencing','zero-paid-starts'])assert.ok(summary.checks.includes(check),check);
 });
 test('release verifier rejects a missing executable',()=>{const result=spawnSync(process.execPath,[script,'--binary','/private/tmp/branch-deliberately-missing-binary'],{encoding:'utf8',timeout:5000});assert.notEqual(result.status,0);});
 test('release verifier rejects an executable that requires Node',async()=>{

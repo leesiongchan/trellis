@@ -643,3 +643,26 @@ async fn graph_deadline_bounds_waiting_for_storage_admission() {
     drop(permit);
     store.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn accepted_connections_keep_their_provenance_after_model_replacement() {
+    use crate::contracts::library::ConnectionStatus;
+    use serde_json::json;
+    let s = super::matching_fixture::Setup::new().await;
+    let (_, _, a) = s.create("Flash retention mechanism").await;
+    let (_, _, b) = s.create("How flash retains information").await;
+    let old = s.candidate(&a, &b).await;
+    s.store
+        .save_candidates(std::slice::from_ref(&old))
+        .await
+        .unwrap();
+    s.store.query("UPDATE ONLY type::record('connection',$key) SET data.status='accepted',data.kind='equivalent_question'; UPDATE library:main SET activeModelVersion='replacement-model-generation';",json!({"key":old.id})).await.unwrap();
+    let saved = s.store.connections(&a, None, 100).await.unwrap();
+    assert_eq!(saved.items.len(), 1);
+    assert_eq!(saved.items[0].status, ConnectionStatus::Accepted);
+    assert_eq!(
+        saved.items[0].model_version.as_deref(),
+        Some(old.model_version.as_str())
+    );
+    s.store.close().await.unwrap();
+}

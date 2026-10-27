@@ -60,7 +60,7 @@ impl KnowledgeStore {
         let mut sql = String::from(
             "BEGIN TRANSACTION; DEFINE TABLE IF NOT EXISTS library SCHEMAFULL; DEFINE FIELD IF NOT EXISTS key ON library TYPE string; DEFINE FIELD IF NOT EXISTS epoch ON library TYPE int; DEFINE FIELD IF NOT EXISTS schemaVersion ON library TYPE int; ",
         );
-        sql.push_str("DEFINE FIELD IF NOT EXISTS releaseChecksum ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS importSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
+        sql.push_str("DEFINE FIELD IF NOT EXISTS releaseChecksum ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS importSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS connectionSerial ON library TYPE option<int>; DEFINE FIELD IF NOT EXISTS discoveryStatus ON library TYPE option<string>; DEFINE FIELD IF NOT EXISTS activeModelVersion ON library TYPE option<string>; ");
         let tables: &[(&str, &[(&str, &str)])] = &[
             (
                 "verification_stage",
@@ -198,6 +198,12 @@ impl KnowledgeStore {
         sql.push_str("REMOVE INDEX IF EXISTS model_input ON embedding; ");
         for (table, name, fields, unique) in [
             ("embedding", "model_scan", "modelVersion,key", false),
+            (
+                "connection",
+                "content_pair",
+                "data.candidate.from.sourceKey,data.candidate.from.inputHash,data.candidate.to.sourceKey,data.candidate.to.inputHash,data.status",
+                false,
+            ),
             (
                 "embedding_state",
                 "source_generation",

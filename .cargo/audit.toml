@@ -1,0 +1,16 @@
+# Reviewed 2026-10-27 for the pinned embedded-only release. Re-review whenever
+# SurrealDB features, query exposure, object storage or authentication changes.
+# See docs/superpowers/2026-10-27-knowledge-storage-notes.md for reachability.
+[advisories]
+ignore = [
+  # Optional RSA dependencies exist in Cargo.lock but are absent from the native
+  # feature graph. Cookies use HMAC-SHA256, not RSA/secret bigint operations.
+  "RUSTSEC-2023-0071",
+  "RUSTSEC-2026-0387",
+  # SurrealDB core enables object_store cloud parsers transitively. Branch uses
+  # embedded RocksDB and repository-owned bound SQL only: no XML, object-store,
+  # ML import, arbitrary SQL or remote export path accepts user input.
+  # Upstream object_store pins quick-xml ^0.39; the fix requires >=0.41.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]
