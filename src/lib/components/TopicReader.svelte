@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import type { TopicNode } from '#lib/knowledge/types.ts';
   import CitationLink from './CitationLink.svelte';
   import BranchQuestion from './BranchQuestion.svelte';
@@ -9,7 +10,8 @@
     onClarify,
     clarification,
     demo = false,
-    readOnly = false
+    readOnly = false,
+    children
   }: {
     node: TopicNode;
     onFollow: (question: string) => void;
@@ -18,6 +20,7 @@
     clarification: string | null;
     demo?: boolean;
     readOnly?: boolean;
+    children?: Snippet;
   } = $props();
   let answer = $state('');
   const content = $derived(node.content);
@@ -130,6 +133,7 @@
         <div class="section-label">THERE'S MORE TO THIS STORY</div>
         {#each content.branches as branch, i (i)}<button
             class="next-topic"
+            disabled={readOnly}
             onclick={() => onFollow(branch.question)}
             ><span><strong>{branch.title}</strong><small>{branch.reason.text}</small></span><span
               aria-hidden="true">↗</span
@@ -151,4 +155,5 @@
       </p>
     </section>
   {/if}
+  {@render children?.()}
 </aside>

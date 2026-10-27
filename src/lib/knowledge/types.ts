@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { ImportedFrom } from './library-types';
 import type {
   ApiErrorSchema,
   BranchSchema,
@@ -39,6 +40,7 @@ export interface ExplorationRepository {
 export type WorkspaceExploration = Omit<Exploration, 'schemaVersion'> & {
   libraryEpoch?: number;
   viewRestored?: boolean;
+  importedFrom?: ImportedFrom;
   nodes: Record<string, TopicNode & { topicId?: string; answerVersionId?: string | null }>;
 };
 export interface WorkspaceSession {
@@ -58,4 +60,4 @@ export interface WorkspaceSession {
 export type SavedExploration = Pick<
   WorkspaceExploration,
   'id' | 'originalPrompt' | 'updatedAt' | 'revision'
-> & { mode: 'research' | 'demo'; topicCount?: number };
+> & { mode: 'research' | 'demo'; topicCount?: number; importedFrom?: ImportedFrom };

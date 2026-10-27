@@ -1,9 +1,10 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import type { WorkspaceSession } from '#lib/knowledge/types.ts';
   import { ancestorPath, visibleTree } from '#lib/knowledge/tree.ts';
   import TopicTree from './TopicTree.svelte';
   import TopicReader from './TopicReader.svelte';
-  let { session }: { session: WorkspaceSession } = $props();
+  let { session, readerExtras }: { session: WorkspaceSession; readerExtras?: Snippet } = $props();
   let error = $state('');
   const exploration = $derived(session.exploration!);
   const selected = $derived(exploration.nodes[exploration.view.selectedNodeId]);
@@ -93,6 +94,6 @@
       onClarify={(answer) => navigate(session.clarify(selected.id, answer))}
       clarification={session.clarification?.nodeId === selected.id
         ? session.clarification.question
-        : null}
-    />{/key}
+        : null}>{@render readerExtras?.()}</TopicReader
+    >{/key}
 </div>

@@ -24,7 +24,12 @@
         >
           <span class="saved-icon">↗</span><span
             ><strong>{item.originalPrompt}</strong><small
-              >{#if item.mode === 'demo'}<span class="demo-tag">Demo</span> ·
+              >{#if item.importedFrom}<span class="copy-tag"
+                  >{item.importedFrom.changedCopy
+                    ? 'Changed browser copy'
+                    : 'Imported browser copy'}</span
+                > ·
+              {/if}{#if item.mode === 'demo'}<span class="demo-tag">Demo</span> ·
               {/if}{item.topicCount !== undefined ? item.topicCount + ' topics · ' : ''}
               {new Date(item.updatedAt).toLocaleDateString(undefined, {
                 month: 'short',

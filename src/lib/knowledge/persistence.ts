@@ -26,6 +26,18 @@ export function restoreExploration(value: unknown): Exploration {
   }
   return result;
 }
+export async function readBrowserOriginals(name = 'branch-knowledge-v1'): Promise<unknown[]> {
+  const database = await openDB<KnowledgeDB>(name, 1, {
+    upgrade(db) {
+      db.createObjectStore('explorations', { keyPath: 'id' });
+    }
+  });
+  try {
+    return await database.getAll('explorations');
+  } finally {
+    database.close();
+  }
+}
 export function createExplorationRepository(
   name = 'branch-knowledge-v1',
   onUnreadable: (message: string) => void = () => {}

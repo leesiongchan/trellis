@@ -1,5 +1,7 @@
 //! Explicitly ignored fixture harness; it is never linked into the release executable.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+#[path = "support/browser_graph.rs"]
+mod browser_graph;
 mod common;
 use axum::{Json, Router, http::StatusCode, routing::post};
 use branch_backend::{
@@ -97,6 +99,7 @@ async fn serve_browser_fixtures() {
     let mut runtimes = vec![];
     for (port, origin) in [
         (5184, "http://127.0.0.1:5184"),
+        (5187, "http://127.0.0.1:5187"),
         (5186, "https://127.0.0.1:5185"),
     ] {
         let data = tempfile::tempdir().unwrap();
@@ -133,22 +136,32 @@ async fn serve_browser_fixtures() {
             .unwrap()
             .with_telemetry(telemetry.clone()),
         );
-        let state = AppState::start(config.clone(), provider.clone(), Some(provider), telemetry)
-            .await
-            .unwrap();
+        let state = AppState::start(
+            config.clone(),
+            provider.clone(),
+            Some(provider.clone()),
+            telemetry,
+        )
+        .await
+        .unwrap();
         let jobs = state.jobs.clone();
         let draining = state.draining.clone();
         runtimes.push(state.knowledge_runtime.clone());
         data_roots.push(data);
-        let server = Server::bind(
-            router(state, assets.clone()),
-            config.bind,
-            jobs,
-            draining,
-            config.limits.clone(),
-        )
-        .await
-        .unwrap();
+        let mut app = router(state.clone(), assets.clone());
+        if port == 5187 {
+            app = app.merge(
+                Router::new()
+                    .route("/__fixtures/library-graph", post(browser_graph::seed))
+                    .with_state(browser_graph::GraphState {
+                        app: state.clone(),
+                        provider: provider.clone(),
+                    }),
+            );
+        }
+        let server = Server::bind(app, config.bind, jobs, draining, config.limits.clone())
+            .await
+            .unwrap();
         let signal = shutdown.clone();
         tasks.spawn(server.run(signal.cancelled_owned()));
     }

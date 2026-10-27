@@ -165,6 +165,32 @@ impl KnowledgeStore {
         for row in rows.iter().take(limit) {
             items.push(serde_json::from_value(row["data"].clone()).map_err(|_| storage_error())?);
         }
+        let keys: BTreeSet<TopicId> = items
+            .iter()
+            .flat_map(|item: &ConnectionView| {
+                [item.from_topic_id.clone(), item.to_topic_id.clone()]
+            })
+            .collect();
+        let topics: Vec<records::TopicRecord> = serde_json::from_value(
+            self.query_value(
+                "SELECT VALUE data FROM topic WHERE key IN $keys LIMIT 200;",
+                json!({"keys":keys}),
+            )
+            .await?,
+        )
+        .map_err(|_| storage_error())?;
+        let labels: std::collections::BTreeMap<_, _> = topics
+            .into_iter()
+            .map(|topic| (topic.id, topic.question))
+            .collect();
+        for item in &mut items {
+            if let Some(label) = labels.get(&item.from_topic_id) {
+                item.from_question = label.clone();
+            }
+            if let Some(label) = labels.get(&item.to_topic_id) {
+                item.to_question = label.clone();
+            }
+        }
         let next_cursor = if rows.len() > limit {
             let last = &rows[limit - 1];
             let c = Cursor {

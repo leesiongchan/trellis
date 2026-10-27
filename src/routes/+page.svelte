@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
   import TopicStart from '#lib/components/TopicStart.svelte';
   import ExplorationList from '#lib/components/ExplorationList.svelte';
   import Workspace from '#lib/components/Workspace.svelte';
+  import TopicConnections from '#lib/components/TopicConnections.svelte';
+  import AnswerVersions from '#lib/components/AnswerVersions.svelte';
+  import RetainedTopic from '#lib/components/RetainedTopic.svelte';
+  import LibraryStatus from '#lib/components/LibraryStatus.svelte';
+  import { LibraryNavigation } from '#lib/knowledge/library-navigation.svelte.ts';
   import { createSession } from '#lib/knowledge/session.svelte.ts';
   import { createResearchSession } from '#lib/knowledge/server-session.svelte.ts';
   import { createLibraryClient, LibraryError } from '#lib/knowledge/library-client.ts';
@@ -12,6 +17,7 @@
   import {
     createExplorationRepository,
     createAutosave,
+    readBrowserOriginals,
     type SaveStatus
   } from '#lib/knowledge/persistence.ts';
   import { createDemoExploration } from '#lib/knowledge/demo.ts';
@@ -51,6 +57,10 @@
       }
     }
   });
+  const navigation = new LibraryNavigation(client, research, () => {
+    demoMode = false;
+    showLibrary = false;
+  });
   let saver = createAutosave(repository, (next, message) => {
     demoStatus = next;
     saveMessage = message ?? '';
@@ -68,6 +78,25 @@
     }
   });
   const session = $derived(demoMode ? demo : research);
+  const activeTopicId = $derived(
+    demoMode
+      ? null
+      : (navigation.retained?.id ??
+          research.exploration?.nodes[research.exploration.view.selectedNodeId]?.topicId ??
+          null)
+  );
+  $effect(() => {
+    const topicId = activeTopicId,
+      version =
+        navigation.retained?.selectedAnswer?.id ??
+        research.exploration?.nodes[research.exploration.view.selectedNodeId]?.answerVersionId ??
+        undefined;
+    const offline = research.offline;
+    untrack(() => {
+      void offline;
+      navigation.track(topicId, version);
+    });
+  });
   const status = $derived(
     demoMode
       ? demoStatus
@@ -139,6 +168,8 @@
   }
   async function start(question: string) {
     if (!(await beforeSwitch())) return;
+    navigation.reset();
+    research.conflict = false;
     try {
       demo.dispose();
       research.dispose();
@@ -157,6 +188,8 @@
   }
   async function resume(id: string) {
     if (!(await beforeSwitch())) return;
+    navigation.reset();
+    research.conflict = false;
     try {
       const local = demos.find((item) => item.id === id);
       if (local) {
@@ -182,6 +215,8 @@
   }
   async function startDemo() {
     if (!(await beforeSwitch())) return;
+    navigation.reset();
+    research.conflict = false;
     try {
       research.dispose();
       demoMode = true;
@@ -216,6 +251,8 @@
   }
   async function home() {
     if (!(await beforeSwitch())) return;
+    navigation.reset();
+    research.conflict = false;
     session.dispose();
     session.exploration = null;
     showLibrary = false;
@@ -223,6 +260,7 @@
     await reloadSaved(libraryLoaded && !demoMode);
   }
   async function openLibrary() {
+    navigation.cancelPending();
     showLibrary = !showLibrary;
     if (!showLibrary || demoMode) return;
     try {
@@ -268,8 +306,73 @@
       error = e instanceof Error ? e.message : 'This exploration could not be deleted.';
     }
   }
+  async function showTopics() {
+    navigation.cancelPending();
+    try {
+      if (!libraryLoaded) await ensureLibrary();
+      showLibrary = false;
+      navigation.showCatalog = !navigation.showCatalog;
+      if (navigation.showCatalog) await navigation.listTopics();
+    } catch (e) {
+      navigation.report(e);
+    }
+  }
+  async function purge(confirmation: string) {
+    try {
+      await research.mutate('/api/library/purge', 'POST', { confirmation }, null);
+      research.dispose();
+      research.exploration = null;
+      navigation.reset();
+      await research.connect();
+      await reloadSaved();
+      migrationMessage =
+        'Server library cleared. Offline browser originals and retained backups require separate clearing.';
+      channel?.postMessage({ purged: true });
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'The library could not be cleared.';
+    }
+  }
+  async function restoreCopies() {
+    try {
+      const result = await migrateLegacy(repository, client, cache, { explicitRestore: true });
+      migrationMessage = `${result.imported} browser copies restored. Originals remain on this device. ${result.messages.join(' ')}`;
+      await reloadSaved();
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Browser copies could not be restored.';
+    }
+  }
+  async function exportOriginals() {
+    const originals = await readBrowserOriginals();
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(originals, null, 2)], { type: 'application/json' })
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'branch-browser-originals.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function clearLocalCopies() {
+    try {
+      await research.flushView();
+      research.dispose();
+      research.exploration = null;
+      navigation.reset();
+      for (const item of await repository.list())
+        if (item.mode === 'research') await repository.remove(item.id);
+      await cache.clear();
+      saved = saved.filter((item) => item.mode === 'demo');
+      channel?.postMessage({ localCopiesCleared: true });
+      await reloadSaved(false);
+      migrationMessage =
+        'Research copies cleared on this device. The server library, other devices, demos, and retained backups are separate.';
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Browser copies could not be cleared.';
+    }
+  }
   onMount(() => {
     mounted = true;
+    navigation.start();
     void (async () => {
       await reloadSaved(false);
       const originals = await repository.list();
@@ -284,6 +387,22 @@
     if (typeof BroadcastChannel !== 'undefined') {
       channel = new BroadcastChannel('branch-explorations');
       channel.onmessage = async (event) => {
+        if (demoMode && !event.data?.demo) return;
+        if (event.data?.localCopiesCleared) {
+          research.dispose();
+          research.exploration = null;
+          navigation.reset();
+          saved = saved.filter((item) => item.mode === 'demo');
+          return;
+        }
+        if (event.data?.purged) {
+          research.dispose();
+          research.exploration = null;
+          navigation.reset();
+          await research.connect();
+          await reloadSaved();
+          return;
+        }
         const info = research.library;
         if (event.data?.demo) {
           await reloadSaved(false);
@@ -307,6 +426,7 @@
       };
     }
     return () => {
+      navigation.dispose();
       research.dispose();
       demo.dispose();
       saver.dispose();
@@ -317,15 +437,36 @@
 
 <svelte:head
   ><title
-    >{session.exploration
-      ? session.exploration.originalPrompt + ' — Branch'
-      : 'Branch — follow your curiosity'}</title
+    >{navigation.retained
+      ? navigation.retained.question + ' — Branch'
+      : session.exploration
+        ? session.exploration.originalPrompt + ' — Branch'
+        : 'Branch — follow your curiosity'}</title
   ><meta
     name="description"
     content="Start with a question. Explore detailed explanations and follow an ever-growing tree of connected topics."
   /></svelte:head
 >
-<div class="app-shell" class:exploring={!!session.exploration}>
+{#snippet savedConnections()}{#if activeTopicId && !demoMode}<TopicConnections
+      connections={navigation.connections}
+      topicId={activeTopicId}
+      loading={navigation.loading}
+      discovery={research.library?.discovery ?? 'unavailable'}
+      offline={research.offline}
+      onFollow={(id) => {
+        void navigation.follow(id);
+      }}
+      onDismiss={(id) => {
+        void navigation.dismiss(id);
+      }}
+      onMore={() => {
+        void navigation.more();
+      }}
+      onRefresh={() => {
+        void navigation.refresh(true);
+      }}
+    />{/if}{/snippet}
+<div class="app-shell" class:exploring={!!session.exploration || !!navigation.retained}>
   <header class="app-header">
     <button class="wordmark" aria-label="Branch home" onclick={home}
       ><span class="logo-mark" aria-hidden="true">⌘</span>branch<span class="logo-dot">.</span
@@ -346,9 +487,15 @@
               : status === 'conflict'
                 ? 'Changed in another tab'
                 : 'Not saved'}</span
-        ><button class="quiet-button" onclick={home}>+ New exploration</button>{/if}<button
+        ><button class="quiet-button" onclick={home}>+ New exploration</button
+        >{/if}{#if !demoMode}<button
+          class="quiet-button saved-topics-button"
+          disabled={!mounted}
+          onclick={showTopics}>Saved topics</button
+        >{/if}<button
         class="library-button"
         aria-label="Your explorations"
+        disabled={!mounted}
         onclick={openLibrary}
         ><span aria-hidden="true">▤</span><span>Your explorations</span>{#if saved.length}<span
             class="library-count">{saved.length}</span
@@ -370,6 +517,21 @@
       >
     </div>
   {/if}
+  {#if navigation.history.length && !demoMode}<div class="return-location">
+      <button
+        class="quiet-button"
+        onclick={() => {
+          void navigation.back();
+        }}>Back to previous topic</button
+      >
+    </div>{/if}
+  {#if navigation.error && !demoMode}<div class="workspace-notice" role="alert">
+      {navigation.error}<button
+        class="icon-button"
+        aria-label="Dismiss library error"
+        onclick={() => (navigation.error = '')}>×</button
+      >
+    </div>{/if}
   {#if error}<div class="workspace-notice" role="alert">
       {error}<button class="icon-button" aria-label="Dismiss error" onclick={() => (error = '')}
         >×</button
@@ -407,6 +569,23 @@
           onclick={() => (showLibrary = false)}>×</button
         >
       </div>
+      {#if !demoMode}<LibraryStatus
+          library={research.library}
+          offline={research.offline}
+          busy={research.busy || research.recovering}
+          onPurge={(confirmation) => {
+            void purge(confirmation);
+          }}
+          onRestore={() => {
+            void restoreCopies();
+          }}
+          onExport={() => {
+            void exportOriginals();
+          }}
+          onClearLocal={() => {
+            void clearLocalCopies();
+          }}
+        />{/if}
       <ExplorationList
         explorations={saved}
         onResume={resume}
@@ -420,7 +599,53 @@
           Your explorations will find a home here.
         </p>{/if}
     </div>{/if}
-  {#if session.exploration && mounted}<Workspace {session} />{:else}<main class="home-main">
+  {#if navigation.showCatalog && !demoMode}<section class="topic-catalog" aria-label="Saved topics">
+      <div class="section-label">
+        SAVED TOPICS<button
+          class="icon-button"
+          aria-label="Close saved topics"
+          onclick={() => (navigation.showCatalog = false)}>×</button
+        >
+      </div>
+      <label for="topic-search">Search saved topics</label><input
+        id="topic-search"
+        maxlength="500"
+        value={navigation.search}
+        oninput={(event) => navigation.searchTopics(event.currentTarget.value)}
+      />{#each navigation.catalog.items as topic (topic.id)}<button
+          class="catalog-topic"
+          aria-label={'Read saved topic ' + topic.question}
+          onclick={() => {
+            void navigation.openTopic(topic.id);
+          }}
+          ><strong>{topic.question}</strong><span>{topic.answerVersionCount} saved answers</span
+          ></button
+        >{/each}{#if navigation.catalog.nextCursor}<button
+          class="quiet-button"
+          onclick={() => {
+            void navigation.listTopics(true);
+          }}>More saved topics</button
+        >{/if}
+    </section>{/if}
+  {#if navigation.retained && mounted}<RetainedTopic
+      topic={navigation.retained}
+      disabled={research.offline || research.busy}
+      onStartExploration={() => {
+        void navigation.startRetained().then(() => reloadSaved());
+      }}
+      onReadVersion={(id) => {
+        void navigation.readVersion(id);
+      }}>{@render savedConnections()}</RetainedTopic
+    >
+  {:else if session.exploration && mounted}<Workspace {session}
+      >{#snippet readerExtras()}{#if !demoMode}{#if navigation.topic}<AnswerVersions
+              topic={navigation.topic}
+              readOnly={research.readOnly || research.busy}
+              onChoose={(id) => {
+                void navigation.choose(id);
+              }}
+            />{/if}{@render savedConnections()}{/if}{/snippet}</Workspace
+    >{:else}<main class="home-main">
       <div class="home-grid">
         <TopicStart onStart={start} onDemo={startDemo} disabled={switching || !mounted} />
         <div class="tree-illustration" aria-hidden="true">

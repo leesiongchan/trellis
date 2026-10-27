@@ -4,7 +4,8 @@ import { openDB } from 'idb';
 import {
   createAutosave,
   createExplorationRepository,
-  restoreExploration
+  restoreExploration,
+  readBrowserOriginals
 } from '../../src/lib/knowledge/persistence';
 import { makeExploration } from '../fixtures/knowledge';
 
@@ -82,4 +83,19 @@ it('reports conflicts instead of silently overwriting another tab', async () => 
   expect(status).toHaveBeenLastCalledWith('conflict', expect.any(String));
   expect((await repo.get(initial.id))!.originalPrompt).toBe('other tab');
   saver.dispose();
+});
+
+it('raw original export preserves transient and unreadable v1 records without normalization', async () => {
+  const name = 'raw-export-' + crypto.randomUUID();
+  const repo = createExplorationRepository(name);
+  await repo.list();
+  const db = await openDB(name, 1);
+  const pending = makeExploration();
+  pending.nodes.root.isRefreshing = true;
+  const unknown = { id: 'future-original', schemaVersion: 999, content: 'Preserve exactly' };
+  await db.put('explorations', pending);
+  await db.put('explorations', unknown);
+  expect(await readBrowserOriginals(name)).toEqual(expect.arrayContaining([pending, unknown]));
+  expect(await db.get('explorations', pending.id)).toEqual(pending);
+  db.close();
 });

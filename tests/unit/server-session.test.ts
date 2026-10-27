@@ -260,3 +260,48 @@ it('completed intents for subsequently deleted explorations are retired without 
   expect(session.notice).toMatch(/deleted/i);
   expect(writes).toHaveLength(0);
 });
+
+it('a late mutation conflict cannot mark a newly loaded exploration as stale', async () => {
+  let release!: (response: Response) => void;
+  const client = createLibraryClient(
+    vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+      if (path === '/api/library') return jsonResponse(library);
+      if (init?.method === 'POST')
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      const value = snapshot();
+      if (path === '/api/explorations/e2') {
+        value.exploration.id = 'e2';
+        value.appearances[0].explorationId = 'e2';
+      }
+      return jsonResponse(value);
+    })
+  );
+  const session = createResearchSession({
+    client,
+    cache: createLibraryCache('late-conflict-' + crypto.randomUUID()),
+    onChange: vi.fn()
+  });
+  await session.connect();
+  await session.load('e1');
+  const refresh = session.refresh('root').catch(() => {});
+  await vi.waitFor(() => expect(release).toBeDefined());
+  await session.load('e2');
+  release(
+    jsonResponse(
+      {
+        error: {
+          code: 'REVISION_CONFLICT',
+          message: 'Reload the earlier exploration.',
+          retryable: false,
+          requestId: 'test'
+        }
+      },
+      409
+    )
+  );
+  await refresh;
+  expect(session.exploration!.id).toBe('e2');
+  expect(session.conflict).toBe(false);
+});

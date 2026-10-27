@@ -240,6 +240,16 @@ impl MatchCandidate {
             .flat_map(|p| p.citations.clone())
             .collect::<Vec<_>>();
         ConnectionView {
+            from_question: if a == self.from.topic_id {
+                self.from.question.clone()
+            } else {
+                self.to.question.clone()
+            },
+            to_question: if b == self.to.topic_id {
+                self.to.question.clone()
+            } else {
+                self.from.question.clone()
+            },
             id: self.id.clone(),
             from_topic_id: a,
             to_topic_id: b,

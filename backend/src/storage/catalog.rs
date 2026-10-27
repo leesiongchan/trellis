@@ -124,6 +124,7 @@ impl KnowledgeStore {
         let exploration_id = ExplorationId::generate();
         let appearance_id = AppearanceId::generate();
         let summary = ExplorationSummary {
+            imported_from: None,
             id: exploration_id.clone(),
             original_prompt: topic.question.clone(),
             root_id: appearance_id.clone(),

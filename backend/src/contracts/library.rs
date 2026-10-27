@@ -230,7 +230,17 @@ impl LibraryInfo {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ImportedFrom {
+    pub legacy_exploration_id: String,
+    pub content_digest: String,
+    pub imported_at: String,
+    pub changed_copy: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExplorationSummary {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub imported_from: Option<ImportedFrom>,
     pub id: ExplorationId,
     pub original_prompt: String,
     pub root_id: AppearanceId,
@@ -337,6 +347,10 @@ pub struct ConnectionCitation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionView {
+    #[serde(default)]
+    pub from_question: String,
+    #[serde(default)]
+    pub to_question: String,
     pub id: ConnectionId,
     pub from_topic_id: TopicId,
     pub to_topic_id: TopicId,

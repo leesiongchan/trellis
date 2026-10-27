@@ -32,3 +32,5 @@ export type StartFromTopic = z.infer<typeof schemas.StartFromTopicCommandSchema>
 export type TopicSummary = z.infer<typeof schemas.TopicSummarySchema>;
 export type AppearanceLocation = z.infer<typeof schemas.AppearanceLocationSchema>;
 export type GraphNeighborhood = z.infer<typeof schemas.GraphNeighborhoodSchema>;
+
+export type ImportedFrom = z.infer<typeof schemas.ImportedFromSchema>;

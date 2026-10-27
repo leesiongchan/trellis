@@ -15,6 +15,11 @@ async fn symmetric_candidates_are_unique_and_dismissed_pairs_stay_dismissed() {
         .unwrap();
     assert_eq!(saved.len(), 1);
     assert_eq!(saved[0].status, ConnectionStatus::Candidate);
+    let page = s.store.connections(&a, None, 5).await.unwrap();
+    let view = serde_json::to_value(&page.items[0]).unwrap();
+    assert!(view["fromQuestion"].as_str().is_some_and(|q| !q.is_empty()));
+    assert!(view["toQuestion"].as_str().is_some_and(|q| !q.is_empty()));
+
     let reversed = s.candidate(&b, &a).await;
     assert_eq!(candidate.id, reversed.id);
     s.store.save_candidates(&[reversed]).await.unwrap();

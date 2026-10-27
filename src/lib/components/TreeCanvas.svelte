@@ -74,7 +74,9 @@
       ':' +
       nodes.map((n) => n.id).join(',');
     if (signature !== previousSignature) {
-      const shouldFocus = mounted || (!exploration.viewRestored && exploration.revision === 0);
+      const shouldFocus =
+        mounted ||
+        (exploration.mode === 'demo' ? exploration.revision === 0 : !exploration.viewRestored);
       previousSignature = signature;
       mounted = true;
       if (shouldFocus) void tick().then(refocus);

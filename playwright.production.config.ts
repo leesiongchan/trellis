@@ -15,8 +15,13 @@ export default defineConfig({
   projects: [
     {
       name: 'production',
-      testIgnore: /rust-backend\.spec\.ts/,
+      testIgnore: /(rust-backend|library-graph)\.spec\.ts/,
       use: { baseURL: 'http://127.0.0.1:5184' }
+    },
+    {
+      name: 'graph-fixture',
+      testMatch: /library-graph\.spec\.ts/,
+      use: { baseURL: 'http://127.0.0.1:5187' }
     },
     {
       name: 'fixture-http',

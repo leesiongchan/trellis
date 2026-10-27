@@ -153,6 +153,22 @@ async fn changed_legacy_copy_is_preserved() {
     stage(&s, &b, &x, 1).await;
     let b = finish(&s, &b, 1).await;
     assert_ne!(a.exploration_id, b.exploration_id);
+    let original = s
+        .store
+        .exploration(a.exploration_id.as_ref().unwrap())
+        .await
+        .unwrap();
+    let copy = s
+        .store
+        .exploration(b.exploration_id.as_ref().unwrap())
+        .await
+        .unwrap();
+    let original = serde_json::to_value(original.exploration).unwrap();
+    let copy = serde_json::to_value(copy.exploration).unwrap();
+    assert_eq!(original["importedFrom"]["changedCopy"], false);
+    assert_eq!(copy["importedFrom"]["changedCopy"], true);
+    assert!(copy["importedFrom"]["importedAt"].as_str().is_some());
+
     assert_ne!(a.mapping, b.mapping);
     assert_eq!(
         s.store.explorations(None, 100).await.unwrap().items.len(),
@@ -613,5 +629,73 @@ async fn tampered_staged_content_fails_closed_and_preserves_the_original_route()
     assert_ne!(retried.id, v.id);
     stage(&s, &retried, &raw.to_string(), 1).await;
     assert_eq!(finish(&s, &retried, 1).await.state, ImportState::Completed);
+    s.store.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn refreshing_a_changed_import_uses_the_next_unoccupied_answer_revision() {
+    use branch_backend::{config::Limits, jobs::Coordinator, knowledge::KnowledgeService};
+    let s = Setup::new().await;
+    let raw = fixture();
+    let (a, x) = begin(&s, &raw, 1).await;
+    stage(&s, &a, &x, 1).await;
+    let original = finish(&s, &a, 1).await;
+    let mut changed = raw;
+    changed["nodes"]["root"]["content"]["summary"][0]["text"] = json!("A changed legacy answer");
+    let (b, x) = begin(&s, &changed, 1).await;
+    stage(&s, &b, &x, 1).await;
+    let copy = finish(&s, &b, 1).await;
+    let provider = provider_fixture::Provider::new();
+    let service = KnowledgeService::new(
+        s.store.clone(),
+        Coordinator::new(provider.clone(), Limits::default()),
+        provider.clone(),
+    );
+    let mut input = command(
+        ResearchInput {
+            appearance_id: AppearanceId::new(copy.mapping["root"].clone()).unwrap(),
+            refresh: true,
+            clarification: None,
+        },
+        1,
+    );
+    input.expected_revision = Some(0);
+    service.start_research(input.clone()).await.unwrap();
+    provider.release.add_permits(1);
+    service.drain().await.unwrap();
+    assert_eq!(
+        s.store.operation(&input.operation_id).await.unwrap().state,
+        OperationState::Completed
+    );
+    let snapshot = s
+        .store
+        .exploration(copy.exploration_id.as_ref().unwrap())
+        .await
+        .unwrap();
+    let pin = snapshot
+        .appearances
+        .iter()
+        .find(|a| a.id.as_str() == copy.mapping["root"])
+        .unwrap()
+        .answer_version_id
+        .clone();
+    let answer = snapshot
+        .answers
+        .iter()
+        .find(|a| Some(&a.id) == pin.as_ref())
+        .unwrap();
+    assert_eq!(answer.revision, 2);
+    assert_eq!(answer.origin, AnswerOrigin::Research);
+    let original = s
+        .store
+        .exploration(original.exploration_id.as_ref().unwrap())
+        .await
+        .unwrap();
+    assert!(
+        original
+            .answers
+            .iter()
+            .all(|a| a.origin == AnswerOrigin::Legacy)
+    );
     s.store.close().await.unwrap();
 }

@@ -304,12 +304,18 @@ export class ResearchSession implements WorkspaceSession {
       if (
         error instanceof LibraryError &&
         error.code === 'REVISION_CONFLICT' &&
+        generation === this.generation &&
         this.exploration &&
         (path === '/api/explorations/' + this.exploration.id ||
           path.startsWith('/api/appearances/'))
       )
         this.conflict = true;
-      if (error instanceof LibraryError && error.code === 'OFFLINE') this.offline = true;
+      if (
+        generation === this.generation &&
+        error instanceof LibraryError &&
+        error.code === 'OFFLINE'
+      )
+        this.offline = true;
       throw error;
     }
   }

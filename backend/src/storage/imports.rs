@@ -8,6 +8,8 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Manifest {
+    #[serde(default)]
+    changed_copy: bool,
     view: ImportView,
     planned_exploration_id: ExplorationId,
     library_epoch: u64,
@@ -119,6 +121,7 @@ impl KnowledgeStore {
             error: None,
         };
         let manifest = Manifest {
+            changed_copy: false,
             view,
             planned_exploration_id: planned,
             library_epoch: command.library_epoch,
@@ -129,8 +132,8 @@ impl KnowledgeStore {
             batches: 0,
             created_at: intent.created_at.clone(),
         };
-        let body = "UPDATE library:main SET importSerial=(importSerial ?? 0)+1; LET $prior=(SELECT * FROM migration_manifest WHERE identityKey=$identity LIMIT 1)[0]; LET $receipt=(SELECT * FROM ONLY type::record('import_receipt',$identity)); LET $deleted=$receipt.data.deleted=true OR array::len((SELECT VALUE key FROM import_receipt WHERE data.legacyHash=$legacyHash AND data.deleted=true LIMIT 1))>0; LET $restore=$restoreRequested AND ($deleted OR $prior.data.view.state IN ['failed','suppressed']); IF $restore AND $prior!=NONE { UPDATE ONLY $prior.id SET identityKey='archived:'+$prior.key; }; IF $prior=NONE OR $restore { LET $suppressed=!$restoreRequested AND ($deleted OR library:main.epoch>1); IF !$suppressed AND array::len((SELECT VALUE key FROM migration_manifest WHERE data.view.state='staging' LIMIT 3))>=2 { THROW 'import_limit'; }; LET $data=object::extend($manifest,{view:object::extend($manifest.view,{state:IF $suppressed { 'suppressed' } ELSE { 'staging' }})}); CREATE ONLY type::record('migration_manifest',$newKey) CONTENT {key:$newKey,identityKey:$identity,data:$data}; }; LET $selected=(SELECT * FROM migration_manifest WHERE identityKey=$identity LIMIT 1)[0];";
-        self.commit_import(&intent,body,json!({"identity":identity,"legacyHash":legacy_hash,"restoreRequested":command.payload.explicit_restore,"newKey":id,"manifest":manifest})).await
+        let body = "UPDATE library:main SET importSerial=(importSerial ?? 0)+1; LET $prior=(SELECT * FROM migration_manifest WHERE identityKey=$identity LIMIT 1)[0]; LET $receipt=(SELECT * FROM ONLY type::record('import_receipt',$identity)); LET $deleted=$receipt.data.deleted=true OR array::len((SELECT VALUE key FROM import_receipt WHERE data.legacyHash=$legacyHash AND data.deleted=true LIMIT 1))>0; LET $restore=$restoreRequested AND ($deleted OR $prior.data.view.state IN ['failed','suppressed']); IF $restore AND $prior!=NONE { UPDATE ONLY $prior.id SET identityKey='archived:'+$prior.key; }; IF $prior=NONE OR $restore { LET $suppressed=!$restoreRequested AND ($deleted OR library:main.epoch>1); IF !$suppressed AND array::len((SELECT VALUE key FROM migration_manifest WHERE data.view.state='staging' LIMIT 3))>=2 { THROW 'import_limit'; }; LET $data=object::extend($manifest,{changedCopy:array::len((SELECT VALUE key FROM migration_manifest WHERE data.legacyHash=$legacyHash AND data.input.contentDigest!=$digest LIMIT 1))>0,view:object::extend($manifest.view,{state:IF $suppressed { 'suppressed' } ELSE { 'staging' }})}); CREATE ONLY type::record('migration_manifest',$newKey) CONTENT {key:$newKey,identityKey:$identity,data:$data}; }; LET $selected=(SELECT * FROM migration_manifest WHERE identityKey=$identity LIMIT 1)[0];";
+        self.commit_import(&intent,body,json!({"identity":identity,"legacyHash":legacy_hash,"digest":command.payload.content_digest,"restoreRequested":command.payload.explicit_restore,"newKey":id,"manifest":manifest})).await
     }
     pub async fn stage_import(
         &self,
@@ -223,7 +226,7 @@ impl KnowledgeStore {
         bindings["batches"] = json!(manifest.batches);
         bindings["bytes"] = json!(manifest.received_bytes);
         bindings["cutoff"] = json!(cutoff()?);
-        let body = "LET $manifest=(SELECT * FROM ONLY type::record('migration_manifest',$importKey)); IF $manifest.data.view.state='staging' { IF $manifest.data.batches!=$batches OR $manifest.data.receivedBytes!=$bytes OR $manifest.data.createdAt<$cutoff { THROW 'invalid_import'; }; FOR $entry IN $entries { LET $topicKey=$entry.topicKey; IF !record::exists(type::record('topic',$topicKey)) { CREATE ONLY type::record('topic',$topicKey) CONTENT $entry.topicRecord; CREATE ONLY type::record('question_variant',$topicKey) CONTENT $entry.variantRecord; }; IF $entry.answer!=NULL { LET $previous=(SELECT VALUE revision FROM answer_version WHERE topicKey=$topicKey ORDER BY revision DESC LIMIT 1)[0]; LET $revision=($previous ?? -1)+1; CREATE ONLY type::record('answer_version',$entry.answer.key) CONTENT object::extend($entry.answer,{revision:$revision,data:object::extend($entry.answer.data,{revision:$revision})}); UPDATE ONLY type::record('topic',$topicKey) SET data.currentAnswerVersionId=(data.currentAnswerVersionId ?? $entry.answer.key); }; CREATE ONLY type::record('appearance',$entry.appearance.key) CONTENT $entry.appearance; }; FOR $edge IN $edges { IF $edge.from!=$edge.to { LET $from=type::record('topic',$edge.from); LET $to=type::record('topic',$edge.to); LET $link=type::record('connection',$edge.record.key); IF !record::exists($link) { RELATE $from->$link->$to CONTENT $edge.record; }; CREATE ONLY type::record('edge_support',$edge.support.key) CONTENT $edge.support; }; }; CREATE ONLY type::record('exploration',$exploration.key) CONTENT $exploration; LET $receiptKey=$manifest.data.identity; IF (SELECT VALUE data.deleted FROM ONLY type::record('import_receipt',$receiptKey))=true { LET $archive='retired-'+$importKey; CREATE ONLY type::record('import_receipt',$archive) CONTENT {key:$archive,identityKey:$archive,data:(SELECT VALUE data FROM ONLY type::record('import_receipt',$receiptKey))}; }; UPSERT type::record('import_receipt',$receiptKey) CONTENT $receipt; UPDATE ONLY type::record('migration_manifest',$importKey) SET data.view=$completed; DELETE migration_stage WHERE importKey=$importKey; }; LET $selected=(SELECT * FROM ONLY type::record('migration_manifest',$importKey));";
+        let body = "LET $manifest=(SELECT * FROM ONLY type::record('migration_manifest',$importKey)); IF $manifest.data.view.state='staging' { IF $manifest.data.batches!=$batches OR $manifest.data.receivedBytes!=$bytes OR $manifest.data.createdAt<$cutoff { THROW 'invalid_import'; }; FOR $entry IN $entries { LET $topicKey=$entry.topicKey; IF !record::exists(type::record('topic',$topicKey)) { CREATE ONLY type::record('topic',$topicKey) CONTENT $entry.topicRecord; CREATE ONLY type::record('question_variant',$topicKey) CONTENT $entry.variantRecord; }; IF $entry.answer!=NULL { LET $previous=(SELECT VALUE revision FROM answer_version WHERE topicKey=$topicKey ORDER BY revision DESC LIMIT 1)[0]; LET $revision=($previous ?? -1)+1; CREATE ONLY type::record('answer_version',$entry.answer.key) CONTENT object::extend($entry.answer,{revision:$revision,data:object::extend($entry.answer.data,{revision:$revision})}); UPDATE ONLY type::record('topic',$topicKey) SET data.currentAnswerVersionId=(data.currentAnswerVersionId ?? $entry.answer.key),data.answerRevision=$revision; }; CREATE ONLY type::record('appearance',$entry.appearance.key) CONTENT $entry.appearance; }; FOR $edge IN $edges { IF $edge.from!=$edge.to { LET $from=type::record('topic',$edge.from); LET $to=type::record('topic',$edge.to); LET $link=type::record('connection',$edge.record.key); IF !record::exists($link) { RELATE $from->$link->$to CONTENT $edge.record; }; CREATE ONLY type::record('edge_support',$edge.support.key) CONTENT $edge.support; }; }; CREATE ONLY type::record('exploration',$exploration.key) CONTENT $exploration; LET $receiptKey=$manifest.data.identity; IF (SELECT VALUE data.deleted FROM ONLY type::record('import_receipt',$receiptKey))=true { LET $archive='retired-'+$importKey; CREATE ONLY type::record('import_receipt',$archive) CONTENT {key:$archive,identityKey:$archive,data:(SELECT VALUE data FROM ONLY type::record('import_receipt',$receiptKey))}; }; UPSERT type::record('import_receipt',$receiptKey) CONTENT $receipt; UPDATE ONLY type::record('migration_manifest',$importKey) SET data.view=$completed; DELETE migration_stage WHERE importKey=$importKey; }; LET $selected=(SELECT * FROM ONLY type::record('migration_manifest',$importKey));";
         self.commit_import(&intent, body, bindings).await
     }
 }
@@ -344,6 +347,12 @@ fn prepare_publication(legacy: LegacyExploration, manifest: &Manifest) -> Result
         }
     }
     let summary = ExplorationSummary {
+        imported_from: Some(ImportedFrom {
+            legacy_exploration_id: manifest.input.legacy_exploration_id.clone(),
+            content_digest: manifest.input.content_digest.clone(),
+            imported_at: manifest.created_at.clone(),
+            changed_copy: manifest.changed_copy,
+        }),
         id: exploration.clone(),
         original_prompt: legacy.original_prompt,
         root_id: AppearanceId::new(mapping[&legacy.root_id].clone())?,

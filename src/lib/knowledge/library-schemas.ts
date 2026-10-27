@@ -51,7 +51,14 @@ export const LibraryInfoSchema = z.object({
   discovery: z.enum(['ready', 'unavailable', 'indexing'])
 });
 const storedQuestion = z.string().trim().min(1).max(500);
+export const ImportedFromSchema = z.object({
+  legacyExplorationId: z.string().max(200),
+  contentDigest: z.string().regex(/^[0-9a-f]{64}$/),
+  importedAt: timestamp,
+  changedCopy: z.boolean()
+});
 export const ExplorationSummarySchema = z.object({
+  importedFrom: ImportedFromSchema.optional(),
   id,
   originalPrompt: storedQuestion,
   rootId: id,
@@ -107,6 +114,8 @@ export const PassageLocationSchema = z.object({
   sectionIndex: integer.nullable()
 });
 export const ConnectionViewSchema = z.object({
+  fromQuestion: storedQuestion.or(z.literal('')).default(''),
+  toQuestion: storedQuestion.or(z.literal('')).default(''),
   id,
   fromTopicId: id,
   toTopicId: id,

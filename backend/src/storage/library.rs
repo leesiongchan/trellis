@@ -74,6 +74,7 @@ impl KnowledgeStore {
         let exploration_id = ExplorationId::generate();
         let appearance_id = AppearanceId::generate();
         let summary = ExplorationSummary {
+            imported_from: None,
             id: exploration_id.clone(),
             original_prompt: command.payload.question.clone(),
             root_id: appearance_id.clone(),
@@ -344,6 +345,8 @@ pub(crate) fn add_branch_bindings(
     let pair = records::canonical_hash(&json!(["branches_to", from, to]));
     let id = ConnectionId::new(pair.clone())?;
     let connection = ConnectionView {
+        from_question: String::new(),
+        to_question: String::new(),
         id: id.clone(),
         from_topic_id: from.clone(),
         to_topic_id: to.clone(),
