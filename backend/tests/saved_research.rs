@@ -558,3 +558,74 @@ async fn opening_a_cached_answer_during_refresh_keeps_its_existing_pin() {
     assert_eq!(s.provider.searches.load(Ordering::SeqCst), 2);
     s.shutdown().await;
 }
+
+#[tokio::test]
+async fn final_review_units_cannot_automatically_pin_an_incompatible_saved_answer() {
+    let s = Setup::new().await;
+    let (e, a) = s.create("Power at 1 mW").await;
+    let first = research(&a, 0, false);
+    s.service.start_research(first.clone()).await.unwrap();
+    s.provider.release.add_permits(1);
+    assert_eq!(
+        s.finish(&first.operation_id).await.state,
+        OperationState::Completed
+    );
+    assert!(pin(&s, &e, &a).await.is_some());
+    let (other, b) = s.create("Power at 1 MW").await;
+    assert_eq!(pin(&s, &other, &b).await, None);
+    s.shutdown().await;
+}
+
+#[tokio::test]
+async fn final_review_answer_versions_keep_immutable_generation_and_input_provenance() {
+    let s = Setup::new().await;
+    let (e, a) = s.create("Memory provenance").await;
+    let first = research(&a, 0, false);
+    s.service.start_research(first.clone()).await.unwrap();
+    s.provider.release.add_permits(1);
+    assert_eq!(
+        s.finish(&first.operation_id).await.state,
+        OperationState::Completed
+    );
+    let before = s.store.exploration(&e).await.unwrap();
+    let old = before.answers[0].clone();
+    let json = serde_json::to_value(&old).unwrap();
+    assert_eq!(json["provenance"]["kind"], "research");
+    assert_eq!(json["provenance"]["input"]["question"], "Memory provenance");
+    assert_eq!(
+        json["provenance"]["generation"]["requestedModel"],
+        "fixture-model-0"
+    );
+    assert!(!json["provenance"]["attemptId"].as_str().unwrap().is_empty());
+    s.provider.mode.store(4, Ordering::SeqCst);
+    let second = research(&a, before.exploration.revision, true);
+    s.service.start_research(second.clone()).await.unwrap();
+    s.provider.release.add_permits(1);
+    assert_eq!(
+        s.finish(&second.operation_id).await.state,
+        OperationState::Completed
+    );
+    let after = s.store.exploration(&e).await.unwrap();
+    assert_eq!(
+        serde_json::to_value(
+            s.store
+                .topic(&old.topic_id, Some(&old.id))
+                .await
+                .unwrap()
+                .selected_answer
+                .unwrap()
+        )
+        .unwrap(),
+        json
+    );
+    let new = serde_json::to_value(after.answers.iter().find(|v| v.id != old.id).unwrap()).unwrap();
+    assert_eq!(
+        new["provenance"]["generation"]["requestedModel"],
+        "fixture-model-4"
+    );
+    assert_ne!(
+        new["provenance"]["attemptId"],
+        json["provenance"]["attemptId"]
+    );
+    s.shutdown().await;
+}

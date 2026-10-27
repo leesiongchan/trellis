@@ -10,6 +10,18 @@ use crate::{
 };
 use std::{future::Future, pin::Pin, sync::Arc};
 pub type ProviderFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, AppError>> + Send + 'a>>;
+pub struct GeneratedResearch {
+    pub result: ResearchResult,
+    pub generation: Option<crate::contracts::library::GenerationMetadata>,
+}
+impl From<ResearchResult> for GeneratedResearch {
+    fn from(result: ResearchResult) -> Self {
+        Self {
+            result,
+            generation: None,
+        }
+    }
+}
 pub trait ResearchProvider: Send + Sync {
     fn search<'a>(
         &'a self,
@@ -22,6 +34,14 @@ pub trait ResearchProvider: Send + Sync {
         sources: &'a [RetrievedSource],
         ctx: &'a JobContext,
     ) -> ProviderFuture<'a, ResearchResult>;
+    fn generate_recorded<'a>(
+        &'a self,
+        input: &'a ResearchRequest,
+        sources: &'a [RetrievedSource],
+        ctx: &'a JobContext,
+    ) -> ProviderFuture<'a, GeneratedResearch> {
+        Box::pin(async move { Ok(self.generate(input, sources, ctx).await?.into()) })
+    }
     fn verify<'a>(
         &'a self,
         content: &'a TopicContent,
@@ -109,6 +129,18 @@ impl ResearchProvider for HttpProviders {
         sources: &'a [RetrievedSource],
         ctx: &'a JobContext,
     ) -> ProviderFuture<'a, ResearchResult> {
+        Box::pin(
+            self.observed(crate::telemetry::Stage::Generation, ctx, async {
+                Ok(self.generate_topic(input, sources, ctx).await?.result)
+            }),
+        )
+    }
+    fn generate_recorded<'a>(
+        &'a self,
+        input: &'a ResearchRequest,
+        sources: &'a [RetrievedSource],
+        ctx: &'a JobContext,
+    ) -> ProviderFuture<'a, GeneratedResearch> {
         Box::pin(self.observed(
             crate::telemetry::Stage::Generation,
             ctx,

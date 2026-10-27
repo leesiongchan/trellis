@@ -266,6 +266,7 @@ async fn topic_versions_are_scoped_and_exact_reuse_keeps_the_pin() {
     };
     let version = AnswerVersionId::generate();
     let answer = AnswerVersionView {
+        provenance: AnswerProvenance::Unavailable,
         origin: AnswerOrigin::Research,
         id: version.clone(),
         topic_id: topics[0].clone(),
@@ -612,7 +613,7 @@ async fn local_worker_resumes_after_a_long_maintenance_pause() {
     s.store.close().await.unwrap();
 }
 
-#[tokio::test(start_paused = true)]
+#[tokio::test]
 async fn graph_deadline_bounds_waiting_for_storage_admission() {
     use crate::{contracts::library::TopicId, knowledge::matching::GraphBounds};
     let root = tempfile::tempdir().unwrap();
@@ -625,6 +626,8 @@ async fn graph_deadline_bounds_waiting_for_storage_admission() {
     )
     .unwrap();
     let store = KnowledgeStore::open(&config).await.unwrap();
+    // Native SDK setup uses external worker threads; pause only the deadline under test.
+    tokio::time::pause();
     let permit = store.admission.acquire_many(16).await.unwrap();
     let started = tokio::time::Instant::now();
     let error = store
@@ -639,7 +642,10 @@ async fn graph_deadline_bounds_waiting_for_storage_admission() {
         .await
         .unwrap_err();
     assert_eq!(error.code(), "STORAGE_BUSY");
-    assert_eq!(started.elapsed(), std::time::Duration::from_secs(2));
+    // Tokio's timer wheel rounds a deadline up to its one-millisecond tick.
+    let elapsed = started.elapsed();
+    assert!(elapsed >= std::time::Duration::from_secs(2));
+    assert!(elapsed <= std::time::Duration::from_millis(2001));
     drop(permit);
     store.close().await.unwrap();
 }

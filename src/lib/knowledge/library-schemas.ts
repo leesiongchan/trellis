@@ -3,6 +3,7 @@ import {
   EvidenceRefSchema,
   ParagraphSchema,
   ResearchResultSchema,
+  ResearchRequestSchema,
   TopicContentSchema,
   SourceSchema
 } from './schemas';
@@ -86,7 +87,37 @@ export const AppearanceSchema = z.object({
   answerVersionId: id.nullable(),
   childIds: z.array(id).max(2000)
 });
+const digest = z.string().regex(/^[a-f0-9]{64}$/);
+export const GenerationMetadataSchema = z.object({
+  provider: z.string().min(1).max(100),
+  requestedModel: z.string().min(1).max(500),
+  reportedModel: z.string().min(1).max(500).nullable(),
+  promptSha256: digest,
+  outputSchemaSha256: digest,
+  reasoningEffort: z.string().max(50),
+  maxOutputTokens: integer,
+  responseStorage: z.literal(false)
+});
+export const AnswerProvenanceSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('unavailable') }),
+  z.object({
+    kind: z.literal('research'),
+    attemptId: id,
+    input: ResearchRequestSchema,
+    locale,
+    interpretation: z.string().max(500),
+    contextEncodingVersion: integer,
+    generation: GenerationMetadataSchema.nullable()
+  }),
+  z.object({
+    kind: z.literal('legacy'),
+    legacyExplorationId: z.string().min(1).max(200),
+    originalNodeId: z.string().min(1).max(200),
+    contentDigest: digest
+  })
+]);
 export const AnswerVersionSchema = z.object({
+  provenance: AnswerProvenanceSchema.default({ kind: 'unavailable' }),
   origin: z.enum(['research', 'legacy']).default('research'),
   id,
   topicId: id,

@@ -111,13 +111,13 @@ pub(crate) fn equivalent_compatible(candidate: &MatchCandidate) -> bool {
     fn text(s: &str) -> String {
         s.nfc()
             .collect::<String>()
-            .to_lowercase()
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ")
     }
     fn terms(s: &str) -> Vec<String> {
         text(s)
+            .to_lowercase()
             .replace('’', "'")
             .split(|c: char| !c.is_alphanumeric() && c != '\'')
             .filter(|s| !s.is_empty())
@@ -133,7 +133,11 @@ pub(crate) fn equivalent_compatible(candidate: &MatchCandidate) -> bool {
         })
     }
     fn quantities(s: &str) -> Vec<String> {
-        let words = terms(s);
+        let words: Vec<String> = text(s)
+            .split(|c: char| !c.is_alphanumeric() && c != '\'')
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect();
         let mut out = vec![];
         for (index, w) in words.iter().enumerate() {
             if w.chars().any(|c| c.is_numeric()) {
@@ -161,6 +165,12 @@ pub(crate) fn equivalent_compatible(candidate: &MatchCandidate) -> bool {
             != crate::storage::records::canonical_hash(&serde_json::json!(b.ancestors))
         || negative(&a.wording) != negative(&b.wording)
         || quantities(&a.wording) != quantities(&b.wording)
+    {
+        return false;
+    }
+    // Case-only variants can encode units or identifiers; a model verdict cannot erase them.
+    if text(&a.wording) != text(&b.wording)
+        && text(&a.wording).to_lowercase() == text(&b.wording).to_lowercase()
     {
         return false;
     }
@@ -273,5 +283,37 @@ impl super::matching::MatchingService {
             .finish_verification(attempt, &candidates, &result)
             .await?;
         result.map(|_| ())
+    }
+}
+
+#[cfg(test)]
+mod review_tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+    #[test]
+    fn final_review_equivalence_does_not_fold_unit_case() {
+        use crate::{
+            embeddings::{EmbeddingSource, SourceContent},
+            storage::records::ResolvedQuestion,
+        };
+        for (a, b) in [
+            ("Power at 1 mW", "Power at 1 MW"),
+            ("Storage at 1 MB", "Storage at 1 Mb"),
+        ] {
+            let source = |wording: &str| EmbeddingSource {
+                key: wording.into(),
+                library_epoch: 1,
+                topic_id: TopicId::generate(),
+                answer_version_id: None,
+                input_hash: wording.into(),
+                content: SourceContent::Question {
+                    resolved: ResolvedQuestion::new(wording, "en", None, vec![], "literal")
+                        .unwrap(),
+                },
+            };
+            let candidate =
+                MatchCandidate::questions(&source(a), &source(b), "fixture", 0.99).unwrap();
+            assert!(!equivalent_compatible(&candidate));
+        }
     }
 }

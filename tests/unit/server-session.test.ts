@@ -341,60 +341,67 @@ it('disposal while persisting an intent cannot submit work using a replacement s
   expect(writes).toBe(0);
   expect(await cache.intents(library)).toHaveLength(1);
 });
-it('different literal punctuation never silently selects an existing sibling answer', async () => {
-  const saved = snapshot();
-  saved.appearances[0].childIds = ['old-child'];
-  saved.appearances.push({
-    ...saved.appearances[0],
-    id: 'old-child',
-    parentId: 'root',
-    topicId: 'old-topic',
-    question: 'Memory?',
-    answerVersionId: null,
-    childIds: []
-  });
-  let branchCalls = 0;
-  const client = createLibraryClient(
-    vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
-      if (path === '/api/library') return jsonResponse(library);
-      if (init?.method === 'POST') {
-        branchCalls++;
-        const command = JSON.parse(init.body as string);
-        expect(command.payload.question).toBe('Memory');
-        saved.exploration.revision = 1;
-        saved.appearances[0].childIds.push('new-child');
-        saved.appearances.push({
-          ...saved.appearances[1],
-          id: 'new-child',
-          topicId: 'new-topic',
-          question: 'Memory',
-          answerVersionId: 'new-answer'
-        });
-        saved.answers.push({ ...saved.answers[0], id: 'new-answer', topicId: 'new-topic' });
-        return jsonResponse({
-          ...completed(command.operationId),
-          result: {
-            kind: 'exploration',
-            explorationId: 'e1',
-            appearanceId: 'new-child',
-            revision: 1
-          }
-        });
-      }
-      return jsonResponse(saved);
-    })
-  );
-  const session = createResearchSession({
-    client,
-    cache: createLibraryCache('literal-sibling-' + crypto.randomUUID()),
-    onChange: vi.fn()
-  });
-  await session.connect();
-  await session.load('e1');
-  const id = await session.addQuestion('root', 'Memory');
-  expect(branchCalls).toBe(1);
-  expect(id).toBe('new-child');
-});
+it.each([
+  ['Memory?', 'Memory'],
+  ['Power at 1 mW', 'Power at 1 MW'],
+  ['Storage at 1 MB', 'Storage at 1 Mb']
+])(
+  'different literal wording %s / %s never silently selects an existing sibling answer',
+  async (existingQuestion, newQuestion) => {
+    const saved = snapshot();
+    saved.appearances[0].childIds = ['old-child'];
+    saved.appearances.push({
+      ...saved.appearances[0],
+      id: 'old-child',
+      parentId: 'root',
+      topicId: 'old-topic',
+      question: existingQuestion,
+      answerVersionId: null,
+      childIds: []
+    });
+    let branchCalls = 0;
+    const client = createLibraryClient(
+      vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+        if (path === '/api/library') return jsonResponse(library);
+        if (init?.method === 'POST') {
+          branchCalls++;
+          const command = JSON.parse(init.body as string);
+          expect(command.payload.question).toBe(newQuestion);
+          saved.exploration.revision = 1;
+          saved.appearances[0].childIds.push('new-child');
+          saved.appearances.push({
+            ...saved.appearances[1],
+            id: 'new-child',
+            topicId: 'new-topic',
+            question: newQuestion,
+            answerVersionId: 'new-answer'
+          });
+          saved.answers.push({ ...saved.answers[0], id: 'new-answer', topicId: 'new-topic' });
+          return jsonResponse({
+            ...completed(command.operationId),
+            result: {
+              kind: 'exploration',
+              explorationId: 'e1',
+              appearanceId: 'new-child',
+              revision: 1
+            }
+          });
+        }
+        return jsonResponse(saved);
+      })
+    );
+    const session = createResearchSession({
+      client,
+      cache: createLibraryCache('literal-sibling-' + crypto.randomUUID()),
+      onChange: vi.fn()
+    });
+    await session.connect();
+    await session.load('e1');
+    const id = await session.addQuestion('root', newQuestion);
+    expect(branchCalls).toBe(1);
+    expect(id).toBe('new-child');
+  }
+);
 
 it('disposal during an empty recovery scan cannot start a new action', async () => {
   const cache = createLibraryCache('scan-cancel-' + crypto.randomUUID());
@@ -427,3 +434,61 @@ it('disposal during an empty recovery scan cannot start a new action', async () 
   expect(submit).not.toHaveBeenCalled();
   expect(session.exploration).toBeNull();
 });
+
+it.each([404, 409])(
+  'recovery retires a definitively rejected unadmitted intent (%i) without trapping independent work',
+  async (status) => {
+    const cache = createLibraryCache('rejected-recovery-' + crypto.randomUUID());
+    await cache.acceptLibrary(library);
+    await cache.putIntent({
+      library,
+      path: '/api/appearances/deleted/research',
+      method: 'POST',
+      command: {
+        operationId: 'unadmitted',
+        libraryEpoch: 1,
+        expectedRevision: 0,
+        payload: { appearanceId: 'deleted', refresh: true, clarification: null }
+      }
+    });
+    const client = createLibraryClient(
+      vi.fn(async (path: RequestInfo | URL, init?: RequestInit) => {
+        if (path === '/api/library') return jsonResponse(library);
+        if (String(path).startsWith('/api/operations/'))
+          return jsonResponse(
+            {
+              error: {
+                code: 'NOT_FOUND',
+                message: 'Not admitted',
+                retryable: false,
+                requestId: 'test'
+              }
+            },
+            404
+          );
+        if (path === '/api/appearances/deleted/research')
+          return jsonResponse(
+            {
+              error: {
+                code: status === 409 ? 'REVISION_CONFLICT' : 'NOT_FOUND',
+                message: 'The earlier target changed.',
+                retryable: false,
+                requestId: 'test'
+              }
+            },
+            status
+          );
+        if (init?.method === 'POST')
+          return jsonResponse(completed(JSON.parse(init.body as string).operationId));
+        return jsonResponse(snapshot());
+      })
+    );
+    const session = createResearchSession({ client, cache, onChange: vi.fn() });
+    await session.connect();
+    expect(await cache.intents(library)).toHaveLength(0);
+    expect(session.notice).toMatch(/earlier target changed/i);
+    await session.start('Independent question');
+    expect(session.exploration).not.toBeNull();
+    session.dispose();
+  }
+);

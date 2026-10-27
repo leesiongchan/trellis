@@ -50,6 +50,7 @@ export function snapshot(): ExplorationSnapshot {
         topicId: 'topic1',
         revision: 1,
         origin: 'research',
+        provenance: { kind: 'unavailable' },
         content: e.nodes.root.content!,
         createdAt: e.createdAt
       }

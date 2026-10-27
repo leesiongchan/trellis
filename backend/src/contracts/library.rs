@@ -287,7 +287,44 @@ pub enum AnswerOrigin {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GenerationMetadata {
+    pub provider: String,
+    pub requested_model: String,
+    pub reported_model: Option<String>,
+    pub prompt_sha256: String,
+    pub output_schema_sha256: String,
+    pub reasoning_effort: String,
+    pub max_output_tokens: u32,
+    pub response_storage: bool,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum AnswerProvenance {
+    #[default]
+    Unavailable,
+    Research {
+        attempt_id: AttemptId,
+        input: super::ResearchRequest,
+        locale: String,
+        interpretation: String,
+        context_encoding_version: u8,
+        generation: Option<Box<GenerationMetadata>>,
+    },
+    Legacy {
+        legacy_exploration_id: String,
+        original_node_id: String,
+        content_digest: String,
+    },
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AnswerVersionView {
+    #[serde(default)]
+    pub provenance: AnswerProvenance,
     #[serde(default)]
     pub origin: AnswerOrigin,
     pub id: AnswerVersionId,

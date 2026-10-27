@@ -68,7 +68,7 @@ fn exact_key_preserves_context() {
     }];
     assert_ne!(volatile_key, question_key(&changed));
     changed = original.clone();
-    changed.wording = "  IS\u{a0}volatile  memory persistent?\n".into();
+    changed.wording = "  Is\u{a0}volatile  memory persistent?\n".into();
     assert_eq!(volatile_key, question_key(&changed));
     let a = ResolvedQuestion::new("Café", "en", None, vec![], "literal").unwrap();
     let b = ResolvedQuestion::new("Cafe\u{301}", "en", None, vec![], "literal").unwrap();
@@ -77,4 +77,21 @@ fn exact_key_preserves_context() {
         canonical_hash(&json!({"a":1,"b":{"x":2,"y":3}})),
         canonical_hash(&json!({"b":{"y":3,"x":2},"a":1}))
     );
+}
+
+#[test]
+fn final_review_case_sensitive_quantities_and_clarifications_keep_distinct_identity() {
+    for (a, b) in [
+        ("Power at 1 mW", "Power at 1 MW"),
+        ("Storage at 1 MB", "Storage at 1 Mb"),
+    ] {
+        let left = ResolvedQuestion::new(a, "en", None, vec![], "literal").unwrap();
+        let right = ResolvedQuestion::new(b, "en", None, vec![], "literal").unwrap();
+        assert_ne!(question_key(&left), question_key(&right));
+        let mut left = left;
+        let mut right = left.clone();
+        left.clarification = Some(a.into());
+        right.clarification = Some(b.into());
+        assert_ne!(question_key(&left), question_key(&right));
+    }
 }

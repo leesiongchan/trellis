@@ -94,7 +94,13 @@ impl KnowledgeStore {
     ) -> Result<ImportView, AppError> {
         let (command, intent) = Self::intent(command, "begin-import")?;
         if self.replay_existing(&intent, false).await?.is_some() {
-            return self.import_operation(&intent.id).await;
+            let view = self.import_operation(&intent.id).await?;
+            if view.state == ImportState::Staging {
+                // Replayed begin IDs must observe expiry even if the process never restarted.
+                self.cleanup_imports().await?;
+                return self.import_operation(&intent.id).await;
+            }
+            return Ok(view);
         }
         if command.expected_revision.is_some() {
             return Err(AppError::new(ErrorCode::RevisionConflict));
@@ -306,7 +312,7 @@ fn prepare_publication(legacy: LegacyExploration, manifest: &Manifest) -> Result
                 .map(|id| AppearanceId::new(mapping[id].clone()))
                 .collect::<Result<_, _>>()?,
         };
-        let answer=node.content.as_ref().map(|content|json!({"key":version,"topicKey":topic,"revision":0,"data":{"id":version,"topicId":topic,"origin":"legacy","revision":0,"content":content,"createdAt":content.researched_at}}));
+        let answer=node.content.as_ref().map(|content|json!({"key":version,"topicKey":topic,"revision":0,"data":{"id":version,"topicId":topic,"origin":"legacy","provenance":AnswerProvenance::Legacy{legacy_exploration_id:legacy.id.clone(),original_node_id:id.clone(),content_digest:manifest.input.content_digest.clone()},"revision":0,"content":content,"createdAt":content.researched_at}}));
         let mut next_context = context;
         next_context.push(Ancestor {
             title: truncate_utf16(
@@ -435,6 +441,23 @@ mod tests {
             .await
             .unwrap();
         (view, encoded)
+    }
+    #[tokio::test]
+    async fn final_review_replayed_begin_expires_abandoned_staging_without_a_restart() {
+        let (_root, store) = setup().await;
+        let (view, _) = start(&store, "expired-replay").await;
+        let manifest: Manifest = store
+            .record_data("migration_manifest", view.id.as_str())
+            .await
+            .unwrap();
+        store.query("UPDATE ONLY type::record('migration_manifest',$key) SET data.createdAt='2000-01-01T00:00:00Z';",json!({"key":view.id})).await.unwrap();
+        let mut begin = command(manifest.input);
+        begin.operation_id = view.upload_operation_id;
+        assert_eq!(
+            store.begin_import(&begin).await.unwrap().state,
+            ImportState::Failed
+        );
+        store.close().await.unwrap();
     }
     #[tokio::test]
     async fn concurrent_finalization_is_bounded_but_completed_replays_remain_free() {
@@ -593,6 +616,7 @@ mod tests {
             },
             resolved: records::ResolvedQuestion::new("Question", "en", None, vec![], "literal")
                 .unwrap(),
+            generation: None,
             reuse_version: None,
             state: OperationState::Completed,
         };

@@ -215,8 +215,8 @@ cargo test --manifest-path backend/Cargo.toml --locked --lib --test backups --te
 ```
 
 The verified 32 MiB public fixture published 1,000 immutable answers atomically in
-7.57 seconds and read back all appearances/answers. The standalone debug test
-peaked at approximately 771 MiB RSS on the development Mac. Leave memory headroom
+7.795 seconds and read back all appearances/answers. The standalone debug test
+peaked at approximately 776 MiB RSS on the development Mac. Leave memory headroom
 for imports and local inference; this is a measured fixture, not a production
 capacity promise. Ordinary requests still use the documented graph/list limits.
 
@@ -257,3 +257,20 @@ three candidate pairs in one existing-provider call; local indexing performs no
 paid backfill. Import staging allows two active manifests and finalization admits
 at most two preparations, retaining admission even when blocking parsing outlives
 its cancelled caller.
+
+## Answer provenance and exact identity
+
+Exact key version 2 preserves case as well as Unicode NFC/whitespace normalization:
+`1 mW` and `1 MW`, or `1 MB` and `1 Mb`, cannot automatically reuse an answer.
+Ordinary capitalization may produce separate topics; semantic candidates can
+still connect them without merging. Historical key-version-1 aliases are not
+silently reused or rewritten.
+
+New research answer versions keep their server-owned input/context, attempt ID,
+requested/reported provider model, prompt/schema hashes and generation settings.
+These are immutable with the answer. Imported legacy versions identify their
+original exploration/node/digest; older records with no provenance report it as
+unavailable. Missing provider-reported model metadata is not fabricated.
+Explicit browser restore revalidates previously imported copies and renews a
+failed upload's IDs only after an authoritative terminal state. Unknown/admitted
+uploads keep their original IDs so a lost response cannot duplicate publication.

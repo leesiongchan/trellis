@@ -72,7 +72,7 @@ async fn shared_topic_has_distinct_appearances() {
             .add_branch(&command(
                 AddBranch {
                     parent_appearance_id: br,
-                    question: "HOW does flash work?".into(),
+                    question: "How does flash work?".into(),
                 },
                 Some(0),
             ))
@@ -86,7 +86,7 @@ async fn shared_topic_has_distinct_appearances() {
     assert_eq!(first_appearance.topic_id, second_appearance.topic_id);
     assert_ne!(first_appearance.id, second_appearance.id);
     assert_eq!(first_appearance.question, "How does flash work?");
-    assert_eq!(second_appearance.question, "HOW does flash work?");
+    assert_eq!(second_appearance.question, "How does flash work?");
     for snapshot in [first, second] {
         assert_eq!(snapshot.schema_version, 2);
         assert_eq!(snapshot.appearances.len(), 2);

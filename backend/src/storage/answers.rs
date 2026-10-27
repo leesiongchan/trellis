@@ -11,6 +11,8 @@ pub(crate) struct ResearchAttempt {
     pub library_epoch: u64,
     pub request: ResearchRequest,
     pub resolved: ResolvedQuestion,
+    #[serde(default)]
+    pub generation: Option<GenerationMetadata>,
     pub reuse_version: Option<AnswerVersionId>,
     pub state: OperationState,
 }
@@ -88,6 +90,7 @@ impl KnowledgeStore {
                 ancestors: appearance.ancestors.clone(),
             },
             resolved,
+            generation: None,
             reuse_version,
             state: OperationState::Pending,
         };
@@ -222,7 +225,7 @@ impl KnowledgeStore {
         let mut bindings = json!({"attemptKey":attempt.id,"epoch":attempt.library_epoch,"topicKey":attempt.topic_id,"now":now,"outcome":outcome,"version":version,"hasAnswer":content.is_some(),"newVersion":attempt.reuse_version.is_none(),"clarification":attempt.resolved.clarification,"interruptedError":OperationError::from(AppError::new(ErrorCode::WorkInterrupted)),"keepActive":keep_active});
         let mut branches = vec![];
         if let Some(content) = content {
-            bindings["answerRecord"] = json!({"key":version,"topicKey":attempt.topic_id,"revision":0,"data":{"id":version,"topicId":attempt.topic_id,"revision":0,"content":content,"createdAt":now}});
+            bindings["answerRecord"] = json!({"key":version,"topicKey":attempt.topic_id,"revision":0,"data":{"id":version,"topicId":attempt.topic_id,"revision":0,"content":content,"createdAt":now,"provenance":AnswerProvenance::Research{attempt_id:attempt.id.clone(),input:attempt.request.clone(),locale:attempt.resolved.locale.clone(),interpretation:attempt.resolved.interpretation.clone(),context_encoding_version:attempt.resolved.encoding_version,generation:attempt.generation.clone().map(Box::new)}}});
             let mut context = attempt.resolved.ancestors.clone();
             context.push(Ancestor {
                 title: truncate_utf16(&content.title, 160),

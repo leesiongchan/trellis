@@ -43,6 +43,29 @@ impl Provider {
     }
 }
 impl ResearchProvider for Provider {
+    fn generate_recorded<'a>(
+        &'a self,
+        input: &'a ResearchRequest,
+        sources: &'a [RetrievedSource],
+        ctx: &'a JobContext,
+    ) -> ProviderFuture<'a, GeneratedResearch> {
+        Box::pin(async move {
+            Ok(GeneratedResearch {
+                result: self.generate(input, sources, ctx).await?,
+                generation: Some(branch_backend::contracts::library::GenerationMetadata {
+                    provider: "fixture".into(),
+                    requested_model: format!("fixture-model-{}", self.mode.load(Ordering::SeqCst)),
+                    reported_model: None,
+                    prompt_sha256: "0".repeat(64),
+                    output_schema_sha256: "0".repeat(64),
+                    reasoning_effort: "low".into(),
+                    max_output_tokens: 8000,
+                    response_storage: false,
+                }),
+            })
+        })
+    }
+
     fn search<'a>(
         &'a self,
         _: &'a str,

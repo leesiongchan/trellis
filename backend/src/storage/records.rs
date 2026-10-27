@@ -52,7 +52,6 @@ impl ResolvedQuestion {
 fn normalized(v: &str) -> String {
     v.nfc()
         .collect::<String>()
-        .to_lowercase()
         .split(ecma_whitespace)
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
@@ -61,7 +60,7 @@ fn normalized(v: &str) -> String {
 pub fn question_key(input: &ResolvedQuestion) -> QuestionKey {
     let mut value = serde_json::json!({"mode":"research","wording":normalized(&input.wording),"clarification":input.clarification.as_ref().map(|v|normalized(v)),"locale":input.locale,"ancestors":input.ancestors,"interpretation":input.interpretation,"encodingVersion":input.encoding_version});
     // Ancestor text is the stored bounded research context; its exact contents matter.
-    value["keyVersion"] = Value::from(1);
+    value["keyVersion"] = Value::from(2);
     QuestionKey(canonical_hash(&value))
 }
 pub fn canonical_hash(input: &Value) -> String {

@@ -9,8 +9,7 @@ import {
   AddBranchCommandSchema,
   ResearchCommandSchema
 } from './library-schemas';
-const questionKey = (value: string) =>
-  value.normalize('NFC').trim().toLowerCase().replace(/\s+/gu, ' ');
+const questionKey = (value: string) => value.normalize('NFC').trim().replace(/\s+/gu, ' ');
 const errorView = (error: unknown): ApiError => ({
   code: error instanceof LibraryError ? error.code : 'LIBRARY_FAILED',
   message: error instanceof Error ? error.message : 'The library request did not finish.',
@@ -265,7 +264,21 @@ export class ResearchSession implements WorkspaceSession {
         } catch (error) {
           if (!(error instanceof LibraryError) || error.status !== 404) throw error;
         }
-        operation = await this.finish(intent, operation, signal);
+        try {
+          operation = await this.finish(intent, operation, signal);
+        } catch (error) {
+          if (
+            !(error instanceof LibraryError) ||
+            error.status < 400 ||
+            error.status >= 500 ||
+            error.status === 401 ||
+            error.status === 429
+          )
+            throw error;
+          await this.options.cache.removeIntent(intent.library, intent.command.operationId);
+          if (generation === this.generation) this.notice = error.message;
+          continue;
+        }
         if (operation.state !== 'completed') {
           this.notice =
             operation.error?.message ?? 'Research was interrupted. Retry explicitly when ready.';

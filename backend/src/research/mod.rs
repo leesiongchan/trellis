@@ -5,7 +5,7 @@ pub mod prompts;
 use crate::{
     contracts::*,
     error::{AppError, ErrorCode},
-    providers::ResearchProvider,
+    providers::{GeneratedResearch, ResearchProvider},
 };
 use context::JobContext;
 pub async fn research_topic(
@@ -13,6 +13,13 @@ pub async fn research_topic(
     ctx: &JobContext,
     provider: &dyn ResearchProvider,
 ) -> Result<ResearchResult, AppError> {
+    Ok(research_topic_recorded(input, ctx, provider).await?.result)
+}
+pub async fn research_topic_recorded(
+    input: &ResearchRequest,
+    ctx: &JobContext,
+    provider: &dyn ResearchProvider,
+) -> Result<GeneratedResearch, AppError> {
     ctx.check()?;
     let context = input
         .ancestors
@@ -30,17 +37,20 @@ pub async fn research_topic(
     let sources = provider.search(&parts.join(" — "), ctx).await?;
     ctx.check()?;
     if sources.is_empty() {
-        return Ok(ResearchResult::InsufficientEvidence{message:"I could not retrieve enough reliable source text for this topic. Try a more specific question.".into()});
+        return Ok(ResearchResult::InsufficientEvidence{message:"I could not retrieve enough reliable source text for this topic. Try a more specific question.".into()}.into());
     }
-    let generated = provider.generate(input, &sources, ctx).await?;
+    let generated = provider.generate_recorded(input, &sources, ctx).await?;
     ctx.check()?;
     let result = ResearchResult::from_json(
-        serde_json::to_value(generated)
+        serde_json::to_value(generated.result)
             .map_err(|_| AppError::new(ErrorCode::InvalidExplanation))?,
     )
     .map_err(|_| AppError::new(ErrorCode::InvalidExplanation))?;
     let ResearchResult::Topic { content } = &result else {
-        return Ok(result);
+        return Ok(GeneratedResearch {
+            result,
+            generation: generated.generation,
+        });
     };
     let timer = ctx
         .telemetry
@@ -55,7 +65,8 @@ pub async fn research_topic(
             message:
                 "The explanation did not pass its source check. Try again or narrow the topic."
                     .into(),
-        });
+        }
+        .into());
     }
     ctx.check()?;
     let verdict = provider.verify(content, &sources, ctx).await?;
@@ -63,7 +74,10 @@ pub async fn research_topic(
     if !verdict.unsupported_paragraph_ids.is_empty()
         || !verdict.unsupported_branch_indexes.is_empty()
     {
-        return Ok(ResearchResult::InsufficientEvidence{message:"Some claims were not sufficiently supported by the retrieved sources. Please retry or make the question more specific.".into()});
+        return Ok(ResearchResult::InsufficientEvidence{message:"Some claims were not sufficiently supported by the retrieved sources. Please retry or make the question more specific.".into()}.into());
     }
-    Ok(result)
+    Ok(GeneratedResearch {
+        result,
+        generation: generated.generation,
+    })
 }

@@ -223,6 +223,57 @@ test('changed browser copies have clear provenance and preserve both saved answe
   ).toHaveCount(2);
 });
 
+test('explicit restore renews a deleted imported copy on the same browser without duplicate copies or research', async ({
+  page
+}) => {
+  const requests = await observeResearch(page);
+  const prompt = 'Restorable browser copy ' + crypto.randomUUID();
+  const original = makeExploration({
+    id: 'restore-' + crypto.randomUUID(),
+    originalPrompt: prompt
+  });
+  await seedLegacy(page, [original]);
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: 'Resume ' + prompt, exact: true }).first()
+  ).toBeVisible();
+  const first = (await read(page.request, '/api/explorations')).items.find(
+    (e: { originalPrompt: string }) => e.originalPrompt === prompt
+  );
+  expect(first).toBeTruthy();
+  await page.getByRole('button', { name: 'Your explorations', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Delete ' + prompt, exact: true })
+    .first()
+    .click();
+  await page.getByRole('button', { name: 'Delete exploration', exact: true }).click();
+  await expect
+    .poll(async () =>
+      (await read(page.request, '/api/explorations')).items.some(
+        (e: { id: string }) => e.id === first.id
+      )
+    )
+    .toBe(false);
+  await page.getByRole('button', { name: 'Restore browser copies', exact: true }).click();
+  await expect(page.getByText(/1 browser copies restored/)).toBeVisible();
+  const restored = (await read(page.request, '/api/explorations')).items.filter(
+    (e: { originalPrompt: string }) => e.originalPrompt === prompt
+  );
+  expect(restored).toHaveLength(1);
+  expect(restored[0].id).not.toBe(first.id);
+  const snapshot = await read(page.request, '/api/explorations/' + restored[0].id);
+  expect(snapshot.answers[0].content).toEqual(original.nodes.root.content);
+  expect(snapshot.answers[0].provenance.kind).toBe('legacy');
+  await page.getByRole('button', { name: 'Restore browser copies', exact: true }).click();
+  await expect(page.getByText(/0 browser copies restored/)).toBeVisible();
+  expect(
+    (await read(page.request, '/api/explorations')).items.filter(
+      (e: { originalPrompt: string }) => e.originalPrompt === prompt
+    )
+  ).toHaveLength(1);
+  expect(requests).toHaveLength(0);
+});
+
 test('retained topics seed compatible roots and confirmed purge fences offline originals', async ({
   page,
   baseURL

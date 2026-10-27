@@ -4,7 +4,7 @@ use crate::{
     error::AppError,
     jobs::{Coordinator, JobKey, JobWork},
     providers::ResearchProvider,
-    research::research_topic,
+    research::research_topic_recorded,
     storage::KnowledgeStore,
 };
 use std::sync::{
@@ -78,8 +78,12 @@ impl ResearchRunner {
         let operation_id = command.operation_id;
         let work: JobWork = Box::new(move |ctx| {
             Box::pin(async move {
-                let outcome =
-                    research_topic(&attempt_for_work.request, &ctx, provider.as_ref()).await?;
+                let generated =
+                    research_topic_recorded(&attempt_for_work.request, &ctx, provider.as_ref())
+                        .await?;
+                let outcome = generated.result;
+                let mut attempt_for_work = attempt_for_work;
+                attempt_for_work.generation = generated.generation;
                 ctx.check()?;
                 let keep_active =
                     hooks.is_some() && matches!(outcome, ResearchResult::Topic { .. });

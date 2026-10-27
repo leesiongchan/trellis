@@ -1,5 +1,5 @@
 import type { ExplorationRepository } from './types';
-import type { LibraryClient } from './library-client';
+import { LibraryError, type LibraryClient } from './library-client';
 import type { LibraryCache } from './cache';
 import type { BeginImport, Command, ImportView } from './library-types';
 import { encodeLegacyImport } from './legacy-import';
@@ -40,14 +40,23 @@ export async function migrateLegacy(
       options.onProgress?.('Importing saved browser exploration: ' + original.originalPrompt);
       const encoded = await encodeLegacyImport(original);
       const prior = await cache.receipt(info, original.id, encoded.digest);
-      if (prior && !(options.explicitRestore && prior.state === 'suppressed')) {
+      if (prior && !options.explicitRestore) {
         summary.skipped++;
         if (prior.explorationId)
           summary.mapping[original.id] = { explorationId: prior.explorationId, nodes: prior.nodes };
         continue;
       }
-      let upload = await cache.upload(info, original.id, encoded.digest);
-      if (!upload) {
+      if (options.explicitRestore && prior?.state === 'completed' && prior.explorationId) {
+        try {
+          await client.exploration(prior.explorationId, options.signal);
+          summary.skipped++;
+          summary.mapping[original.id] = { explorationId: prior.explorationId, nodes: prior.nodes };
+          continue;
+        } catch (error) {
+          if (!(error instanceof LibraryError) || error.status !== 404) throw error;
+        }
+      }
+      const freshUpload = async () => {
         const command: Command<BeginImport> = {
           operationId: newId(),
           libraryEpoch: info.libraryEpoch,
@@ -60,10 +69,20 @@ export async function migrateLegacy(
             explicitRestore: options.explicitRestore ?? false
           }
         };
-        upload = { command, batchIds: encoded.batches.map(() => newId()), finishId: newId() };
+        const upload = { command, batchIds: encoded.batches.map(() => newId()), finishId: newId() };
         await cache.putUpload(info, original.id, encoded.digest, upload);
-      }
+        return upload;
+      };
+      let upload = (await cache.upload(info, original.id, encoded.digest)) ?? (await freshUpload());
       let view: ImportView = await client.beginImport(upload.command as Command<BeginImport>);
+      // A definitive terminal manifest retires its IDs; uncertain uploads always keep theirs.
+      if (view.state === 'failed' || (options.explicitRestore && view.state === 'suppressed')) {
+        await cache.removeUpload(info, original.id, encoded.digest);
+        if (options.explicitRestore) {
+          upload = await freshUpload();
+          view = await client.beginImport(upload.command as Command<BeginImport>);
+        }
+      }
       if (view.state === 'staging' && view.uploadOperationId !== upload.command.operationId) {
         const deadline = Date.now() + 30_000;
         while (view.state === 'staging' && Date.now() < deadline && !options.signal?.aborted) {
@@ -92,10 +111,12 @@ export async function migrateLegacy(
           payload: { importId: view.id }
         });
       }
-      if (view.state === 'failed')
+      if (view.state === 'failed') {
+        await cache.removeUpload(info, original.id, encoded.digest);
         throw new Error(
           view.error?.message ?? 'Import could not finish. Keep the original browser copy.'
         );
+      }
       if (view.state !== 'completed' && view.state !== 'suppressed')
         throw new Error('Import has not completed. Keep the original browser copy.');
       if (view.state === 'suppressed') {

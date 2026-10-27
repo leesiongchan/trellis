@@ -210,3 +210,33 @@ async fn connection_verifier_uses_existing_provider_without_tools_or_storage() {
     let data: Value = serde_json::from_str(body["input"][1]["content"].as_str().unwrap()).unwrap();
     assert_eq!(data, json!({"candidates":[]}));
 }
+
+#[tokio::test]
+async fn recorded_generation_preserves_outer_reported_model_and_actual_request_configuration() {
+    let mut raw = completed(json!({"result":{"kind":"clarification","question":"Which memory?"}}));
+    raw["model"] = json!("actual-provider-snapshot");
+    let stub = StubProviders::start(vec![Script::json(raw)]).await;
+    let generated = adapter(&stub)
+        .generate_recorded(&input(), &[], &context())
+        .await
+        .unwrap();
+    let metadata = generated.generation.unwrap();
+    assert_eq!(metadata.provider, "openai-responses");
+    assert_eq!(
+        metadata.reported_model.as_deref(),
+        Some("actual-provider-snapshot")
+    );
+    let requests = stub.state.requests.lock().unwrap();
+    assert_eq!(json!(metadata.requested_model), requests[0].1["model"]);
+    assert_eq!(
+        json!(metadata.reasoning_effort),
+        requests[0].1["reasoning"]["effort"]
+    );
+    assert_eq!(
+        json!(metadata.max_output_tokens),
+        requests[0].1["max_output_tokens"]
+    );
+    assert_eq!(json!(metadata.response_storage), requests[0].1["store"]);
+    assert_eq!(metadata.prompt_sha256.len(), 64);
+    assert_eq!(metadata.output_schema_sha256.len(), 64);
+}

@@ -38,12 +38,26 @@ impl HttpProviders {
         ctx: &JobContext,
         failure: ErrorCode,
     ) -> Result<Value, AppError> {
+        Ok(self
+            .response_recorded(prompt, data, format, tokens, ctx, failure)
+            .await?
+            .0)
+    }
+    async fn response_recorded(
+        &self,
+        prompt: &str,
+        data: Value,
+        format: (&str, &str),
+        tokens: u32,
+        ctx: &JobContext,
+        failure: ErrorCode,
+    ) -> Result<(Value, Option<String>), AppError> {
         let (name, schema) = format;
         let schema: Value =
             serde_json::from_str(schema).map_err(|_| AppError::new(ErrorCode::InternalFailure))?;
         let body = json!({"model":self.config.model,"store":false,"reasoning":{"effort":"low"},"max_output_tokens":tokens,"input":[{"role":"system","content":prompt},{"role":"user","content":data.to_string()}],"text":{"format":{"type":"json_schema","name":name,"strict":true,"schema":schema}}});
-        output_json(
-            self.post(
+        let raw = self
+            .post(
                 &self.endpoints.openai,
                 self.config.openai_key.expose(),
                 &body,
@@ -51,22 +65,25 @@ impl HttpProviders {
                 ctx.deadline,
                 failure,
             )
-            .await?,
-            failure,
-        )
+            .await?;
+        let reported_model = raw["model"]
+            .as_str()
+            .filter(|v| !v.is_empty() && v.len() <= 500)
+            .map(str::to_owned);
+        Ok((output_json(raw, failure)?, reported_model))
     }
     pub(super) async fn generate_topic(
         &self,
         input: &ResearchRequest,
         sources: &[RetrievedSource],
         ctx: &JobContext,
-    ) -> Result<ResearchResult, AppError> {
+    ) -> Result<GeneratedResearch, AppError> {
         let now = OffsetDateTime::now_utc()
             .format(&Rfc3339)
             .map_err(|_| AppError::new(ErrorCode::InternalFailure))?;
         let data = json!({"date":&now[..10],"topic":input,"sources":sources_json(sources)});
-        let draft = self
-            .response(
+        let (draft, reported_model) = self
+            .response_recorded(
                 EXPLAIN_PROMPT,
                 data,
                 ("topic_explanation", include_str!("schemas/topic.json")),
@@ -93,7 +110,24 @@ impl HttpProviders {
             content.insert("researchedAt".into(), json!(now));
             result = json!({"kind":"topic","content":result});
         }
-        ResearchResult::from_json(result).map_err(|_| AppError::new(ErrorCode::InvalidExplanation))
+        use sha2::{Digest, Sha256};
+        Ok(GeneratedResearch {
+            result: ResearchResult::from_json(result)
+                .map_err(|_| AppError::new(ErrorCode::InvalidExplanation))?,
+            generation: Some(crate::contracts::library::GenerationMetadata {
+                provider: "openai-responses".into(),
+                requested_model: self.config.model.clone(),
+                reported_model,
+                prompt_sha256: format!("{:x}", Sha256::digest(EXPLAIN_PROMPT.as_bytes())),
+                output_schema_sha256: format!(
+                    "{:x}",
+                    Sha256::digest(include_bytes!("schemas/topic.json"))
+                ),
+                reasoning_effort: "low".into(),
+                max_output_tokens: 8000,
+                response_storage: false,
+            }),
+        })
     }
     pub(super) async fn verify_grounding(
         &self,
