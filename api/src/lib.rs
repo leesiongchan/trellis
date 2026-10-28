@@ -1,4 +1,3 @@
-//! Private research backend for Branch.
 pub mod access;
 pub mod app;
 pub mod config;

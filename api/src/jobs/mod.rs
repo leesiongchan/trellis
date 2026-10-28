@@ -99,7 +99,7 @@ impl Coordinator {
     pub fn admit(self: &Arc<Self>, input: ResearchRequest) -> Result<Waiter, AppError> {
         let canonical =
             serde_json::to_vec(&input).map_err(|_| AppError::new(ErrorCode::InternalFailure))?;
-        let key = format!("{:x}", Sha256::digest(canonical));
+        let key = hex::encode(Sha256::digest(canonical));
         let provider = self.provider.clone();
         self.admit_work(
             JobKey(key),

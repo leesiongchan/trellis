@@ -1,4 +1,4 @@
-# Branch
+# Trellis
 
 A private knowledge tree. Start with a question, read a detailed explanation, and expand related topics without losing your place. Questions, immutable answers and citations live in a private embedded SurrealDB library. Saved topics open without another paid research call.
 
@@ -40,21 +40,9 @@ pnpm start
 
 Set `APP_ORIGIN=http://127.0.0.1:3000`, `HOST=127.0.0.1` and `PORT=3000` in `.env` for the built server. `pnpm start` launches `release/branch-backend`; it can also run directly without Node. Keep `release/public` and `release/frontend-manifest.json` beside it. Process environment overrides `.env`; set an absolute `APP_ENV_FILE` when launching from another directory. Restart after configuration changes. See the [Rust service runbook](docs/runbooks/rust-service.md) for shutdown, limits, metrics and rollback.
 
-## View privately through Tailscale
+## Access through an HTTPS proxy
 
-Inspect `tailscale serve status` before adding a listener. With HTTPS port 8443 available:
-
-```sh
-tailscale serve --bg --https=8443 http://127.0.0.1:3000
-```
-
-Set `APP_ORIGIN` to `https://YOUR_MACHINE.YOUR_TAILNET.ts.net:8443`, restart the built app, then open that address with `/access?key=YOUR_APP_ACCESS_KEY` appended on a connected Tailscale device. Preserve the configured origin on upgrades so existing access links and cookies remain valid. The proxy must preserve the external Host header. Use the exact configured origin for research. The key is removed after access. The Mac and server must stay running.
-
-This is private tailnet sharing. Do not enable Funnel. Preserve the existing preview listener on port 60090; the app uses a separate listener. To stop only the app's route:
-
-```sh
-tailscale serve --https=8443 off
-```
+The server binds to loopback. To access it through an HTTPS proxy, forward to `http://127.0.0.1:3000` and preserve the external Host header. Set `APP_ORIGIN` to the exact browser-facing HTTPS origin, then restart the app. Open that origin with `/access?key=YOUR_APP_ACCESS_KEY` appended to establish a session; the key is removed from the address afterward. Preserve the configured origin and access key on upgrades so existing access links and cookies remain valid.
 
 ## Behavior and data
 
@@ -73,6 +61,14 @@ tailscale serve --https=8443 off
 ## Frontend tooling
 
 Vite+ runs development, production builds and unit tests from `app/vite.config.ts`. Root `vite.config.ts` holds workspace lint and formatting policy. `pnpm check` runs Svelte diagnostics plus Vite+ format/lint/type checks; `pnpm fmt` formats supported project files. Rust, vendored code, canonical fixtures and historical design records keep their existing formatting.
+
+Panda CSS owns the Fieldnotes theme. `app/panda.config.ts` composes semantic tokens, fluid text styles and the shared button recipe; components colocate `css`, `cva` and `sva` styles. See [frontend conventions](app/AGENTS.md) and the [approved design](docs/superpowers/specs/2026-10-28-trellis-fieldnotes-panda-design.md).
+
+`pnpm --dir app styles:codegen` generates helpers, declarations and the design-system spec in ignored `app/styled-system/`. `pnpm check` runs it explicitly before Svelte checking, then `styles:check` checks extraction and Svelte token usage. Vite+ applies Panda rules to TypeScript; scoped ESLint uses the supported Svelte/TypeScript parsers because the Oxlint bridge cannot parse these Svelte scripts correctly. No install lifecycle hook is required. Generated files are excluded from formatting and linting.
+
+The Panda Vite plugin generates CSS and watches source/theme changes. Source transforms are enabled; static calls become classes where supported, while dynamic recipes retain generated helpers. `app/src/app.css` declares `reset, vendor, base, tokens, recipes, utilities` and imports SvelteFlow into `vendor`, ahead of application recipes/utilities. No legacy component stylesheet or runtime stylesheet injection remains.
+
+Dependency manifests use caret ranges; pnpm and Cargo lockfiles record the tested versions. TypeScript 7 is installed as `@typescript/native` for its native `tsc` executable. The `typescript` alias points to the official `@typescript/typescript6` compatibility package because SvelteKit and `svelte-check` still require the JavaScript compiler API. Both follow the [TypeScript team's side-by-side setup](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
 
 Use `pnpm dev` (or `pnpm exec vp run dev`) to supervise both Vite+ and Rust. From `app/`, built-in `vp dev` starts only the frontend and `vp build` builds only the frontend. The root `pnpm build` (or `pnpm exec vp run build`) also builds Rust and packages the complete release. Playwright, Cargo and native release acceptance remain separate checks. No Vite Task caching is enabled for research, browser or release checks.
 
@@ -102,4 +98,4 @@ See [the approved design](docs/superpowers/specs/2026-10-25-knowledge-tree-desig
 
 ## Embedded library verification
 
-See [current storage evidence](docs/superpowers/2026-10-27-knowledge-storage-notes.md) and the [storage operations runbook](docs/runbooks/knowledge-storage.md) for measured native gates, platform limits and recovery. Linux/macOS hosted CI, live paid research, a physical phone and deployment through the actual Tailscale route remain unperformed in this workspace. Forwarding remains unchanged.
+See [current storage evidence](docs/superpowers/2026-10-27-knowledge-storage-notes.md) and the [storage operations runbook](docs/runbooks/knowledge-storage.md) for measured native gates, platform limits and recovery. Linux/macOS hosted CI, live paid research, a physical phone and deployment through an external HTTPS proxy remain unperformed in this workspace.

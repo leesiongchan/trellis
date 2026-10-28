@@ -65,7 +65,7 @@ async fn file_hash(path: PathBuf) -> Result<(String, u64), AppError> {
             size += n as u64;
             hash.update(&buffer[..n]);
         }
-        Ok((format!("{:x}", hash.finalize()), size))
+        Ok((hex::encode(hash.finalize()), size))
     })
     .await
     .map_err(|_| storage_error())?
@@ -211,7 +211,7 @@ impl KnowledgeStore {
                 model_version: model.as_str().map(str::to_owned),
                 created_at: records::now()?,
                 source_library_epoch: info.library_epoch,
-                sha256: format!("{:x}", hash.finalize()),
+                sha256: hex::encode(hash.finalize()),
                 bytes,
                 counts: self.backup_counts().await?,
             };

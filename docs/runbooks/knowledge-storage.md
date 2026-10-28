@@ -75,7 +75,7 @@ no additional runtime library files are needed by the verified static build.
 The x86-64 model loader checks AVX2 support before initializing inference.
 
 The small [vendored portability patch](../../api/vendor/fastembed/BRANCH-PATCH.md)
-adds an optional safe CPU device policy. Branch selects CPU with two inference
+adds an optional safe CPU device policy. Trellis selects CPU with two inference
 threads. This prevents ort's automatic CoreML model-cache compilation on macOS.
 The patch keeps upstream defaults unchanged for other callers and records the
 original crate archive digest for review and eventual removal.

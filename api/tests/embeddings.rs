@@ -31,10 +31,8 @@ fn test_manifest() -> (tempfile::TempDir, ModelManifest) {
     let bytes = include_bytes!("../../tests/fixtures/library/test-tokenizer.json");
     std::fs::write(root.path().join("tokenizer.json"), bytes).unwrap();
     let mut m = manifest();
-    m.artifact_hashes = BTreeMap::from([(
-        "tokenizer.json".into(),
-        format!("{:x}", Sha256::digest(bytes)),
-    )]);
+    m.artifact_hashes =
+        BTreeMap::from([("tokenizer.json".into(), hex::encode(Sha256::digest(bytes)))]);
     let m = m.with_tokenizer(root.path()).unwrap();
     (root, m)
 }

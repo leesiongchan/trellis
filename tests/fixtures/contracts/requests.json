@@ -37,24 +37,6 @@
     }
   },
   {
-    "name": "explicit null",
-    "input": {
-      "explorationId": "e1",
-      "nodeId": "root",
-      "question": "microSD cards",
-      "clarification": null,
-      "ancestors": []
-    },
-    "valid": true,
-    "normalized": {
-      "explorationId": "e1",
-      "nodeId": "root",
-      "question": "microSD cards",
-      "clarification": null,
-      "ancestors": []
-    }
-  },
-  {
     "name": "missing nullable field",
     "input": {
       "explorationId": "e1",

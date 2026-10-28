@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { css, cva } from '#styled/css';
+  import { button } from '#styled/recipes';
+  import { token } from '#styled/tokens';
+  import AppHeader from '#lib/components/AppHeader.svelte';
   import { onMount, untrack } from 'svelte';
-  import '@xyflow/svelte/dist/style.css';
   import TopicStart from '#lib/components/TopicStart.svelte';
   import ExplorationList from '#lib/components/ExplorationList.svelte';
   import Workspace from '#lib/components/Workspace.svelte';
@@ -39,6 +42,99 @@
     }
   });
   const session = research;
+  const shell = cva({
+    base: { minH: 'viewport', position: 'relative' },
+    variants: {
+      exploring: {
+        true: { h: 'viewport', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+      }
+    }
+  });
+  const styles = {
+    notice: css({
+      textStyle: 'body.sm',
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: '3',
+      px: 'gutter',
+      py: '3',
+      bg: 'accent.subtle',
+      borderBottomWidth: '1px',
+      borderColor: 'border',
+      flexShrink: '0',
+      overflowWrap: 'anywhere'
+    }),
+    label: css({
+      textStyle: 'label',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '3',
+      color: 'fg.muted'
+    }),
+    drawer: css({
+      position: 'fixed',
+      zIndex: '50',
+      top: '24',
+      bottom: '4',
+      left: 'gutter',
+      right: 'gutter',
+      maxW: 'lg',
+      ml: 'auto',
+      overflowY: 'auto',
+      bg: 'bg.surface',
+      borderWidth: '1px',
+      borderColor: 'border.strong',
+      rounded: 'panel',
+      shadow: 'lg',
+      p: '5',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '5'
+    }),
+    catalog: css({
+      position: 'fixed',
+      zIndex: '40',
+      inset: 'gutter',
+      bg: 'bg.surface',
+      borderWidth: '1px',
+      borderColor: 'border.strong',
+      rounded: 'panel',
+      p: 'section',
+      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4',
+      sm: { left: 'auto', w: '2xl' },
+      maxW: 'full'
+    }),
+    input: css({
+      w: 'full',
+      minW: '0',
+      minH: 'control',
+      borderWidth: '1px',
+      borderColor: 'border.strong',
+      rounded: 'control',
+      bg: 'bg.surface',
+      px: '3',
+      py: '2'
+    }),
+    catalogTopic: css({
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'start',
+      textAlign: 'left',
+      gap: '2',
+      p: '4',
+      rounded: 'control',
+      borderWidth: '1px',
+      borderColor: 'border',
+      bg: 'bg.surface',
+      overflowWrap: 'anywhere',
+      _hover: { bg: 'accent.subtle', borderColor: 'accent' }
+    })
+  };
   const navigation = new LibraryNavigation(client, research, () => {
     showLibrary = false;
   });
@@ -273,10 +369,10 @@
 <svelte:head
   ><title
     >{navigation.retained
-      ? navigation.retained.question + ' — Branch'
+      ? navigation.retained.question + ' — Trellis'
       : session.exploration
-        ? session.exploration.originalPrompt + ' — Branch'
-        : 'Branch — follow your curiosity'}</title
+        ? session.exploration.originalPrompt + ' — Trellis'
+        : 'Trellis — follow your curiosity'}</title
   ><meta
     name="description"
     content="Start with a question. Explore detailed explanations and follow an ever-growing tree of connected topics."
@@ -301,94 +397,79 @@
         void navigation.refresh(true);
       }}
     />{/if}{/snippet}
-<div class="app-shell" class:exploring={!!session.exploration || !!navigation.retained}>
-  <header class="app-header">
-    <button class="wordmark" aria-label="Branch home" onclick={home}
-      ><span class="logo-mark" aria-hidden="true">⌘</span>branch<span class="logo-dot">.</span
-      ></button
-    ><span class="header-divider"></span><span class="header-tagline"
-      >Room for a little wonder.</span
-    >
-    <div class="header-actions">
-      {#if session.exploration}<span
-          class="save-status"
-          class:save-failed={status === 'failed' || status === 'conflict'}
-          ><span class="green-dot"></span>{status === 'saved'
-            ? research.offline
-              ? 'Server disconnected'
-              : 'All changes saved'
-            : status === 'saving'
-              ? 'Saving…'
-              : status === 'conflict'
-                ? 'Changed in another tab'
-                : 'Not saved'}</span
-        ><button class="quiet-button" onclick={home}>+ New exploration</button>{/if}<button
-        class="quiet-button saved-topics-button"
-        disabled={!mounted}
-        onclick={showTopics}>Saved topics</button
-      ><button
-        class="library-button"
-        aria-label="Your explorations"
-        disabled={!mounted}
-        onclick={openLibrary}
-        ><span aria-hidden="true">▤</span><span>Your explorations</span>{#if saved.length}<span
-            class="library-count">{saved.length}</span
-          >{/if}</button
-      >
-    </div>
-  </header>
-  {#if research.notice && !research.exploration}<div class="workspace-notice" role="status">
+<div class={shell({ exploring: !!session.exploration || !!navigation.retained })}>
+  <AppHeader
+    exploring={!!session.exploration}
+    saveState={status === 'saved' && research.offline ? 'offline' : status}
+    disabled={!mounted}
+    explorationCount={saved.length}
+    onHome={home}
+    onSavedTopics={showTopics}
+    onExplorations={openLibrary}
+  />
+  {#if research.notice && !research.exploration}<div class={styles.notice} role="status">
       {research.notice}
     </div>{/if}
-  {#if navigation.history.length}<div class="return-location">
+  {#if navigation.history.length}<div
+      class={css({
+        px: 'gutter',
+        py: '2',
+        flexShrink: '0',
+        bg: 'bg.surface',
+        borderBottomWidth: '1px',
+        borderColor: 'border'
+      })}
+    >
       <button
-        class="quiet-button"
+        class={button({ visual: 'quiet' })}
         onclick={() => {
           void navigation.back();
         }}>Back to previous topic</button
       >
     </div>{/if}
-  {#if navigation.error}<div class="workspace-notice" role="alert">
+  {#if navigation.error}<div class={styles.notice} role="alert">
       {navigation.error}<button
-        class="icon-button"
+        class={button({ visual: 'icon' })}
         aria-label="Dismiss library error"
         onclick={() => (navigation.error = '')}>×</button
       >
     </div>{/if}
-  {#if error}<div class="workspace-notice" role="alert">
-      {error}<button class="icon-button" aria-label="Dismiss error" onclick={() => (error = '')}
-        >×</button
+  {#if error}<div class={styles.notice} role="alert">
+      {error}<button
+        class={button({ visual: 'icon' })}
+        aria-label="Dismiss error"
+        onclick={() => (error = '')}>×</button
       >
     </div>{/if}
-  {#if research.offline}<div class="workspace-notice" role="status">
+  {#if research.offline}<div class={styles.notice} role="status">
       Server disconnected. Reconnect to load or change saved content. <button
-        class="quiet-button"
+        class={button({ visual: 'quiet' })}
         onclick={() => {
           void ensureLibrary().catch((e) => (error = e.message));
         }}>Reconnect library</button
       >
     </div>{/if}
-  {#if status === 'failed' || status === 'conflict'}<div class="save-alert" role="alert">
+  {#if status === 'failed' || status === 'conflict'}<div class={styles.notice} role="alert">
       <p>
         {status === 'conflict'
           ? saveMessage || 'This exploration changed. Reload before continuing.'
           : research.viewError}
       </p>
       {#if status === 'conflict' && session.exploration}<button
-          class="quiet-button"
+          class={button({ visual: 'quiet' })}
           disabled={switching}
           onclick={reloadConflict}>Reload saved version</button
         >{:else}<button
-          class="quiet-button"
+          class={button({ visual: 'quiet' })}
           onclick={() => {
             void research.retryView().catch(() => {});
           }}>Retry saving</button
         >{/if}
     </div>{/if}
-  {#if showLibrary}<div class="library-drawer">
-      <div class="section-label">
+  {#if showLibrary}<div class={styles.drawer} role="region" aria-label="Your explorations drawer">
+      <div class={styles.label}>
         YOUR EXPLORATIONS<button
-          class="icon-button"
+          class={button({ visual: 'icon' })}
           aria-label="Close explorations"
           onclick={() => (showLibrary = false)}>×</button
         >
@@ -406,29 +487,30 @@
         onResume={resume}
         onDelete={remove}
       />{#if nextCursor && !research.offline}<button
-          class="quiet-button"
+          class={button({ visual: 'quiet' })}
           onclick={() => {
             void reloadSaved(true, true);
           }}>More explorations</button
-        >{/if}{#if !saved.length}<p class="empty-library">
+        >{/if}{#if !saved.length}<p class={css({ textStyle: 'body.sm', color: 'fg.muted' })}>
           Your explorations will find a home here.
         </p>{/if}
     </div>{/if}
-  {#if navigation.showCatalog}<section class="topic-catalog" aria-label="Saved topics">
-      <div class="section-label">
+  {#if navigation.showCatalog}<section class={styles.catalog} aria-label="Saved topics">
+      <div class={styles.label}>
         SAVED TOPICS<button
-          class="icon-button"
+          class={button({ visual: 'icon' })}
           aria-label="Close saved topics"
           onclick={() => (navigation.showCatalog = false)}>×</button
         >
       </div>
       <label for="topic-search">Search saved topics</label><input
         id="topic-search"
+        class={styles.input}
         maxlength="500"
         value={navigation.search}
         oninput={(event) => navigation.searchTopics(event.currentTarget.value)}
       />{#each navigation.catalog.items as topic (topic.id)}<button
-          class="catalog-topic"
+          class={styles.catalogTopic}
           aria-label={'Read saved topic ' + topic.question}
           onclick={() => {
             void navigation.openTopic(topic.id);
@@ -436,110 +518,188 @@
           ><strong>{topic.question}</strong><span>{topic.answerVersionCount} saved answers</span
           ></button
         >{/each}{#if navigation.catalog.nextCursor}<button
-          class="quiet-button"
+          class={button({ visual: 'quiet' })}
           onclick={() => {
             void navigation.listTopics(true);
           }}>More saved topics</button
         >{/if}
     </section>{/if}
-  {#if navigation.retained && mounted}<RetainedTopic
-      topic={navigation.retained}
-      disabled={research.offline || research.busy}
-      onStartExploration={() => {
-        void navigation.startRetained().then(() => reloadSaved());
-      }}
-      onReadVersion={(id) => {
-        void navigation.readVersion(id);
-      }}>{@render savedConnections()}</RetainedTopic
-    >
-  {:else if session.exploration && mounted}<Workspace {session}
-      >{#snippet readerExtras()}{#if navigation.topic}<AnswerVersions
-            topic={navigation.topic}
-            readOnly={research.readOnly || research.busy}
-            onChoose={(id) => {
-              void navigation.choose(id);
-            }}
-          />{/if}{@render savedConnections()}{/snippet}</Workspace
-    >{:else}<main class="home-main">
-      <div class="home-grid">
-        <TopicStart onStart={start} disabled={switching || !mounted} />
-        <div class="tree-illustration" aria-hidden="true">
-          <div class="illustration-eyebrow">A QUESTION IS JUST THE BEGINNING</div>
-          <svg viewBox="0 0 480 440" fill="none"
-            ><path
-              d="M82 220H158M158 103V337M158 103H225M158 220H225M158 337H225M337 103H363M363 53V153M363 53H403M363 153H403M337 337H395"
-              stroke="#b4c4aa"
-              stroke-width="1.5"
-            /><circle cx="82" cy="220" r="27" fill="#e5ecdb" stroke="#a7bd96" /><path
-              d="M73 220H91M82 211V229"
-              stroke="#637e50"
-              stroke-width="1.5"
-            /><rect
-              x="225"
-              y="72"
-              width="112"
-              height="62"
-              rx="11"
-              fill="#f0f3e8"
-              stroke="#b8c7ad"
-            /><rect
-              x="225"
-              y="189"
-              width="137"
-              height="62"
-              rx="11"
-              fill="#fffefa"
-              stroke="#cbd4c2"
-            /><rect
-              x="225"
-              y="306"
-              width="112"
-              height="62"
-              rx="11"
-              fill="#fffefa"
-              stroke="#cbd4c2"
-            /><circle cx="415" cy="53" r="12" fill="#edf2e5" stroke="#b6c7a6" /><circle
-              cx="415"
-              cy="153"
-              r="12"
-              fill="#edf2e5"
-              stroke="#b6c7a6"
-            /><circle cx="407" cy="337" r="12" fill="#edf2e5" stroke="#b6c7a6" /><text
-              x="243"
-              y="99"
-              fill="#506746"
-              font-size="11"
-              font-family="system-ui">How it works</text
-            ><text x="243" y="117" fill="#8a967e" font-size="9" font-family="system-ui"
-              >Look a little closer ↗</text
-            ><text x="243" y="217" fill="#506746" font-size="11" font-family="system-ui"
-              >What makes it possible</text
-            ><text x="243" y="235" fill="#8a967e" font-size="9" font-family="system-ui"
-              >Find the foundations ↗</text
-            ><text x="243" y="333" fill="#506746" font-size="11" font-family="system-ui"
-              >Something unexpected</text
-            ><text x="243" y="351" fill="#8a967e" font-size="9" font-family="system-ui"
-              >Make a connection ↗</text
-            ><circle cx="158" cy="220" r="3" fill="#91a57b" /></svg
-          ><span class="illustration-caption">Every answer opens another door.</span>
-        </div>
-      </div>
-      <div class="home-bottom">
-        {#if !showLibrary}<ExplorationList
-            explorations={saved}
-            onResume={resume}
-            onDelete={remove}
-          />{/if}
-        <div class="home-promise">
-          <span>01 <strong>Start anywhere.</strong></span><span
-            >02 <strong>Understand the details.</strong></span
-          ><span>03 <strong>See where it takes you.</strong></span>
-        </div>
-      </div>
-      <footer class="home-footer">
-        <span>Made for the beautifully curious.</span><span
-          >Private saved library · Stored on your server</span
+  <div class={css({ display: 'contents' })} inert={switching}>
+    {#if navigation.retained && mounted}<RetainedTopic
+        topic={navigation.retained}
+        disabled={research.offline || research.busy}
+        onStartExploration={() => {
+          void navigation.startRetained().then(() => reloadSaved());
+        }}
+        onReadVersion={(id) => {
+          void navigation.readVersion(id);
+        }}>{@render savedConnections()}</RetainedTopic
+      >
+    {:else if session.exploration && mounted}<Workspace {session}
+        >{#snippet readerExtras()}{#if navigation.topic}<AnswerVersions
+              topic={navigation.topic}
+              readOnly={research.readOnly || research.busy}
+              onChoose={(id) => {
+                void navigation.choose(id);
+              }}
+            />{/if}{@render savedConnections()}{/snippet}</Workspace
+      >{:else}<main class={css({ maxW: '7xl', mx: 'auto', px: 'gutter', w: 'full' })}>
+        <div
+          class={css({
+            display: 'grid',
+            gap: '8',
+            alignItems: 'center',
+            py: '6',
+            workspace: { gridTemplateColumns: '1.2fr 1fr', minH: '96', py: '10' }
+          })}
         >
-      </footer>
-    </main>{/if}
+          <TopicStart onStart={start} disabled={switching || !mounted} />
+          <div
+            class={css({
+              display: 'none',
+              workspace: { display: 'flex' },
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4',
+              color: 'fg.muted'
+            })}
+            aria-hidden="true"
+          >
+            <div class={css({ textStyle: 'label' })}>A QUESTION IS JUST THE BEGINNING</div>
+            <svg class={css({ w: 'full', h: 'auto' })} viewBox="0 0 480 440" fill="none"
+              ><path
+                d="M82 220H158M158 103V337M158 103H225M158 220H225M158 337H225M337 103H363M363 53V153M363 53H403M363 153H403M337 337H395"
+                stroke={token.var('colors.border.strong')}
+                stroke-width="1.5"
+              /><circle
+                cx="82"
+                cy="220"
+                r="27"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><path
+                d="M73 220H91M82 211V229"
+                stroke={token.var('colors.border.strong')}
+                stroke-width="1.5"
+              /><rect
+                x="225"
+                y="72"
+                width="112"
+                height="62"
+                rx="11"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><rect
+                x="225"
+                y="189"
+                width="137"
+                height="62"
+                rx="11"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><rect
+                x="225"
+                y="306"
+                width="112"
+                height="62"
+                rx="11"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><circle
+                cx="415"
+                cy="53"
+                r="12"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><circle
+                cx="415"
+                cy="153"
+                r="12"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><circle
+                cx="407"
+                cy="337"
+                r="12"
+                fill={token.var('colors.accent.subtle')}
+                stroke={token.var('colors.border.strong')}
+              /><text
+                x="243"
+                y="99"
+                fill={token.var('colors.accent')}
+                font-size="11"
+                font-family="system-ui">How it works</text
+              ><text
+                x="243"
+                y="117"
+                fill={token.var('colors.accent')}
+                font-size="9"
+                font-family="system-ui">Look a little closer ↗</text
+              ><text
+                x="243"
+                y="217"
+                fill={token.var('colors.accent')}
+                font-size="11"
+                font-family="system-ui">What makes it possible</text
+              ><text
+                x="243"
+                y="235"
+                fill={token.var('colors.accent')}
+                font-size="9"
+                font-family="system-ui">Find the foundations ↗</text
+              ><text
+                x="243"
+                y="333"
+                fill={token.var('colors.accent')}
+                font-size="11"
+                font-family="system-ui">Something unexpected</text
+              ><text
+                x="243"
+                y="351"
+                fill={token.var('colors.accent')}
+                font-size="9"
+                font-family="system-ui">Make a connection ↗</text
+              ><circle cx="158" cy="220" r="3" fill={token.var('colors.accent.subtle')} /></svg
+            ><span class={css({ textStyle: 'caption' })}>Every answer opens another door.</span>
+          </div>
+        </div>
+        <div class={css({ display: 'grid', gap: '8', py: '6' })}>
+          {#if !showLibrary}<ExplorationList
+              explorations={saved}
+              onResume={resume}
+              onDelete={remove}
+            />{/if}
+          <div
+            class={css({
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6',
+              color: 'fg.muted',
+              textStyle: 'body.sm'
+            })}
+          >
+            <span>01 <strong>Start anywhere.</strong></span><span
+              >02 <strong>Understand the details.</strong></span
+            ><span>03 <strong>See where it takes you.</strong></span>
+          </div>
+        </div>
+        <footer
+          class={css({
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            gap: '3',
+            textStyle: 'caption',
+            color: 'fg.muted',
+            borderTopWidth: '1px',
+            borderColor: 'border',
+            py: '6'
+          })}
+        >
+          <span>Made for the beautifully curious.</span><span
+            >Private saved library · Stored on your server</span
+          >
+        </footer>
+      </main>{/if}
+  </div>
 </div>

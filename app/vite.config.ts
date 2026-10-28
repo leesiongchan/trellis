@@ -6,7 +6,6 @@ import { defineConfig, lazyPlugins } from 'vite-plus';
 import pandacss from '@pandacss/vite';
 
 export default defineConfig({
-  // Unit tests keep the plain Svelte compiler used by the original test config.
   plugins: lazyPlugins(() =>
     process.env.VITEST
       ? [svelte(), pandacss({ transform: true })]

@@ -306,7 +306,7 @@ fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuar
     fs::create_dir(&public).unwrap();
     let html = "<!doctype html><html><body>Fixture</body></html>";
     fs::write(public.join("index.html"), html).unwrap();
-    fs::write(root.path().join("frontend-manifest.json"),json!({"version":1,"files":[{"path":"index.html","sha256":format!("{:x}",Sha256::digest(html)),"immutable":false}],"inlineScriptHashes":[]}).to_string()).unwrap();
+    fs::write(root.path().join("frontend-manifest.json"),json!({"version":1,"files":[{"path":"index.html","sha256":hex::encode(Sha256::digest(html)),"immutable":false}],"inlineScriptHashes":[]}).to_string()).unwrap();
     let executable = root.path().join("branch-backend");
     fs::copy(env!("CARGO_BIN_EXE_branch-backend"), &executable).unwrap();
     let unrelated = root.path().join("unrelated");

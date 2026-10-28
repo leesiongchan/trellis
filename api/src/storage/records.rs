@@ -95,7 +95,7 @@ pub fn canonical_hash(input: &Value) -> String {
     }
     let mut encoded = String::new();
     encode(input, &mut encoded);
-    format!("{:x}", Sha256::digest(encoded.as_bytes()))
+    hex::encode(Sha256::digest(encoded.as_bytes()))
 }
 pub(crate) fn now() -> Result<String, AppError> {
     time::OffsetDateTime::now_utc()

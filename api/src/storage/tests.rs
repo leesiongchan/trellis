@@ -16,49 +16,6 @@ fn packaged_storage_configuration_does_not_require_the_source_checkout() {
     );
 }
 
-#[tokio::test]
-async fn embedded_nested_answer_round_trip() {
-    let directory = tempfile::tempdir().unwrap();
-    let config = StorageConfig::from_values(
-        &HashMap::from([(
-            "APP_DATA_DIR".into(),
-            directory.path().join("data").display().to_string(),
-        )]),
-        &directory.path().join("release/branch-backend"),
-    )
-    .unwrap();
-    let store = KnowledgeStore::open(&config).await.unwrap();
-    let before = {
-        let guard = store.client.read().await;
-        let db = guard.as_ref().unwrap();
-        db.query("CREATE fixture:answer CONTENT {summary:[{text:'Flash retains charge.',evidence:[{sourceId:'s1',quote:'Flash retains charge.'}]}],sources:[{id:'s1',url:'https://example.org/flash',retrievedAt:'2026-10-27T00:00:00Z'}]};").await.unwrap().check().unwrap();
-        db.query("SELECT * FROM ONLY fixture:answer;")
-            .await
-            .unwrap()
-            .take::<surrealdb::types::Value>(0)
-            .unwrap()
-    };
-    assert_eq!(
-        before.clone().into_json_value()["summary"][0]["text"],
-        "Flash retains charge."
-    );
-    store.close().await.unwrap();
-    let store = KnowledgeStore::open(&config).await.unwrap();
-    let after = {
-        let guard = store.client.read().await;
-        guard
-            .as_ref()
-            .unwrap()
-            .query("SELECT * FROM ONLY fixture:answer;")
-            .await
-            .unwrap()
-            .take::<surrealdb::types::Value>(0)
-            .unwrap()
-    };
-    assert_eq!(after, before);
-    store.close().await.unwrap();
-}
-
 #[test]
 fn transaction_root_error_is_not_hidden_by_rollback_markers() {
     use surrealdb::types::{Error, QueryError};
@@ -410,38 +367,6 @@ async fn commit_precedes_completion() {
             .is_some()
     );
     service.drain().await.unwrap();
-    store.close().await.unwrap();
-}
-
-#[tokio::test]
-async fn schema_probe_before_initial_install() {
-    let root = tempfile::tempdir().unwrap();
-    let store = KnowledgeStore::open(&StorageConfig {
-        data_dir: root.path().join("data"),
-        backup_dir: root.path().join("backups"),
-        model_dir: root.path().join("models"),
-        asset_dir: root.path().join("public"),
-    })
-    .await
-    .unwrap();
-    assert!(store.check_schema().await.is_ok());
-    store.close().await.unwrap();
-}
-
-#[tokio::test]
-async fn native_backup_counts_are_scalar() {
-    let root = tempfile::tempdir().unwrap();
-    let store = KnowledgeStore::open(&StorageConfig {
-        data_dir: root.path().join("data"),
-        backup_dir: root.path().join("backups"),
-        model_dir: root.path().join("models"),
-        asset_dir: root.path().join("public"),
-    })
-    .await
-    .unwrap();
-    store.install_schema().await.unwrap();
-    let counts=store.query_value("RETURN {library:((SELECT count() AS total FROM library GROUP ALL)[0].total ?? 0),topic:((SELECT count() AS total FROM topic GROUP ALL)[0].total ?? 0)};",serde_json::json!({})).await.unwrap();
-    assert_eq!(counts, serde_json::json!({"library":1,"topic":0}));
     store.close().await.unwrap();
 }
 

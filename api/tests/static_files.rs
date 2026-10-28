@@ -26,7 +26,9 @@ fn fixture() -> (tempfile::TempDir, PathBuf, String) {
     let mut entries = vec![];
     for (path, body, immutable) in files {
         fs::write(public.join(path), body).unwrap();
-        entries.push(json!({"path":path,"sha256":format!("{:x}",Sha256::digest(body)),"immutable":immutable}));
+        entries.push(
+            json!({"path":path,"sha256":hex::encode(Sha256::digest(body)),"immutable":immutable}),
+        );
     }
     fs::write(
         dir.path().join("frontend-manifest.json"),

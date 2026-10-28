@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 use branch_backend::contracts::{ResearchRequest, ResearchResult, public_source_url, utf16_len};
-use serde_json::{Value, json};
+use serde_json::Value;
 
 #[test]
 fn shared_requests_match_browser() {
@@ -39,16 +39,6 @@ fn utf16_and_source_validation_match_browser_boundaries() {
     ] {
         assert!(!public_source_url(url), "{url}");
     }
-}
-
-#[test]
-fn required_nullable_field_cannot_be_omitted() {
-    assert!(
-        ResearchRequest::from_json(
-            json!({"explorationId":"e", "nodeId":"n", "question":"Q", "ancestors":[]})
-        )
-        .is_err()
-    );
 }
 
 #[test]

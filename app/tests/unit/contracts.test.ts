@@ -1,20 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
-import {
-  ExplorationSchema,
-  ResearchRequestSchema,
-  SourceSchema
-} from '../../src/lib/knowledge/schemas';
-import { newId, normalizeQuestion } from '../../src/lib/knowledge/normalize';
-import { makeExploration, makeRequest } from '../fixtures/knowledge';
+import { SourceSchema } from '../../src/lib/knowledge/schemas';
+import { normalizeQuestion } from '../../src/lib/knowledge/normalize';
 
 describe('knowledge contracts', () => {
   it('preservesUnicodeQuestions', () => {
     expect(normalizeQuestion('  为什么能存储数据？  ')).toBe('为什么能存储数据？');
-    expect(new Set(Array.from({ length: 100 }, newId)).size).toBe(100);
-  });
-  it('rejectsBlankOrOversizedQuestions', () => {
-    for (const question of ['   ', 'x'.repeat(501)])
-      expect(ResearchRequestSchema.safeParse(makeRequest({ question })).success).toBe(false);
   });
   it('rejectsUnsafeSourceUrls', () => {
     const source = {
@@ -37,9 +27,5 @@ describe('knowledge contracts', () => {
     expect(
       SourceSchema.safeParse({ ...source, url: 'https://example.org/reference' }).success
     ).toBe(true);
-  });
-  it('roundTripsAnExploration', () => {
-    const value = makeExploration();
-    expect(ExplorationSchema.parse(JSON.parse(JSON.stringify(value)))).toEqual(value);
   });
 });

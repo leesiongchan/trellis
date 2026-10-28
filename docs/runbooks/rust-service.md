@@ -1,6 +1,6 @@
 # Rust service operation
 
-Branch runs as one Rust process serving the static Svelte frontend, private access, durable knowledge, research, health and metrics using one embedded SurrealDB/RocksDB handle. Node/pnpm are build and development tools. The packaged executable does not require them at runtime.
+Trellis runs as one Rust process serving the static Svelte frontend, private access, durable knowledge, research, health and metrics using one embedded SurrealDB/RocksDB handle. Node/pnpm are build and development tools. The packaged executable does not require them at runtime.
 
 ## Build and start
 
@@ -27,11 +27,11 @@ Configuration is read once. Process environment overrides file values. Unset `AP
 
 `pnpm dev --port 5173` starts Vite+ and the Rust backend after an initial `pnpm build`. Vite+ preserves Host/Origin while forwarding access/API/health/metrics to Rust on port 3001. Dev explicitly uses the loopback frontend origin, independently of the production origin in `.env`. Frontend edits hot reload; restart for Rust changes. A port collision stops the new processes; it does not stop another app.
 
-## Private Tailscale access and upgrades
+## HTTPS proxy access and upgrades
 
-Inspect `tailscale serve status` before changing a listener. Existing forwarding and preview port 60090 must be preserved. This migration does not alter forwarding or enable Funnel. The supported proxy must retain the external Host header; arbitrary `Forwarded` and `X-Forwarded-*` values are not trusted. Research checks the exact configured Origin and Host. A local HTTPS proxy fixture verifies this contract; the new Rust release has not been deployed through the actual tailnet route.
+The server binds to loopback and can be reached through an HTTPS proxy. The proxy must retain the external Host header; arbitrary `Forwarded` and `X-Forwarded-*` values are not trusted. Set `APP_ORIGIN` to the exact browser-facing origin. Research checks the configured Origin and Host. A local HTTPS proxy fixture verifies this contract.
 
-For a separately authorized deployment, preserve the existing scheme, hostname and port in `APP_ORIGIN` and point the existing app route at the loopback service. Keep the access key unchanged if old valid cookies should survive. Changing the key invalidates them. Do not create a second route or overwrite preview forwarding to perform a routine binary upgrade.
+For deployment, point the proxy at the loopback service. Preserve the existing scheme, hostname and port in `APP_ORIGIN` during upgrades. Keep the access key unchanged if old valid cookies should survive. Changing the key invalidates them.
 
 Explorations and view state live in the server datastore and are available across browsers with private access. The app has no browser cache or offline fallback. Existing browser databases are left untouched and are no longer imported. Back up the server data directory using the supported backup procedure.
 

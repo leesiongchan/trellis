@@ -31,10 +31,8 @@ impl Setup {
         let bytes = include_bytes!("../../tests/fixtures/library/test-tokenizer.json");
         std::fs::write(root.path().join("tokenizer.json"), bytes).unwrap();
         let mut m = ModelManifest::pinned().unwrap();
-        m.artifact_hashes = BTreeMap::from([(
-            "tokenizer.json".into(),
-            format!("{:x}", Sha256::digest(bytes)),
-        )]);
+        m.artifact_hashes =
+            BTreeMap::from([("tokenizer.json".into(), hex::encode(Sha256::digest(bytes)))]);
         let manifest = m.with_tokenizer(root.path()).unwrap();
         let store = Arc::new(
             KnowledgeStore::open(&StorageConfig {

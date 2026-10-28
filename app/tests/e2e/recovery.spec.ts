@@ -165,7 +165,7 @@ test('deletion from another tab fences pending work without recreating the tree'
     )
     .not.toBe('pending');
   await other.reload();
-  const drawer = other.locator('.library-drawer');
+  const drawer = other.getByRole('region', { name: 'Your explorations drawer', exact: true });
   if (!(await drawer.isVisible()))
     await other.getByRole('button', { name: 'Your explorations', exact: true }).click();
   await drawer.getByRole('button', { name: 'Delete microSD cards', exact: true }).click();
@@ -203,7 +203,7 @@ test('reload resolves an admitted lost response without another research submiss
   const before = requests.length;
   await page.unroute('**/api/appearances/*/research');
   await page.reload();
-  await page.getByRole('button', { name: 'Branch home', exact: true }).click();
+  await page.getByRole('button', { name: 'Trellis home', exact: true }).click();
   await page.getByRole('button', { name: 'Resume microSD cards', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'microSD cards', exact: true })).toBeVisible();
   expect(requests.length).toBe(before);

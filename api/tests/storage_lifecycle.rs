@@ -203,7 +203,7 @@ async fn durability_child() {
     let mut manifest = ModelManifest::pinned().unwrap();
     manifest.artifact_hashes = std::collections::BTreeMap::from([(
         "tokenizer.json".into(),
-        format!("{:x}", Sha256::digest(bytes)),
+        hex::encode(Sha256::digest(bytes)),
     )]);
     let embedder = Arc::new(matching_fixture::FakeEmbedder {
         manifest: manifest.with_tokenizer(&root).unwrap(),

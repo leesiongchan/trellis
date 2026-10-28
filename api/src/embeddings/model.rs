@@ -100,7 +100,7 @@ fn verified_file(
         return Err(EmbeddingError::CorruptModel);
     }
     let bytes = std::fs::read(path).map_err(|_| EmbeddingError::MissingModel)?;
-    let actual = format!("{:x}", Sha256::digest(&bytes));
+    let actual = hex::encode(Sha256::digest(&bytes));
     if manifest.artifact_hashes.get(name) != Some(&actual) {
         return Err(EmbeddingError::CorruptModel);
     }

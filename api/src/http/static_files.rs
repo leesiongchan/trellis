@@ -89,7 +89,7 @@ impl StaticAssets {
             if total > 128 * 1024 * 1024 {
                 return Err(invalid());
             }
-            if format!("{:x}", Sha256::digest(&bytes)) != entry.sha256 {
+            if hex::encode(Sha256::digest(&bytes)) != entry.sha256 {
                 return Err(invalid());
             }
             let mime = HeaderValue::from_str(

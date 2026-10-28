@@ -118,11 +118,10 @@ impl HttpProviders {
                 provider: "openai-responses".into(),
                 requested_model: self.config.model.clone(),
                 reported_model,
-                prompt_sha256: format!("{:x}", Sha256::digest(EXPLAIN_PROMPT.as_bytes())),
-                output_schema_sha256: format!(
-                    "{:x}",
-                    Sha256::digest(include_bytes!("schemas/topic.json"))
-                ),
+                prompt_sha256: hex::encode(Sha256::digest(EXPLAIN_PROMPT.as_bytes())),
+                output_schema_sha256: hex::encode(Sha256::digest(include_bytes!(
+                    "schemas/topic.json"
+                ))),
                 reasoning_effort: "low".into(),
                 max_output_tokens: 8000,
                 response_storage: false,

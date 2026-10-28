@@ -3,7 +3,6 @@ export const fixtureKey = 'fixture-access-key-'.repeat(4);
 export async function authorize(page: Page) {
   await page.goto('/access?key=' + encodeURIComponent(fixtureKey));
 }
-// Observe genuine Rust requests and saved snapshots; all answers pass through embedded storage.
 export async function observeResearch(page: Page, authenticate = true) {
   if (authenticate) await authorize(page);
   const questions = new Map<string, string>(),
@@ -42,7 +41,6 @@ export async function startExample(page: Page) {
   ).toBeAttached();
 }
 
-// Seed the real server import API; browser storage is never used by fixtures.
 export async function seedServerExploration(
   page: Page,
   value: import('../../src/lib/knowledge/types').Exploration

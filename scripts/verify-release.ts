@@ -342,7 +342,6 @@ async function verify() {
     );
     checks.push('backup-restore', 'epoch-fencing');
     await stop(process);
-    // The packaged pinned model is loaded by the native executable, without tools on PATH.
     process = launch([], { ...restoredEnv, APP_MODEL_DIR: join(root, 'release/models') });
     await ready(process, 'ready');
     check(
