@@ -1,6 +1,6 @@
 # Trellis Fieldnotes and Panda CSS design
 
-Status: proposed; Fieldnotes selected by the user on 2026-10-28. Written design approval is pending.
+Status: approved by the user on 2026-10-28; ready for implementation planning. Fieldnotes was selected after comparing three interactive directions.
 
 Builder check: a fresh frontend reviewer found no important unanswered questions before implementation planning.
 
@@ -56,7 +56,7 @@ The throwaway comparison lives at `.superpowers/brainstorm/3988-1793185376/conte
 
 ## Assistant-proposed defaults
 
-These are design calls for approval, not additional requirements stated independently by the user:
+These assistant-proposed defaults were accepted with design approval; they were not additional requirements stated independently by the user:
 
 - Apply Fieldnotes to all existing frontend surfaces, including the start screen and saved-library interfaces.
 - Ship one light appearance with semantic tokens that make future changes practical.
