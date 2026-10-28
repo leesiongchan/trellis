@@ -1,5 +1,6 @@
 import { defineConfig } from '@pandacss/dev';
 import { semanticTokens, textStyles, tokens } from './src/lib/theme/tokens';
+import { buttonRecipe } from './src/lib/theme/button.recipe';
 
 export default defineConfig({
   presets: ['@pandacss/preset-base', '@pandacss/preset-panda'],
@@ -14,6 +15,7 @@ export default defineConfig({
       tokens,
       semanticTokens,
       textStyles,
+      recipes: { button: buttonRecipe },
       breakpoints: { workspace: '64rem' }
     }
   },

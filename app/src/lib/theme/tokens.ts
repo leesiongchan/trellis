@@ -42,7 +42,7 @@ export const tokens = defineTokens({
     gutter: { value: 'clamp(1rem, 0.6rem + 1.5vw, 2.5rem)' },
     section: { value: 'clamp(1.5rem, 1rem + 2vw, 3rem)' }
   },
-  sizes: { prose: { value: '70ch' }, control: { value: '2.75rem' } },
+  sizes: { prose: { value: '70ch' }, control: { value: '2.75rem' }, viewport: { value: '100dvh' } },
   radii: { panel: { value: '0.875rem' }, control: { value: '0.5rem' } },
   durations: { fast: { value: '150ms' }, normal: { value: '200ms' } },
   easings: { standard: { value: 'cubic-bezier(0.2, 0, 0, 1)' } }

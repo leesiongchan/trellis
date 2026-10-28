@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   import type { SavedExploration } from '#lib/knowledge/types.ts';
   let {
     explorations,
@@ -13,18 +15,57 @@
 </script>
 
 {#if explorations.length}
-  <section class="saved-explorations" aria-label="Saved explorations">
-    <div class="section-label">PICK UP A THREAD <span>{explorations.length} saved</span></div>
+  <section class={css({ display: 'grid', gap: '3', minW: '0' })} aria-label="Saved explorations">
+    <div
+      class={css({
+        textStyle: 'label',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '3',
+        justifyContent: 'space-between',
+        color: 'fg.muted',
+        mb: '2'
+      })}
+    >
+      PICK UP A THREAD <span>{explorations.length} saved</span>
+    </div>
     {#each explorations as item (item.id)}
-      <div class="saved-item">
+      <div
+        class={css({
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) auto',
+          gap: '2',
+          alignItems: 'start',
+          borderBottomWidth: '1px',
+          borderColor: 'border',
+          pb: '3'
+        })}
+      >
         <button
-          class="saved-resume"
+          class={css({
+            display: 'flex',
+            gap: '3',
+            alignItems: 'start',
+            textAlign: 'left',
+            minW: '0',
+            minH: 'control',
+            p: '2',
+            rounded: 'control',
+            bg: 'transparent',
+            _hover: { bg: 'accent.subtle' }
+          })}
           aria-label={'Resume ' + item.originalPrompt}
           onclick={() => onResume(item.id)}
         >
-          <span class="saved-icon">↗</span><span
-            ><strong>{item.originalPrompt}</strong><small
-              >{#if item.importedFrom}<span class="copy-tag"
+          <span class={css({ color: 'accent', fontSize: 'xl', flexShrink: '0' })} aria-hidden="true"
+            >↗</span
+          ><span class={css({ minW: '0', display: 'grid', gap: '2' })}
+            ><strong
+              class={css({ textStyle: 'body.sm', fontWeight: 'medium', overflowWrap: 'anywhere' })}
+              >{item.originalPrompt}</strong
+            ><small
+              class={css({ textStyle: 'caption', color: 'fg.muted', overflowWrap: 'anywhere' })}
+              >{#if item.importedFrom}<span
                   >{item.importedFrom.changedCopy
                     ? 'Changed browser copy'
                     : 'Imported browser copy'}</span
@@ -38,14 +79,29 @@
           >
         </button>
         <button
-          class="icon-button"
+          class={button({ visual: 'icon' })}
           aria-label={'Delete ' + item.originalPrompt}
           onclick={() => (deleting = item.id)}>×</button
         >
-        {#if deleting === item.id}<div class="delete-confirm" role="alert">
+        {#if deleting === item.id}<div
+            class={css({
+              gridColumn: '1 / -1',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '2',
+              p: '3',
+              bg: 'danger.subtle',
+              rounded: 'control',
+              textStyle: 'body.sm',
+              overflowWrap: 'anywhere'
+            })}
+            role="alert"
+          >
             <p>Delete this exploration? Saved topics and answer history remain in the library.</p>
-            <button class="quiet-button" onclick={() => (deleting = null)}>Keep it</button><button
-              class="danger-button"
+            <button class={button({ visual: 'quiet' })} onclick={() => (deleting = null)}
+              >Keep it</button
+            ><button
+              class={button({ visual: 'danger' })}
               onclick={() => {
                 onDelete(item.id);
                 deleting = null;

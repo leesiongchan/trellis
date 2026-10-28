@@ -1,5 +1,6 @@
 <script lang="ts">
   import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   let { onStart, disabled = false }: { onStart: (question: string) => void; disabled?: boolean } =
     $props();
   let question = $state('');
@@ -81,23 +82,13 @@
         required
         {disabled}
       /><button
-        class={css({
-          gridColumn: '1 / -1',
-          minH: 'control',
-          px: '5',
-          py: '3',
-          rounded: 'control',
-          bg: 'accent',
-          color: 'bg.surface',
-          fontSize: 'sm',
-          fontWeight: 'medium',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '3',
-          _hover: { bg: 'accent.hover' },
-          '@container (min-width: 26rem)': { gridColumn: 'auto' }
-        })}
+        class={[
+          button({ visual: 'primary' }),
+          css({
+            gridColumn: '1 / -1',
+            '@container (min-width: 26rem)': { gridColumn: 'auto' }
+          })
+        ]}
         aria-label="Start exploring"
         type="submit"
         disabled={disabled || !question.trim()}>Explore <span aria-hidden="true">↗</span></button
@@ -108,17 +99,10 @@
     <span class={css({ textStyle: 'caption', color: 'fg.muted', w: 'full', mb: '1' })}
       >A few starting points</span
     >{#each examples as example}<button
-        class={css({
-          textStyle: 'caption',
-          minH: 'control',
-          px: '3',
-          rounded: 'full',
-          borderWidth: '1px',
-          borderColor: 'border',
-          color: 'accent',
-          bg: 'bg.surface',
-          _hover: { bg: 'accent.subtle', borderColor: 'accent' }
-        })}
+        class={[
+          button({ visual: 'outline', size: 'sm' }),
+          css({ rounded: 'full', textStyle: 'caption' })
+        ]}
         onclick={() => {
           question = example;
           input.focus();
