@@ -1,0 +1,1660 @@
+@font-face {
+  font-family: 'Instrument Serif';
+  src: url('assets/fonts/instrument-serif-regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  src: url('assets/fonts/instrument-serif-italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Sans';
+  src: url('assets/fonts/dm-sans-variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+:root {
+  --paper: #f7f7f2;
+  --surface: #fffef9;
+  --ink: #26392c;
+  --green: #3e6547;
+  --muted: #606a55;
+  --line: #d9dfd0;
+  --pale: #e7efdf;
+  --canvas: #f0f3e9;
+  --rust: #a94b2f;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  color-scheme: light;
+  font-family: var(--sans);
+  font-synthesis: none;
+  color: var(--ink);
+  background: var(--paper);
+  scroll-behavior: smooth;
+  scroll-padding-top: 2rem;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 5px;
+}
+::selection {
+  color: var(--surface);
+  background: var(--green);
+}
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+h1,
+h2,
+h3,
+p,
+figure {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  font-weight: 400;
+}
+h1,
+h2 {
+  font-family: var(--serif);
+  text-wrap: balance;
+}
+em {
+  font-family: var(--serif);
+  font-weight: 400;
+  color: var(--green);
+}
+p {
+  line-height: 1.75;
+}
+button {
+  color: inherit;
+}
+.page-width {
+  width: min(1280px, calc(100% - 112px));
+  margin-inline: auto;
+}
+.section-space {
+  padding-block: 112px;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: var(--green);
+}
+.eyebrow > span:not(.tiny-star) {
+  padding-inline: 10px;
+  color: #849077;
+}
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  padding: 0.8rem 1rem;
+  background: var(--ink);
+  color: var(--surface);
+  z-index: 20;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  min-height: 104px;
+  border-bottom: 1px solid var(--line);
+  gap: 28px;
+}
+.wordmark {
+  font-family: var(--serif);
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.wordmark span {
+  color: var(--green);
+}
+.header-note {
+  font-size: 11px;
+  color: var(--muted);
+  border-left: 1px solid var(--line);
+  padding-left: 28px;
+}
+.site-header nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  font-size: 12px;
+}
+.site-header nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+.site-header nav a:hover,
+.text-link:hover,
+.site-footer a:hover {
+  color: var(--green);
+}
+.site-header .nav-github {
+  border: 1px solid #afb9a5;
+  padding: 0 18px;
+  border-radius: 4px;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  align-items: center;
+  min-height: 790px;
+  padding-block: 45px 90px;
+  gap: 30px;
+}
+.hero-copy {
+  padding-bottom: 30px;
+  z-index: 1;
+}
+.hero .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tiny-star {
+  font-size: 23px;
+  line-height: 1;
+}
+.hero h1 {
+  font-size: clamp(72px, 7.8vw, 112px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  margin-top: 30px;
+}
+.hero h1 em {
+  display: inline-block;
+  padding-bottom: 0.1em;
+}
+.hero-description {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 355px;
+  margin-top: 25px;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 22px;
+  row-gap: 18px;
+  margin-top: 30px;
+}
+.button {
+  min-height: 49px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 27px;
+  padding: 14px 22px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
+}
+.button:hover {
+  transform: translateY(-2px);
+}
+.button-dark {
+  background: var(--ink);
+  color: var(--surface);
+}
+.button-dark:hover {
+  background: var(--green);
+}
+.text-link {
+  font-size: 12px;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+}
+.hero-footnote {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 24px;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.015em;
+}
+.hero-footnote > span {
+  color: var(--green);
+  font-size: 16px;
+}
+.botanical-plate {
+  height: 660px;
+  position: relative;
+  min-width: 0;
+}
+.plate-heading {
+  position: absolute;
+  top: 15px;
+  left: 30px;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.botanical {
+  width: 100%;
+  height: 590px;
+  object-fit: contain;
+  margin-top: 10px;
+}
+.plate-annotation {
+  position: absolute;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--muted);
+}
+.annotation-one {
+  left: 0;
+  top: 62%;
+  transform: rotate(-8deg);
+}
+.annotation-two {
+  right: 0;
+  top: 32%;
+  transform: rotate(7deg);
+}
+.annotation-three {
+  left: 4%;
+  top: 16%;
+  transform: rotate(-6deg);
+}
+.specimen-label {
+  position: absolute;
+  bottom: 74px;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid #bfc9b4;
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: 3px 4px 0 #e6eadf;
+  padding: 15px 18px;
+  font-size: 13px;
+  transform: rotate(-3deg);
+  transition: transform 0.2s;
+}
+.specimen-label:hover {
+  transform: rotate(0);
+}
+.specimen-label small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  padding-top: 5px;
+}
+.specimen-number {
+  font-family: var(--serif);
+  font-size: 33px;
+  color: var(--green);
+  border-right: 1px solid var(--line);
+  padding-right: 14px;
+}
+.botanical-plate figcaption {
+  position: absolute;
+  bottom: 8px;
+  left: 30px;
+  right: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.botanical-plate figcaption span {
+  padding-inline: 9px;
+}
+.scroll-note {
+  position: absolute;
+  bottom: 25px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.scroll-note span {
+  font-size: 22px;
+  color: var(--green);
+}
+.intro-strip {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding-block: 29px;
+}
+.strip-mark {
+  font-size: 44px;
+  color: var(--green);
+}
+.intro-strip p {
+  font-family: var(--serif);
+  font-size: 35px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.strip-note {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.section-heading {
+  margin-bottom: 44px;
+}
+.heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 20px;
+}
+.heading-row h2,
+.ritual-intro h2 {
+  font-size: clamp(44px, 4.6vw, 65px);
+  line-height: 1.03;
+  letter-spacing: -0.025em;
+}
+.heading-row > p {
+  max-width: 345px;
+  font-size: 14px;
+  color: var(--muted);
+  padding-bottom: 4px;
+}
+.trail-experience {
+  border: 1px solid #c5cfba;
+  border-radius: 7px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.trail-toolbar {
+  min-height: 70px;
+  padding: 15px 24px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.trail-toolbar-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+.trail-choices {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.trail-choices button {
+  border: 1px solid transparent;
+  border-radius: 99px;
+  background: transparent;
+  padding: 9px 13px;
+  min-height: 44px;
+  font-size: 11px;
+  transition: background-color 0.15s;
+}
+.trail-choices button[aria-pressed='true'] {
+  border-color: #a4b499;
+  background: var(--pale);
+}
+.trail-choices button:hover {
+  background: var(--pale);
+}
+.sample-label {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.trail-body {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+}
+.trail-map {
+  position: relative;
+  min-height: 470px;
+  background: var(--canvas);
+  background-image: radial-gradient(#c9d2be 0.6px, transparent 0.6px);
+  background-size: 18px 18px;
+  isolation: isolate;
+}
+.map-kicker {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 9px;
+  color: var(--muted);
+}
+.status-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--green);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.trail-lines {
+  position: absolute;
+  inset: 25px 0;
+  width: 100%;
+  height: 420px;
+  z-index: -1;
+  stroke: #91a383;
+  stroke-width: 1.2;
+}
+.trail-lines circle {
+  fill: var(--canvas);
+}
+.question-node {
+  background: var(--surface);
+  border: 1px solid #a9b89c;
+  border-radius: 5px;
+  text-align: left;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.question-node:hover {
+  background: #f3f6ec;
+  border-color: var(--green);
+}
+.question-node[aria-pressed='true'] {
+  background: var(--pale);
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px #3e65470c;
+}
+.root-node {
+  position: absolute;
+  top: 50%;
+  left: 6%;
+  transform: translateY(-50%);
+  width: 32%;
+  min-height: 130px;
+  padding: 16px 13px 0;
+}
+.node-kind {
+  display: block;
+  font-size: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.root-question {
+  display: block;
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.08;
+  margin-top: 8px;
+  letter-spacing: -0.01em;
+}
+.node-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #c1ceb7;
+  margin-top: 14px;
+  padding-block: 9px;
+  font-size: 8px;
+  color: var(--green);
+}
+.branch-nodes {
+  position: absolute;
+  inset: 47px 5% 43px 61%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 15px;
+}
+.branch-node {
+  position: relative;
+  min-height: 87px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 13px 30px 13px 13px;
+}
+.branch-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.1;
+  display: block;
+  margin-top: 5px;
+}
+.branch-symbol {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--green);
+  font-size: 20px;
+}
+.question-node[aria-pressed='true'] .branch-symbol {
+  color: var(--rust);
+}
+.map-bottom-note {
+  position: absolute;
+  bottom: 20px;
+  left: 22px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--muted);
+}
+.field-note {
+  padding: 31px 35px 25px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.note-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.note-symbol {
+  font-size: 24px;
+  color: var(--green);
+}
+.note-content h3 {
+  font-family: var(--serif);
+  font-size: 39px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-block: 25px 20px;
+  text-wrap: balance;
+}
+.note-content > p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.note-content .note-connection {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.35;
+  color: var(--green);
+  padding-left: 15px;
+  margin-block: 22px;
+  border-left: 2px solid #9bb58b;
+}
+.note-source {
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--green);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 15px;
+  min-height: 44px;
+}
+.note-source:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.demo-disclosure {
+  padding: 13px 22px;
+  border-top: 1px solid var(--line);
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.noscript-note {
+  padding: 15px 22px;
+  font-size: 13px;
+}
+.workspace-section {
+  background: #edf0e6;
+  border-block: 1px solid var(--line);
+}
+.app-figure {
+  padding-top: 8px;
+}
+.app-frame {
+  border: 1px solid #aebda0;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px #26392c08;
+}
+.app-frame-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 18px;
+  background: #e2e8d8;
+  font-size: 9px;
+  color: var(--muted);
+  border-bottom: 1px solid #c9d3bf;
+}
+.window-dots {
+  display: flex;
+  gap: 5px;
+}
+.window-dots i {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #9dac90;
+  border-radius: 50%;
+}
+.frame-leaf {
+  font-size: 17px;
+  line-height: 1;
+}
+.screenshot-link {
+  display: block;
+  background: var(--paper);
+}
+.screenshot-link img {
+  width: 100%;
+  height: auto;
+}
+.app-figure figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.app-figure figcaption a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  min-height: 32px;
+}
+.workspace-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 39px;
+  gap: 36px;
+}
+.workspace-notes > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.observation-number {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 27px;
+  color: var(--green);
+  line-height: 1.2;
+}
+.workspace-notes p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.workspace-notes strong {
+  display: block;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.screenshot-disclosure {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 23px;
+}
+.ritual-section {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 95px;
+}
+.ritual-intro h2 {
+  margin-top: 25px;
+}
+.ritual-intro > p:not(.eyebrow) {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 320px;
+  margin-top: 25px;
+}
+.little-botanical {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+.little-botanical svg {
+  width: 170px;
+  height: 125px;
+  stroke: #809773;
+  stroke-width: 1.2;
+}
+.little-botanical span {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-style: italic;
+  color: var(--muted);
+  transform: rotate(-6deg);
+  line-height: 1.2;
+}
+.ritual-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: steps;
+}
+.ritual-steps li {
+  display: flex;
+  gap: 25px;
+  padding-block: 31px;
+  border-bottom: 1px solid var(--line);
+}
+.ritual-steps li:first-child {
+  padding-top: 10px;
+}
+.ritual-steps li:last-child {
+  border-bottom: 0;
+}
+.step-number {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 29px;
+  color: #819373;
+  min-width: 35px;
+  line-height: 1.2;
+}
+.ritual-steps h3 {
+  font-family: var(--serif);
+  font-size: 31px;
+  line-height: 1.1;
+}
+.ritual-steps p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 13px;
+  max-width: 335px;
+}
+.start-section {
+  padding-bottom: 80px;
+}
+.start-panel {
+  position: relative;
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: 6px;
+  padding: 65px 70px;
+  overflow: hidden;
+}
+.start-copy {
+  position: relative;
+  z-index: 1;
+}
+.start-copy .eyebrow {
+  color: #c8d7b9;
+}
+.start-copy h2 {
+  font-size: clamp(50px, 5.8vw, 80px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-top: 23px;
+}
+.start-copy h2 em {
+  color: #c4d6b4;
+}
+.start-copy > p:not(.eyebrow) {
+  font-size: 13px;
+  color: #d6dfcf;
+  margin-top: 25px;
+  line-height: 1.8;
+}
+.button-light {
+  margin-top: 30px;
+  background: #e7efdf;
+  color: var(--ink);
+}
+.button-light:hover {
+  background: var(--surface);
+}
+.start-small {
+  display: block;
+  font-size: 9px;
+  color: #becdb3;
+  margin-top: 16px;
+}
+.start-art {
+  position: absolute;
+  width: 320px;
+  height: 420px;
+  right: 40px;
+  bottom: -25px;
+  stroke: #a4bd8d;
+  stroke-width: 1;
+  opacity: 0.65;
+  transform: rotate(7deg);
+}
+.start-art path:not(:first-child) {
+  fill: #c4d6b408;
+}
+.start-details {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 70px;
+  margin-top: 55px;
+}
+.start-details h3 {
+  font-family: var(--serif);
+  font-size: 34px;
+  margin-top: 10px;
+  line-height: 1.2;
+}
+.start-details .text-link {
+  margin-top: 10px;
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.faq details {
+  border-bottom: 1px solid var(--line);
+}
+.faq details:first-child {
+  border-top: 1px solid var(--line);
+}
+.faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 68px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary span {
+  font-weight: 400;
+  font-size: 21px;
+  color: var(--green);
+}
+.faq details[open] summary span {
+  transform: rotate(45deg);
+}
+.faq details > p {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 25px 22px 0;
+  max-width: 490px;
+}
+.site-footer {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  padding-block: 32px;
+  border-top: 1px solid var(--line);
+}
+.site-footer .wordmark {
+  font-size: 36px;
+}
+.site-footer p {
+  font-size: 10px;
+  color: var(--muted);
+}
+.site-footer > div {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  font-size: 10px;
+}
+.site-footer > div a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (min-width: 1500px) {
+  .hero {
+    min-height: 850px;
+    gap: 65px;
+  }
+  .hero h1 {
+    font-size: 120px;
+  }
+  .botanical-plate {
+    height: 700px;
+  }
+  .botanical {
+    height: 640px;
+  }
+}
+@media (max-width: 1100px) {
+  .page-width {
+    width: calc(100% - 64px);
+  }
+  .site-header {
+    gap: 20px;
+  }
+  .header-note {
+    padding-left: 20px;
+  }
+  .site-header nav {
+    gap: 20px;
+  }
+  .hero {
+    min-height: 730px;
+  }
+  .hero h1 {
+    font-size: 86px;
+  }
+  .hero-actions {
+    gap: 8px 15px;
+  }
+  .hero-actions .text-link {
+    font-size: 10px;
+  }
+  .botanical-plate {
+    height: 600px;
+  }
+  .botanical {
+    height: 540px;
+  }
+  .plate-annotation {
+    font-size: 15px;
+  }
+  .annotation-three {
+    left: 0;
+  }
+  .specimen-label {
+    padding: 12px;
+    gap: 10px;
+    right: 0;
+    bottom: 65px;
+  }
+  .specimen-label small {
+    font-size: 8px;
+  }
+  .specimen-label > span:nth-child(2) {
+    font-size: 11px;
+  }
+  .section-space {
+    padding-block: 85px;
+  }
+  .heading-row > p {
+    max-width: 300px;
+    font-size: 13px;
+  }
+  .trail-toolbar-label {
+    display: none;
+  }
+  .trail-toolbar {
+    padding-inline: 18px;
+  }
+  .trail-map {
+    min-height: 480px;
+  }
+  .root-question {
+    font-size: 22px;
+  }
+  .root-node {
+    left: 5%;
+    width: 35%;
+    padding-inline: 10px;
+  }
+  .branch-nodes {
+    right: 4%;
+    left: 60%;
+  }
+  .branch-title {
+    font-size: 19px;
+  }
+  .branch-node {
+    padding-left: 10px;
+    padding-right: 23px;
+  }
+  .node-kind {
+    font-size: 7px;
+  }
+  .field-note {
+    padding: 24px;
+  }
+  .note-content h3 {
+    font-size: 34px;
+  }
+  .note-content > p {
+    font-size: 12px;
+  }
+  .note-content .note-connection {
+    font-size: 20px;
+  }
+  .ritual-section {
+    gap: 55px;
+  }
+  .start-panel {
+    padding: 55px;
+  }
+  .start-art {
+    right: -15px;
+    opacity: 0.4;
+  }
+  .start-details {
+    gap: 45px;
+  }
+}
+@media (max-width: 760px) {
+  .page-width {
+    width: calc(100% - 40px);
+  }
+  .site-header {
+    min-height: 83px;
+    gap: 15px;
+  }
+  .wordmark {
+    font-size: 39px;
+  }
+  .header-note {
+    display: none;
+  }
+  .site-header nav {
+    gap: 18px;
+    font-size: 10px;
+  }
+  .site-header nav > a:nth-child(2) {
+    display: none;
+  }
+  .site-header .nav-github {
+    padding-inline: 13px;
+    gap: 8px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 55px 0 75px;
+    min-height: auto;
+  }
+  .hero-copy {
+    padding-bottom: 0;
+  }
+  .hero h1 {
+    font-size: clamp(74px, 13.5vw, 108px);
+    line-height: 0.97;
+    margin-top: 27px;
+  }
+  .hero .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.11em;
+    gap: 8px;
+  }
+  .tiny-star {
+    font-size: 20px;
+  }
+  .hero-description {
+    font-size: 14px;
+    max-width: 360px;
+    margin-top: 20px;
+  }
+  .hero-actions {
+    gap: 12px 20px;
+    margin-top: 25px;
+  }
+  .hero-actions .text-link {
+    font-size: 11px;
+  }
+  .hero-footnote {
+    font-size: 9px;
+    margin-top: 18px;
+  }
+  .botanical-plate {
+    height: 510px;
+    max-width: 490px;
+    width: 100%;
+    margin-inline: auto;
+    margin-top: 35px;
+  }
+  .botanical {
+    height: 465px;
+  }
+  .plate-heading {
+    left: 0;
+    top: 0;
+    font-size: 8px;
+  }
+  .annotation-three {
+    left: 4%;
+    top: 17%;
+  }
+  .annotation-one {
+    top: 61%;
+    left: 0;
+  }
+  .annotation-two {
+    right: 0;
+    top: 32%;
+  }
+  .specimen-label {
+    right: 5%;
+    bottom: 63px;
+    padding: 12px 15px;
+  }
+  .botanical-plate figcaption {
+    left: 0;
+    bottom: 0;
+    font-size: 9px;
+  }
+  .scroll-note {
+    font-size: 9px;
+    bottom: 15px;
+  }
+  .intro-strip {
+    gap: 15px;
+    padding-block: 23px;
+  }
+  .strip-mark {
+    font-size: 32px;
+  }
+  .intro-strip p {
+    font-size: 29px;
+  }
+  .strip-note {
+    font-size: 8px;
+    line-height: 1.6;
+  }
+  .section-space {
+    padding-block: 70px;
+  }
+  .section-heading {
+    margin-bottom: 29px;
+  }
+  .eyebrow {
+    font-size: 9px;
+  }
+  .heading-row {
+    display: block;
+    margin-top: 20px;
+  }
+  .heading-row h2,
+  .ritual-intro h2 {
+    font-size: 49px;
+    line-height: 1.03;
+  }
+  .heading-row > p {
+    max-width: 380px;
+    font-size: 13px;
+    margin-top: 22px;
+  }
+  .trail-toolbar {
+    padding: 14px;
+    gap: 10px;
+  }
+  .trail-choices {
+    gap: 3px;
+  }
+  .trail-choices button {
+    font-size: 10px;
+    padding: 8px 11px;
+  }
+  .sample-label {
+    margin-left: 0;
+    font-size: 7px;
+  }
+  .trail-body {
+    grid-template-columns: 1fr;
+  }
+  .trail-map {
+    min-height: 400px;
+  }
+  .trail-lines {
+    height: 350px;
+    inset: 25px 0;
+  }
+  .root-node {
+    width: 33%;
+    left: 5%;
+    min-height: 120px;
+    padding: 12px 10px 0;
+  }
+  .root-question {
+    font-size: 24px;
+  }
+  .branch-nodes {
+    left: 60%;
+    right: 4%;
+    top: 43px;
+    bottom: 42px;
+  }
+  .branch-title {
+    font-size: 21px;
+  }
+  .branch-node {
+    min-height: 78px;
+    padding: 12px 27px 12px 12px;
+  }
+  .node-kind {
+    font-size: 7px;
+  }
+  .map-kicker {
+    font-size: 8px;
+    top: 18px;
+    left: 17px;
+  }
+  .map-bottom-note {
+    font-size: 14px;
+    left: 17px;
+    bottom: 17px;
+  }
+  .field-note {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 25px;
+    min-height: 370px;
+  }
+  .note-content h3 {
+    font-size: 37px;
+    max-width: 300px;
+    margin-top: 20px;
+  }
+  .note-content > p {
+    font-size: 13px;
+  }
+  .note-content .note-connection {
+    font-size: 21px;
+    max-width: 340px;
+  }
+  .note-source {
+    font-size: 9px;
+    margin-top: 10px;
+  }
+  .demo-disclosure {
+    font-size: 8px;
+    padding: 13px 17px;
+  }
+  .app-frame-bar {
+    font-size: 7px;
+    padding: 11px 13px;
+  }
+  .app-figure figcaption {
+    font-size: 9px;
+    margin-top: 14px;
+    gap: 4px;
+  }
+  .app-figure figcaption > span {
+    max-width: 290px;
+  }
+  .workspace-notes {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 25px;
+    max-width: 460px;
+  }
+  .workspace-notes > div {
+    gap: 12px;
+  }
+  .workspace-notes strong {
+    display: inline;
+  }
+  .workspace-notes p {
+    font-size: 12px;
+  }
+  .observation-number {
+    font-size: 24px;
+    min-width: 20px;
+  }
+  .screenshot-disclosure {
+    font-size: 8px;
+    margin-top: 20px;
+  }
+  .ritual-section {
+    grid-template-columns: 1fr;
+    gap: 35px;
+  }
+  .ritual-intro > p:not(.eyebrow) {
+    font-size: 13px;
+    margin-top: 20px;
+    max-width: 370px;
+  }
+  .little-botanical {
+    margin-top: 10px;
+  }
+  .little-botanical svg {
+    width: 140px;
+    height: 100px;
+  }
+  .little-botanical span {
+    font-size: 18px;
+  }
+  .ritual-steps li {
+    padding-block: 26px;
+    gap: 20px;
+  }
+  .ritual-steps h3 {
+    font-size: 29px;
+  }
+  .ritual-steps p {
+    font-size: 12px;
+    max-width: 380px;
+    margin-top: 10px;
+  }
+  .step-number {
+    font-size: 26px;
+  }
+  .start-section {
+    padding-bottom: 55px;
+  }
+  .start-panel {
+    padding: 40px 29px;
+  }
+  .start-copy h2 {
+    font-size: 54px;
+    margin-top: 22px;
+  }
+  .start-copy > p:not(.eyebrow) {
+    font-size: 12px;
+    max-width: 270px;
+  }
+  .start-art {
+    width: 230px;
+    height: 320px;
+    right: -70px;
+    bottom: -10px;
+    opacity: 0.2;
+  }
+  .start-details {
+    grid-template-columns: 1fr;
+    gap: 25px;
+    margin-top: 38px;
+  }
+  .start-details h3 {
+    font-size: 32px;
+  }
+  .faq summary {
+    font-size: 12px;
+    min-height: 65px;
+  }
+  .site-footer {
+    flex-wrap: wrap;
+    gap: 8px 17px;
+    padding-block: 24px;
+  }
+  .site-footer .wordmark {
+    font-size: 34px;
+  }
+  .site-footer p {
+    font-size: 9px;
+  }
+  .site-footer > div {
+    margin-left: 0;
+    width: 100%;
+    gap: 25px;
+    font-size: 9px;
+  }
+}
+@media (max-width: 380px) {
+  .page-width {
+    width: calc(100% - 32px);
+  }
+  .site-header nav {
+    gap: 13px;
+  }
+  .hero h1 {
+    font-size: 70px;
+  }
+  .hero .eyebrow {
+    font-size: 8px;
+  }
+  .hero-actions {
+    display: block;
+  }
+  .hero-actions .text-link {
+    margin-top: 7px;
+  }
+  .botanical-plate {
+    height: 445px;
+    margin-top: 25px;
+  }
+  .botanical {
+    height: 400px;
+  }
+  .plate-annotation {
+    font-size: 13px;
+  }
+  .annotation-three {
+    left: 0;
+  }
+  .annotation-two {
+    right: -4px;
+  }
+  .specimen-label {
+    padding: 10px;
+    bottom: 58px;
+    gap: 8px;
+  }
+  .specimen-label small {
+    font-size: 7px;
+  }
+  .specimen-label > span:nth-child(2) {
+    font-size: 10px;
+  }
+  .specimen-number {
+    font-size: 27px;
+    padding-right: 10px;
+  }
+  .intro-strip {
+    gap: 10px;
+  }
+  .intro-strip p {
+    font-size: 25px;
+  }
+  .strip-note {
+    display: none;
+  }
+  .heading-row h2,
+  .ritual-intro h2 {
+    font-size: 43px;
+  }
+  .trail-choices {
+    gap: 2px;
+  }
+  .trail-choices button {
+    padding-inline: 8px;
+    font-size: 9px;
+  }
+  .trail-map {
+    min-height: 390px;
+  }
+  .map-kicker {
+    font-size: 7px;
+    gap: 5px;
+    left: 13px;
+  }
+  .root-question {
+    font-size: 21px;
+  }
+  .root-node {
+    left: 4%;
+    width: 35%;
+    padding-inline: 8px;
+  }
+  .branch-nodes {
+    left: 59%;
+    right: 3%;
+  }
+  .branch-node {
+    padding: 11px 19px 11px 8px;
+  }
+  .branch-title {
+    font-size: 18px;
+  }
+  .branch-symbol {
+    right: 6px;
+    font-size: 17px;
+  }
+  .node-kind {
+    font-size: 6px;
+  }
+  .map-bottom-note {
+    font-size: 12px;
+    left: 13px;
+  }
+  .field-note {
+    padding: 22px;
+  }
+  .note-content h3 {
+    font-size: 34px;
+  }
+  .note-content > p {
+    font-size: 12px;
+  }
+  .note-content .note-connection {
+    font-size: 20px;
+  }
+  .start-panel {
+    padding: 35px 23px;
+  }
+  .start-copy h2 {
+    font-size: 47px;
+  }
+  .button {
+    font-size: 11px;
+    padding-inline: 18px;
+  }
+  .start-copy .button {
+    gap: 14px;
+  }
+  .site-footer p {
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .button:hover {
+    transform: none;
+  }
+}
+@media print {
+  .site-header nav,
+  .hero-actions,
+  .scroll-note,
+  .start-panel .button {
+    display: none;
+  }
+  .page-width {
+    width: 100%;
+  }
+  .section-space {
+    padding-block: 25px;
+  }
+  .hero {
+    min-height: 0;
+  }
+  .hero h1 {
+    font-size: 60px;
+  }
+  .botanical-plate {
+    height: 440px;
+  }
+  .botanical {
+    height: 400px;
+  }
+  .start-panel {
+    background: transparent;
+    color: var(--ink);
+    padding: 20px;
+  }
+  .start-copy h2 em,
+  .start-copy > p:not(.eyebrow),
+  .start-copy .eyebrow,
+  .start-small {
+    color: var(--ink);
+  }
+  .start-art {
+    display: none;
+  }
+}
