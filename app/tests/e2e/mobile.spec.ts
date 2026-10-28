@@ -1,21 +1,27 @@
 import { expect, test } from './fixtures';
 import { observeResearch, startExample } from './helpers';
-test('phone switches between reader and map without losing the selected branch', async ({
-  page
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await observeResearch(page);
-  await startExample(page);
-  await page.getByRole('button', { name: 'Read NAND flash', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Map', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Topic map', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Expand NAND flash', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Read Memory cells', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Read', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-});
+for (const width of [320, 390]) {
+  test(`phone switches between reader and map without losing the selected branch at ${width}px`, async ({
+    page
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await observeResearch(page);
+    await startExample(page);
+    await page.getByRole('button', { name: 'Read NAND flash', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Map', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Topic map', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Expand NAND flash', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Read Memory cells', exact: true })
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Read', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true
+    );
+  });
+}
 test('keyboard can select, expand and refocus topics', async ({ page }) => {
   await observeResearch(page);
   await startExample(page);

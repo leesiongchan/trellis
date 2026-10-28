@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { css } from '#styled/css';
   import type { Snippet } from 'svelte';
   import type { TopicNode } from '#lib/knowledge/types.ts';
   import CitationLink from './CitationLink.svelte';
@@ -25,7 +26,7 @@
 </script>
 
 <aside
-  class="reader"
+  class={['reader', css({ h: 'full', minH: '0' })]}
   aria-label="Topic explanation"
   aria-live="polite"
   aria-busy={node.status === 'researching' || node.isRefreshing}

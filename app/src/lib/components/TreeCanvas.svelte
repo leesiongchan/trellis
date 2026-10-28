@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { token } from '#styled/tokens';
   import { SvelteFlow, Background, useSvelteFlow, type Viewport } from '@xyflow/svelte';
   import { tick, untrack } from 'svelte';
   import type { WorkspaceExploration } from '#lib/knowledge/types.ts';
@@ -44,8 +46,7 @@
     visible.edges.map((e) => ({
       ...e,
       type: 'smoothstep',
-      reconnectable: false,
-      style: 'stroke: #a7baa0; stroke-width: 1.3;'
+      reconnectable: false
     }))
   );
   const initialViewport = untrack(() => exploration.view.viewport);
@@ -63,7 +64,9 @@
       padding: 0.3,
       minZoom: 0.5,
       maxZoom: 1,
-      duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 200
+      duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 0
+        : parseFloat(token('durations.normal'))
     });
   }
   $effect(() => {
@@ -82,8 +85,22 @@
   });
 </script>
 
-<div class="topic-map" role="region" aria-label="Topic map">
+<div
+  class={css({ position: 'relative', w: 'full', h: 'full', bg: 'bg.canvas' })}
+  role="region"
+  aria-label="Topic map"
+>
   <SvelteFlow
+    class={css({
+      w: 'full',
+      h: 'full',
+      '--xy-edge-stroke': 'token(colors.border.strong)',
+      '--xy-edge-stroke-width': '1.3',
+      '--xy-node-border-radius': 'token(radii.panel)',
+      '--xy-handle-background-color': 'token(colors.accent)',
+      '--xy-handle-border-color': 'token(colors.bg.canvas)',
+      '--xy-attribution-background-color': 'token(colors.bg.canvas)'
+    })}
     {nodes}
     {edges}
     {nodeTypes}
@@ -97,11 +114,26 @@
     zoomOnScroll={false}
     onmoveend={(_event, viewport) => onViewportChange(viewport)}
   >
-    <Background patternColor="#ced7c8" gap={22} size={1} />
+    <Background patternColor={token.var('colors.border')} gap={22} size={1} />
   </SvelteFlow>
   <WorkspaceControls onRefocus={refocus} />
-  <div class="canvas-caption">
-    <span class="green-dot"></span>
-    {visible.nodes.length} topics in view <span class="caption-divider">/</span> Follow the + to go deeper
+  <div
+    class={css({
+      position: 'absolute',
+      top: '4',
+      left: '4',
+      right: '4',
+      textStyle: 'caption',
+      color: 'fg.muted',
+      pointerEvents: 'none',
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '2',
+      alignItems: 'center'
+    })}
+  >
+    <span class={css({ w: '1.5', h: '1.5', rounded: 'full', bg: 'accent', flexShrink: '0' })}
+    ></span>
+    {visible.nodes.length} topics in view <span aria-hidden="true">/</span> Follow the + to go deeper
   </div>
 </div>
