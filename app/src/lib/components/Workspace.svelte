@@ -1,6 +1,7 @@
 <script lang="ts">
   import { css, sva } from '#styled/css';
   import { button } from '#styled/recipes';
+  import { MediaQuery } from 'svelte/reactivity';
   import type { Snippet } from 'svelte';
   import type { WorkspaceSession } from '#lib/knowledge/types.ts';
   import { ancestorPath, visibleTree } from '#lib/knowledge/tree.ts';
@@ -12,6 +13,7 @@
   const selected = $derived(exploration.nodes[exploration.view.selectedNodeId]);
   const path = $derived(ancestorPath(exploration, selected.id));
   const isHidden = $derived(!visibleTree(exploration).nodes.some((n) => n.id === selected.id));
+  const wide = new MediaQuery('(min-width: 64rem)', true);
   const workspace = sva({
     slots: ['root', 'map', 'reader'],
     base: {
@@ -45,9 +47,9 @@
         map: { reader: { display: 'none', workspace: { display: 'block' } } },
         reader: {
           map: {
-            visibility: 'hidden',
+            opacity: '0',
             pointerEvents: 'none',
-            workspace: { visibility: 'visible', pointerEvents: 'auto' }
+            workspace: { opacity: '1', pointerEvents: 'auto' }
           }
         }
       }
@@ -188,7 +190,7 @@
     >
   </div>{/if}
 <div class={classes.root}>
-  <div class={classes.map}>
+  <div class={classes.map} inert={!wide.current && exploration.view.mobilePane === 'reader'}>
     <TopicTree
       {exploration}
       onSelect={(id) => navigate(session.select(id))}

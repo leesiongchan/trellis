@@ -7,6 +7,7 @@ for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await observeResearch(page);
     await startExample(page);
+    await page.getByRole('button', { name: 'Map', exact: true }).click();
     await page.getByRole('button', { name: 'Read NAND flash', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Map', exact: true }).click();
@@ -17,6 +18,12 @@ for (const width of [320, 390]) {
     ).toBeVisible();
     await page.getByRole('button', { name: 'Read', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'NAND flash', exact: true })).toBeVisible();
+    const inactiveNode = page.getByRole('button', { name: 'Read NAND flash', exact: true });
+    expect(await inactiveNode.evaluate((element) => element.closest('[inert]') !== null)).toBe(
+      true
+    );
+    await inactiveNode.evaluate((element) => (element as HTMLButtonElement).focus());
+    await expect(inactiveNode).not.toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true
     );

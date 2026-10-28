@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   import type { TopicView } from '#lib/knowledge/library-types.ts';
   let {
     topic,
@@ -13,20 +15,44 @@
   } = $props();
 </script>
 
-<section class="answer-versions" aria-label="Saved answer history">
+<section
+  class={css({
+    display: 'grid',
+    gap: '3',
+    pt: '5',
+    borderTopWidth: '1px',
+    borderColor: 'border',
+    textStyle: 'body.sm',
+    overflowWrap: 'anywhere'
+  })}
+  aria-label="Saved answer history"
+>
   {#if topic.selectedAnswer && topic.currentAnswerVersionId !== topic.selectedAnswer.id}<p
-      class="newer-answer"
+      class={css({ bg: 'accent.subtle', color: 'accent', p: '3', rounded: 'control' })}
     >
       A newer saved answer is available.
     </p>{/if}
   {#if topic.versions.length}<details
       open={!!topic.selectedAnswer && topic.currentAnswerVersionId !== topic.selectedAnswer.id}
     >
-      <summary>Saved answer history · {topic.versions.length} versions</summary>
-      {#each topic.versions as version (version.id)}<div class="answer-version">
+      <summary class={css({ minH: 'control', py: '3', cursor: 'pointer', color: 'accent' })}
+        >Saved answer history · {topic.versions.length} versions</summary
+      >
+      {#each topic.versions as version (version.id)}<div
+          class={css({
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '3',
+            py: '3',
+            borderTopWidth: '1px',
+            borderColor: 'border'
+          })}
+        >
           <span>Version {version.revision} · {new Date(version.createdAt).toLocaleString()}</span
           >{#if version.id === topic.selectedAnswer?.id}<span>Selected</span>{:else}<button
-              class="quiet-button"
+              class={button({ visual: 'quiet' })}
               disabled={readOnly}
               onclick={() => onChoose(version.id)}
               >{preview ? 'Read' : 'Use'} version {version.revision}</button

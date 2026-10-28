@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   import type { Page, ConnectionView } from '#lib/knowledge/library-types.ts';
   import CitationLink from './CitationLink.svelte';
   let {
@@ -31,10 +33,35 @@
   };
 </script>
 
-<section class="topic-connections" aria-label="Topic connections" aria-busy={loading}>
-  <div class="section-label">
-    SAVED CONNECTIONS <button class="quiet-button" onclick={onRefresh} disabled={offline || loading}
-      >Refresh connections</button
+<section
+  class={css({
+    display: 'grid',
+    gap: '4',
+    pt: '5',
+    borderTopWidth: '1px',
+    borderColor: 'border',
+    textStyle: 'body.sm',
+    minW: '0',
+    overflowWrap: 'anywhere'
+  })}
+  aria-label="Topic connections"
+  aria-busy={loading}
+>
+  <div
+    class={css({
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '2',
+      textStyle: 'label',
+      color: 'fg.muted'
+    })}
+  >
+    SAVED CONNECTIONS <button
+      class={button({ visual: 'quiet', size: 'sm' })}
+      onclick={onRefresh}
+      disabled={offline || loading}>Refresh connections</button
     >
   </div>
   {#if offline}<p>
@@ -49,27 +76,58 @@
     </p>{/if}
   {#each connections.items as link (link.id)}
     <article
-      class="connection-card"
+      class={css({
+        display: 'grid',
+        gap: '3',
+        p: '4',
+        bg: 'bg.surface',
+        borderWidth: '1px',
+        borderColor: 'border.strong',
+        rounded: 'panel',
+        minW: '0'
+      })}
       aria-label={labels[link.kind] + ' connection'}
       data-connection-id={link.id}
     >
-      <div class="connection-kind">
+      <div
+        class={css({
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '2',
+          textStyle: 'caption',
+          color: 'fg.muted'
+        })}
+      >
         {labels[link.kind]}
         <span>{link.status === 'candidate' ? 'Possible connection' : 'Saved link'}</span>
       </div>
       <strong>{link.fromTopicId === topicId ? link.toQuestion : link.fromQuestion}</strong>
       <p>{link.reason}</p>
       {#if link.citationSources.length}<details>
-          <summary>Saved passage evidence</summary
-          >{#each link.citationSources as citation, index (index)}<blockquote>
+          <summary class={css({ minH: 'control', py: '3', cursor: 'pointer', color: 'accent' })}
+            >Saved passage evidence</summary
+          >{#each link.citationSources as citation, index (index)}<blockquote
+              class={css({
+                p: '3',
+                mb: '3',
+                bg: 'bg.subtle',
+                borderLeftWidth: '2px',
+                borderColor: 'accent',
+                overflowWrap: 'anywhere'
+              })}
+            >
               {citation.quote}<CitationLink source={citation.source} compact index={index + 1} />
             </blockquote>{/each}
         </details>{/if}
-      <div class="connection-actions">
-        <button class="quiet-button" disabled={offline} onclick={() => onFollow(link.id)}
-          >Open saved topic</button
+      <div class={css({ display: 'flex', flexWrap: 'wrap', gap: '2' })}>
+        <button
+          class={button({ visual: 'quiet' })}
+          disabled={offline}
+          onclick={() => onFollow(link.id)}>Open saved topic</button
         >{#if link.kind !== 'branches_to'}<button
-            class="quiet-button"
+            class={button({ visual: 'quiet' })}
             disabled={offline}
             aria-label="Dismiss connection"
             onclick={() => onDismiss(link.id)}>Dismiss</button
@@ -78,7 +136,7 @@
     </article>
   {/each}
   {#if connections.nextCursor}<button
-      class="quiet-button"
+      class={button({ visual: 'quiet' })}
       disabled={loading || offline}
       onclick={onMore}>More connections</button
     >{/if}

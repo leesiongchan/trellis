@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   import type { LibraryInfo } from '#lib/knowledge/library-types.ts';
   import { PURGE_CONFIRMATION } from '#lib/knowledge/library-schemas.ts';
   let {
@@ -16,7 +18,17 @@
     confirmation = $state('');
 </script>
 
-<section class="library-status" aria-label="Library storage">
+<section
+  class={css({
+    display: 'grid',
+    gap: '3',
+    textStyle: 'body.sm',
+    color: 'fg.muted',
+    overflowWrap: 'anywhere',
+    minW: '0'
+  })}
+  aria-label="Library storage"
+>
   <p>
     {offline
       ? 'The server is unreachable. Reconnect to load or change saved content.'
@@ -27,15 +39,25 @@
     </p>{:else if library?.discovery === 'indexing'}<p role="status">
       Finding connections in saved knowledge…
     </p>{/if}
-  <div class="connection-actions">
+  <div class={css({ display: 'flex', flexWrap: 'wrap', gap: '2' })}>
     <button
-      class="quiet-button"
+      class={button({ visual: 'quiet' })}
       disabled={offline || busy || !library}
       onclick={() => (confirming = !confirming)}>Clear saved library</button
     >
   </div>
   {#if confirming}<form
-      class="purge-confirmation"
+      class={css({
+        display: 'grid',
+        gap: '3',
+        p: '4',
+        bg: 'danger.subtle',
+        borderWidth: '1px',
+        borderColor: 'danger',
+        rounded: 'control',
+        color: 'fg',
+        minW: '0'
+      })}
       onsubmit={(event) => {
         event.preventDefault();
         if (confirmation === PURGE_CONFIRMATION) {
@@ -50,16 +72,33 @@
         Retained backups are managed separately.
       </p>
       <p>Type this confirmation:</p>
-      <p class="confirmation-phrase">{PURGE_CONFIRMATION}</p>
+      <p class={css({ fontFamily: 'mono', fontSize: 'sm', overflowWrap: 'anywhere' })}>
+        {PURGE_CONFIRMATION}
+      </p>
       <label for="library-confirmation">Library deletion confirmation</label><textarea
         id="library-confirmation"
+        class={css({
+          w: 'full',
+          minW: '0',
+          minH: '24',
+          bg: 'bg.surface',
+          borderWidth: '1px',
+          borderColor: 'border.strong',
+          rounded: 'control',
+          px: '3',
+          py: '2',
+          fontSize: 'md',
+          resize: 'vertical'
+        })}
         bind:value={confirmation}
         required></textarea><button
-        class="danger-button"
+        class={button({ visual: 'danger' })}
         disabled={busy || offline || confirmation !== PURGE_CONFIRMATION}
         >Delete all server library content</button
-      ><button type="button" class="quiet-button" onclick={() => (confirming = false)}
-        >Keep saved library</button
+      ><button
+        type="button"
+        class={button({ visual: 'quiet' })}
+        onclick={() => (confirming = false)}>Keep saved library</button
       >
     </form>{/if}
 </section>

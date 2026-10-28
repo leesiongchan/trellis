@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { css } from '#styled/css';
+  import { button } from '#styled/recipes';
   let { onFollow, disabled = false }: { onFollow: (question: string) => void; disabled?: boolean } =
     $props();
   let question = $state('');
@@ -11,10 +13,39 @@
   }
 </script>
 
-<form class="branch-question" onsubmit={submit}>
-  <label for="branch-input">A question of your own?</label>
-  <div>
+<form class={css({ display: 'grid', gap: '3', py: '4' })} onsubmit={submit}>
+  <label class={css({ fontFamily: 'heading', fontSize: '2xl', color: 'accent' })} for="branch-input"
+    >A question of your own?</label
+  >
+  <div
+    class={css({
+      display: 'flex',
+      alignItems: 'center',
+      gap: '2',
+      p: '2',
+      pl: '3',
+      borderWidth: '1px',
+      borderColor: 'border.strong',
+      rounded: 'control',
+      _focusWithin: {
+        outlineWidth: '2px',
+        outlineStyle: 'solid',
+        outlineColor: 'focus',
+        outlineOffset: '1'
+      }
+    })}
+  >
     <input
+      class={css({
+        flex: '1',
+        minW: '0',
+        minH: 'control',
+        fontSize: 'md',
+        bg: 'transparent',
+        border: 'none',
+        _placeholder: { color: 'fg.muted' },
+        _focusVisible: { outline: 'none' }
+      })}
       id="branch-input"
       aria-label="Your branch question"
       bind:value={question}
@@ -24,7 +55,7 @@
       required
     /><button
       type="submit"
-      class="icon-button"
+      class={button({ visual: 'primary' })}
       aria-label="Add branch"
       disabled={disabled || !question.trim()}>↗</button
     >

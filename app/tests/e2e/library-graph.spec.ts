@@ -137,7 +137,7 @@ test('saved connections paginate, follow and return without research, and dismis
   } finally {
     await device.close();
   }
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.getByRole('button', { name: 'Read', exact: true }).click();
   const clipped = await page.locator('header button').evaluateAll((buttons) =>
     buttons
@@ -148,6 +148,7 @@ test('saved connections paginate, follow and return without research, and dismis
       .map((button) => button.getAttribute('aria-label') || button.textContent?.trim())
   );
   expect(clipped).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Saved topics', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('region', { name: 'Saved topics', exact: true })).toBeVisible();
@@ -166,6 +167,8 @@ test('another appearance refresh preserves the original citations until explicit
   const originalAnswerSourcesBeforeRefresh = original.answers.find(
     (a: { id: string }) => a.id === data.sourceAnswerVersionId
   ).content.sources;
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.getByRole('button', { name: 'Read', exact: true }).click();
   await command(page.request, baseURL!, '/api/topics/' + data.sourceTopicId + '/explorations', {
     topicId: data.sourceTopicId,
     answerVersionId: data.sourceAnswerVersionId
@@ -191,6 +194,9 @@ test('another appearance refresh preserves the original citations until explicit
     expect(originalAnswerSourcesAfterRefresh).toEqual(originalAnswerSourcesBeforeRefresh);
     const topic = await read(page.request, '/api/topics/' + data.sourceTopicId);
     expect(topic.currentAnswerVersionId).not.toBe(data.sourceAnswerVersionId);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true
+    );
     await page
       .getByRole('button', { name: 'Use version ' + topic.selectedAnswer.revision, exact: true })
       .click();
@@ -233,6 +239,7 @@ test('retained topics seed compatible roots and confirmed purge clears server co
   await expect(page.getByRole('heading', { name: question, exact: true })).toBeVisible();
   expect(requests.length).toBe(before);
   const epoch = (await read(page.request, '/api/library')).libraryEpoch;
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.getByRole('button', { name: 'Your explorations', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Clear saved library', exact: true })
@@ -240,6 +247,7 @@ test('retained topics seed compatible roots and confirmed purge clears server co
   await page.getByRole('button', { name: 'Clear saved library', exact: true }).click();
   await expect(page.getByText(/Retained backups are managed separately/)).toBeVisible();
   await page.getByLabel('Library deletion confirmation').fill(PURGE_CONFIRMATION);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const purgeResponse = page.waitForResponse(
     (response) => new URL(response.url()).pathname === '/api/library/purge'
   );
