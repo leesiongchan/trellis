@@ -2,6 +2,7 @@
   "extends": "$app/tsconfig",
   "include": [
     "src",
+    "styled-system/**/*.d.ts",
     "tests",
     "../scripts",
     "../api/scripts",

@@ -1,6 +1,7 @@
 node_modules/
 .svelte-kit/
 /app/build/
+/app/styled-system/
 .superpowers/
 .env*
 !.env.example

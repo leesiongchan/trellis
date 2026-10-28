@@ -3,12 +3,13 @@ import { fileURLToPath } from 'node:url';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, lazyPlugins } from 'vite-plus';
+import pandacss from '@pandacss/vite';
 
 export default defineConfig({
   // Unit tests keep the plain Svelte compiler used by the original test config.
   plugins: lazyPlugins(() =>
     process.env.VITEST
-      ? [svelte()]
+      ? [svelte(), pandacss({ transform: true })]
       : [
           sveltekit({
             adapter: adapter(),
@@ -25,10 +26,16 @@ export default defineConfig({
                 'object-src': ['none']
               }
             }
-          })
+          }),
+          pandacss({ transform: true })
         ]
   ),
-  resolve: { alias: { '#lib': fileURLToPath(new URL('./src/lib', import.meta.url)) } },
+  resolve: {
+    alias: {
+      '#lib': fileURLToPath(new URL('./src/lib', import.meta.url)),
+      '#styled': fileURLToPath(new URL('./styled-system', import.meta.url))
+    }
+  },
   test: { include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'] },
   server: {
     host: '127.0.0.1',
