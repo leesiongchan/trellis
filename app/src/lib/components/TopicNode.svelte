@@ -105,14 +105,17 @@
   <button
     class={[classes.read, 'nodrag', 'nopan']}
     aria-label={'Read ' + topic.question}
+    aria-describedby={topic.status === 'failed' ? 'topic-status-' + topic.id : undefined}
     aria-current={data.active ? 'location' : undefined}
     onclick={() => data.onSelect(topic.id)}
     ><span class={classes.relationship}>{topic.relationship}</span><strong class={classes.title}
       >{topic.content?.title ?? topic.question}</strong
-    ><span class={classes.teaser}
-      >{topic.teaser ||
-        topic.content?.summary[0]?.text ||
-        'Open this question and see where it leads.'}</span
+    ><span class={classes.teaser} id={'topic-status-' + topic.id}
+      >{topic.status === 'failed'
+        ? 'Research failed. Open to retry.'
+        : topic.teaser ||
+          topic.content?.summary[0]?.text ||
+          'Open this question and see where it leads.'}</span
     ></button
   >
   <button

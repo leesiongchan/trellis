@@ -166,3 +166,33 @@ test('200 percent text reflows on a 320px screen', async ({ page }) => {
   expect((await submit.boundingBox())!.width).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('saved explorations stay inside the tablet viewport with enlarged text', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await observeResearch(page);
+  await startExample(page);
+  await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+  await page.getByRole('button', { name: 'Your explorations', exact: true }).click();
+  const drawer = page.getByRole('region', { name: 'Your explorations drawer', exact: true });
+  await expect(drawer).toBeVisible();
+  const bounds = (await drawer.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(768);
+  await expect(
+    drawer.getByRole('button', { name: 'Resume microSD cards', exact: true })
+  ).toBeVisible();
+});
+
+test('failed research is identified in the map without relying on color', async ({ page }) => {
+  await observeResearch(page);
+  await startExample(page);
+  const question = 'A new research question ' + crypto.randomUUID();
+  await page.route('**/api/appearances/*/research', (route) => route.abort());
+  await page.getByLabel('Your branch question').fill(question);
+  await page.getByRole('button', { name: 'Add branch', exact: true }).click();
+  const read = page.getByRole('button', { name: 'Read ' + question, exact: true });
+  const status = 'Research failed. Open to retry.';
+  await expect(read.getByText(status, { exact: true })).toBeVisible();
+  await expect(read).toHaveAccessibleDescription(status);
+  await expect(page.getByRole('button', { name: 'Expand ' + question, exact: true })).toBeVisible();
+});
