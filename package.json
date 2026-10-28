@@ -5,44 +5,29 @@
   "type": "module",
   "packageManager": "pnpm@11.21.0",
   "engines": {
-    "node": ">=24"
+    "node": "^24.11.0 || >=26.0.0"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env scripts/dev.ts",
-    "build:frontend": "vite build",
-    "build:backend": "cargo build --manifest-path backend/Cargo.toml --release --locked",
+    "build:frontend": "pnpm --dir app build",
+    "build:backend": "cargo build --manifest-path api/Cargo.toml --release --locked",
     "build": "pnpm build:frontend && pnpm build:backend && node scripts/package-release.ts",
-    "start": "sh scripts/start.sh",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test:unit": "vitest run",
+    "start": "./release/branch-backend",
+    "check": "pnpm --dir app check && vp check",
+    "test:unit": "pnpm --dir app test:unit",
     "test:build": "node --test tests/build/*.test.ts",
-    "test:backend": "cargo test --manifest-path backend/Cargo.toml --locked",
+    "test:backend": "cargo test --manifest-path api/Cargo.toml --locked",
     "verify:release": "node scripts/verify-release.ts",
-    "test:e2e": "playwright test --config playwright.production.config.ts",
-    "test:e2e:dev": "playwright test --config playwright.config.ts",
-    "live-smoke": "node --env-file-if-exists=.env scripts/live-smoke.ts"
+    "test:e2e": "pnpm --dir app test:e2e",
+    "live-smoke": "node --env-file-if-exists=.env api/scripts/live-smoke.ts",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check"
   },
   "dependencies": {
-    "@sveltejs/kit": "3.1.0",
-    "@xyflow/svelte": "1.7.0",
-    "idb": "^8.0.4",
-    "svelte": "5.57.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1",
-    "@sveltejs/adapter-static": "4.0.0",
-    "@sveltejs/vite-plugin-svelte": "7.3.1",
-    "@types/node": "^26.6.5",
-    "fake-indexeddb": "^6.2.6",
-    "prettier": "^3.9.10",
-    "prettier-plugin-svelte": "^4.1.1",
-    "svelte-check": "^4.7.7",
-    "typescript": "^6.0.3",
-    "vite": "8.3.5",
-    "vitest": "5.0.5"
-  },
-  "imports": {
-    "#lib/*": "./src/lib/*"
+    "vite-plus": "catalog:"
   }
 }

@@ -27,7 +27,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const)
 const origin = 'http://127.0.0.1:' + port;
 try {
   children.push(
-    startProcess('cargo', ['run', '--manifest-path', 'backend/Cargo.toml', '--locked'], {
+    startProcess('cargo', ['run', '--manifest-path', 'api/Cargo.toml', '--locked'], {
       cwd: root,
       env: {
         ...process.env,
@@ -42,14 +42,15 @@ try {
     startProcess(
       process.execPath,
       [
-        'node_modules/vite/bin/vite.js',
+        resolve(root, 'app/node_modules/vite-plus/bin/vp'),
+        'dev',
         '--host',
         '127.0.0.1',
         '--port',
         String(port),
         '--strictPort'
       ],
-      { cwd: root, env: { ...process.env } }
+      { cwd: resolve(root, 'app'), env: { ...process.env } }
     )
   );
   for (const child of children)

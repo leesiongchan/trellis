@@ -190,8 +190,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         throw error;
       }));
   await packageRelease({
-    frontendDir: process.argv[2] ?? 'build',
-    executable: process.argv[3] ?? 'backend/target/release/branch-backend',
+    frontendDir: process.argv[2] ?? 'app/build',
+    executable: process.argv[3] ?? 'api/target/release/branch-backend',
     outputDir: process.argv[4] ?? 'release',
     modelDir
   });

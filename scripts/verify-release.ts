@@ -6,8 +6,8 @@ import { platform } from 'node:process';
 import { createServer } from 'node:net';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { canonicalLegacyJson, legacyIdentity } from '../src/lib/knowledge/legacy-identity.ts';
-import type { Exploration } from '../src/lib/knowledge/types.ts';
+import { canonicalLegacyJson, legacyIdentity } from './legacy-identity.ts';
+import type { Exploration } from '../app/src/lib/knowledge/types.ts';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const binaryFlag = process.argv.indexOf('--binary');
 const binary = resolve(
@@ -186,7 +186,11 @@ async function verify() {
       'x-branch-protocol': '2',
       ...(info ? { 'x-branch-library': info.libraryId } : {})
     });
-    async function api(path: string, options: RequestInit = {}, status = 200) {
+    async function api(
+      path: string,
+      options: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> } = {},
+      status = 200
+    ) {
       const response = await fetchLocal('/api' + path, {
         ...options,
         headers: { ...headers(), ...options.headers }

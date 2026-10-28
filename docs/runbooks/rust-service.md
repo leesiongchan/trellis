@@ -4,16 +4,16 @@ Branch runs as one Rust process serving the static Svelte frontend, private acce
 
 ## Build and start
 
-Use the committed Rust 1.98.0 toolchain (rustfmt/Clippy), Node 26.5.0 and pnpm 11.21.0. Node 24+ remains the declared build floor; verification uses 26.5.0. On Nix, retry missing tools with comma, such as `, cargo-audit audit --file backend/Cargo.lock`.
+Use `mise trust` followed by `mise install --locked node pnpm rust` to install the committed Rust 1.98.0 toolchain (rustfmt/Clippy), Node 26.5.0 and pnpm 11.21.0. Activate mise in the shell or prefix commands with `mise exec --`. Vite+ is installed from the workspace lockfile. The native executable needs none of these development tools at runtime.
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
-node scripts/fetch-embedding-model.ts .artifacts/embedding-model
+node api/scripts/fetch-embedding-model.ts .artifacts/embedding-model
 pnpm build
 cp .env.example .env
 ```
 
-Set `APP_DATA_DIR` to an absolute private directory outside the repository, assets, models and backups. See [storage operations](knowledge-storage.md) for native prerequisites and optional backup/model roots. Set the exact browser-facing `APP_ORIGIN` in `.env` and an access key generated with `openssl rand -hex 32`. Add OpenAI/Tavily keys only for live research. Empty keys are a supported demo/read-only configuration. An explicitly supplied access key shorter than 32 UTF-16 units is rejected. Preserve the existing model setting; the default remains `gpt-5.6-terra`, with availability and live operation unverified.
+Set `APP_DATA_DIR` to an absolute private directory outside the repository, assets, models and backups. See [storage operations](knowledge-storage.md) for native prerequisites and optional backup/model roots. Set the exact browser-facing `APP_ORIGIN` in `.env` and an access key generated with `openssl rand -hex 32`. Add OpenAI/Tavily keys only for live research. Empty keys are a supported read-only configuration. An explicitly supplied access key shorter than 32 UTF-16 units is rejected. Preserve the existing model setting; the default remains `gpt-5.6-terra`, with availability and live operation unverified.
 
 ```sh
 pnpm start
@@ -21,11 +21,11 @@ pnpm start
 ./release/branch-backend
 ```
 
-The artifact consists of `release/branch-backend`, `release/public/`, `release/frontend-manifest.json`, `release/release-manifest.json`, `release/native-runtime-manifest.json` and verified `release/models/`. Keep them together. By default assets resolve beside the executable, regardless of the working directory. The optional `.env` resolves from the working directory; `scripts/start.sh` first enters the repository root. For an extracted release, inject environment values or set `APP_ENV_FILE` to an absolute path outside the public directory.
+The artifact consists of `release/branch-backend`, `release/public/`, `release/frontend-manifest.json`, `release/release-manifest.json`, `release/native-runtime-manifest.json` and verified `release/models/`. Keep them together. By default assets resolve beside the executable, regardless of the working directory. The optional `.env` resolves from the working directory; `pnpm start` runs from the repository root. For an extracted release, inject environment values or set `APP_ENV_FILE` to an absolute path outside the public directory.
 
 Configuration is read once. Process environment overrides file values. Unset `APP_ENV_FILE` loads `.env` if present; an empty process value disables loading; an explicit path must exist. `FRONTEND_DIR` overrides the asset directory, and the manifest must be its sibling. `HOST` defaults to `127.0.0.1`, `PORT` to 3000; only loopback bindings are accepted. `APP_ORIGIN` is required and must be a root HTTPS origin, or HTTP on loopback. `RUST_LOG` defaults to `info`. Restart after configuration changes. Never print configuration maps or put secrets into command-line arguments, shared logs, build artifacts or browser storage.
 
-`pnpm dev --port 5173` starts Vite and the Rust backend after an initial `pnpm build`. Vite preserves Host/Origin while forwarding access/API/health/metrics to Rust on port 3001. Dev explicitly uses the loopback frontend origin, independently of the production origin in `.env`. Frontend edits hot reload; restart for Rust changes. A port collision stops the new processes; it does not stop another app.
+`pnpm dev --port 5173` starts Vite+ and the Rust backend after an initial `pnpm build`. Vite+ preserves Host/Origin while forwarding access/API/health/metrics to Rust on port 3001. Dev explicitly uses the loopback frontend origin, independently of the production origin in `.env`. Frontend edits hot reload; restart for Rust changes. A port collision stops the new processes; it does not stop another app.
 
 ## Private Tailscale access and upgrades
 
@@ -33,7 +33,7 @@ Inspect `tailscale serve status` before changing a listener. Existing forwarding
 
 For a separately authorized deployment, preserve the existing scheme, hostname and port in `APP_ORIGIN` and point the existing app route at the loopback service. Keep the access key unchanged if old valid cookies should survive. Changing the key invalidates them. Do not create a second route or overwrite preview forwarding to perform a routine binary upgrade.
 
-IndexedDB is scoped to the complete browser origin. Changing a hostname or port makes previous explorations inaccessible at the new origin. No server copy, cross-device synchronization or automatic browser backup exists. Do not clear site data to repair startup, research or saving failures.
+Explorations and view state live in the server datastore and are available across browsers with private access. The app has no browser cache or offline fallback. Existing browser databases are left untouched and are no longer imported. Back up the server data directory using the supported backup procedure.
 
 Build into a separate release directory for deployment and retain the previous complete executable/assets/manifest. Stop the old service gracefully, switch the release as one unit, and start with the same origin/configuration. Roll back the complete previous artifact with the same procedure. Deploy the protocol-2 frontend and backend together. Startup makes a separate pre-upgrade native backup before a compatible release change; incompatible engine/schema markers stop startup. Retain the old release and its backup. Rollback restores that backup into a fresh, nonexistent data directory and starts its matching old release. Never point an older engine at upgraded live data. See [the restore procedure](knowledge-storage.md#standalone-backup-and-restore).
 
@@ -59,17 +59,18 @@ JSON output uses a dedicated writer thread with a 256-event queue and a 16 KiB e
 
 `RUST_LOG` controls application verbosity, defaulting to `info`. Only the exact `branch_backend` target and its `branch_backend::` module targets are admitted. An independent filter always suppresses dependency events and spans, including their context fields, even with global `debug`/`trace` or explicit dependency directives. Use application module directives such as `branch_backend::providers=debug` for focused diagnostics. Isolated subprocess tests invoke the production initializer and check redaction, correlation, verbosity and dependency-span exclusion.
 
+Install the optional audit CLI once with `mise exec -- cargo install cargo-audit --version 0.22.2 --locked` before running `cargo audit` below. CI installs the same pinned version.
+
 ```sh
-cargo fmt --manifest-path backend/Cargo.toml -- --check
-cargo clippy --manifest-path backend/Cargo.toml --all-targets --all-features --locked -- -D warnings
-cargo test --manifest-path backend/Cargo.toml --all-targets --all-features --locked
+cargo fmt --manifest-path api/Cargo.toml -- --check
+cargo clippy --manifest-path api/Cargo.toml --all-targets --all-features --locked -- -D warnings
+cargo test --manifest-path api/Cargo.toml --all-targets --all-features --locked
 pnpm check
 pnpm test:unit
 pnpm build
 pnpm test:build
 pnpm test:e2e
-pnpm verify:release
-, cargo-audit audit --file backend/Cargo.lock
+cargo audit --file api/Cargo.lock
 pnpm audit
 ```
 

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { packageRelease } from '../../scripts/package-release.ts';
 
-test('release contains only static assets with exact script hashes',async()=>{
+void test('release contains only static assets with exact script hashes',async()=>{
   const root=await mkdtemp(join(tmpdir(),'branch-package-'));
   try {
     const frontendDir=join(root,'build'),outputDir=join(root,'release'),executable=join(root,'binary');
@@ -25,7 +25,7 @@ test('release contains only static assets with exact script hashes',async()=>{
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
-test('models are checksum verified and packaged outside public assets',async()=>{
+void test('models are checksum verified and packaged outside public assets',async()=>{
  const root=await mkdtemp(join(tmpdir(),'branch-model-package-'));
  try{
   const frontendDir=join(root,'build'),outputDir=join(root,'release'),executable=join(root,'binary'),modelDir=join(root,'models');
@@ -41,8 +41,8 @@ test('models are checksum verified and packaged outside public assets',async()=>
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
-test('explicit model setup requests pinned files and rejects tampered downloads',async()=>{
- const {fetchEmbeddingModel}=await import('../../scripts/fetch-embedding-model.ts');
+void test('explicit model setup requests pinned files and rejects tampered downloads',async()=>{
+ const {fetchEmbeddingModel}=await import('../../api/scripts/fetch-embedding-model.ts');
  const root=await mkdtemp(join(tmpdir(),'branch-model-setup-'));
  try{
   const calls:string[]=[];

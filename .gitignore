@@ -1,13 +1,14 @@
 node_modules/
 .svelte-kit/
-/build/
+/app/build/
 .superpowers/
 .env*
 !.env.example
 playwright-report/
 test-results/
 .DS_Store
-backend/target/
+api/target/
 release/
 
+.pnpm-store/
 .artifacts/

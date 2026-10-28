@@ -4,8 +4,7 @@
 
 The knowledge-library implementation uses embedded SurrealDB 3.3.4 with its
 RocksDB backend. The application owns one datastore handle; there is no database
-listener or separate database process. Research persistence, immutable answer versions, reversible connections and browser
-migration share this handle. Deploy the protocol-2 frontend and backend together.
+listener or separate database process. Research persistence, immutable answer versions, reversible connections, exploration views and retained import history share this handle. Deploy the protocol-2 frontend and backend together.
 
 `APP_DATA_DIR` is an explicit absolute directory dedicated to this installation.
 Keep it outside the repository, release assets, model directory, and backups.
@@ -34,16 +33,17 @@ On the development Mac, Apple clang 21 and the Command Line Tools libclang at
 `/Library/Developer/CommandLineTools/usr/lib/libclang.dylib` were available.
 Use `LIBCLANG_PATH` explicitly if bindgen cannot locate that library.
 On Linux, provide the corresponding compiler, clang/libclang, and normal native
-build tools through the environment or Nix. Verify platform-specific runtime
+build tools through the operating system packages. Use mise for the pinned Node,
+pnpm and Rust toolchains. Verify platform-specific runtime
 linkage rather than copying build-machine libraries blindly.
 
 The storage foundation's checks are:
 
 ```sh
-cargo test --manifest-path backend/Cargo.toml --test storage --lib storage --locked
-cargo test --manifest-path backend/Cargo.toml --locked
-cargo clippy --manifest-path backend/Cargo.toml --all-targets --all-features --locked -- -D warnings
-cargo build --manifest-path backend/Cargo.toml --release --locked
+cargo test --manifest-path api/Cargo.toml --test storage --lib storage --locked
+cargo test --manifest-path api/Cargo.toml --locked
+cargo clippy --manifest-path api/Cargo.toml --all-targets --all-features --locked -- -D warnings
+cargo build --manifest-path api/Cargo.toml --release --locked
 ```
 
 The integration tests cover validated paths, ownership and exclusive open; the
@@ -55,7 +55,7 @@ general query endpoint. All tests use owned temporary directories.
 Install the pinned public model explicitly before packaging:
 
 ```sh
-node scripts/fetch-embedding-model.ts .artifacts/embedding-model
+node api/scripts/fetch-embedding-model.ts .artifacts/embedding-model
 pnpm build
 ```
 
@@ -74,7 +74,7 @@ AArch64 Linux. Inspect the actual executable's platform linkage at release time;
 no additional runtime library files are needed by the verified static build.
 The x86-64 model loader checks AVX2 support before initializing inference.
 
-The small [vendored portability patch](../../backend/vendor/fastembed/BRANCH-PATCH.md)
+The small [vendored portability patch](../../api/vendor/fastembed/BRANCH-PATCH.md)
 adds an optional safe CPU device policy. Branch selects CPU with two inference
 threads. This prevents ort's automatic CoreML model-cache compilation on macOS.
 The patch keeps upstream defaults unchanged for other callers and records the
@@ -96,8 +96,8 @@ answers and versions still pinned by appearances.
 Verify with:
 
 ```sh
-cargo test --manifest-path backend/Cargo.toml --locked --test embeddings --test embedding_index
-BRANCH_EMBEDDING_MODEL_DIR="$(pwd)/.artifacts/embedding-model" cargo test --manifest-path backend/Cargo.toml --locked --test embeddings native_embedding_matches_pinned_public_fixture -- --ignored
+cargo test --manifest-path api/Cargo.toml --locked --test embeddings --test embedding_index
+BRANCH_EMBEDDING_MODEL_DIR="$(pwd)/.artifacts/embedding-model" cargo test --manifest-path api/Cargo.toml --locked --test embeddings native_embedding_matches_pinned_public_fixture -- --ignored
 node --test tests/build/package-release.test.ts
 ```
 
@@ -145,8 +145,7 @@ local derived writes, while library reads remain available. No transaction spans
 inference or provider HTTP.
 
 Each completed private backup directory contains `database.surql`,
-`manifest.json`, and an ownership marker. Files have mode 0600 and directories
-0700. The manifest records engine/schema/model versions, source library identity
+`manifest.json`, and an ownership marker. Files have mode 0600 and directories 0700. The manifest records engine/schema/model versions, source library identity
 and epoch, source application checksum, record counts, export byte length and
 SHA-256. Completion uses fsync and an atomic rename that refuses to replace an
 existing destination. Incomplete owned export directories are cleaned up on
@@ -161,7 +160,7 @@ another engine version at the live data directory.
 
 Backups contain private questions, answers and citation snapshots. They are not
 public assets. Purging the live library does not erase retained backups, exported
-files, or offline browser originals. Clear those separately when required. Seven
+files, or old browser databases. Manage retained files separately when required. Seven
 completed snapshots can span more than seven calendar days if the app was stopped
 or backups were deferred; monitor age and failure metrics.
 
@@ -193,10 +192,7 @@ If restore fails, preserve the original backup and use another fresh destination
 inspect and discard the failed owned target separately. Never delete the marker
 to treat an incomplete restore as a valid library.
 
-The restored library gets a fresh epoch. Old browser caches, paid operation
-intents and automatic legacy imports cannot replay against it. Previously saved
-content and pinned versions retain their IDs. Deliberate re-import of a preserved
-browser original requires the explicit restore action.
+The restored library gets a fresh epoch. Commands issued against the previous epoch cannot replay against it. Previously saved content and pinned versions retain their IDs. The frontend reads only server data and never reimports browser copies.
 
 Rollback means restoring the pre-upgrade backup into a fresh directory and
 running the matching old application release with `APP_DATA_DIR` pointed there.
@@ -210,8 +206,8 @@ The 32 MiB import gate runs separately from compiler jobs to measure application
 work rather than build contention:
 
 ```sh
-cargo test --manifest-path backend/Cargo.toml --locked --test migration thirty_two_mib_native_finalization_is_atomic_and_bounded -- --ignored --nocapture
-cargo test --manifest-path backend/Cargo.toml --locked --lib --test backups --test storage_lifecycle --test lifecycle
+cargo test --manifest-path api/Cargo.toml --locked --test migration thirty_two_mib_native_finalization_is_atomic_and_bounded -- --ignored --nocapture
+cargo test --manifest-path api/Cargo.toml --locked --lib --test backups --test storage_lifecycle --test lifecycle
 ```
 
 The verified 32 MiB public fixture published 1,000 immutable answers atomically in
@@ -220,21 +216,28 @@ peaked at approximately 776 MiB RSS on the development Mac. Leave memory headroo
 for imports and local inference; this is a measured fixture, not a production
 capacity promise. Ordinary requests still use the documented graph/list limits.
 
-## Browser upgrade and saved navigation
+## Server-only storage and saved navigation
 
-Keep the existing scheme, hostname, port and access key. Authenticated protocol-2
-clients import v1 research originals in bounded JSON batches, atomically publishing
-only a complete validated tree. Originals and demos are untouched. Changed original
-content becomes a separate labelled copy; invalid/over-32-MiB or over-2,000-node
-originals stay on the device and can be exported. Import receipts plus the library
-epoch prevent deleted or purged content from returning automatically. Restoring a
-preserved original is an explicit action, creating another copy.
+Deploy the frontend and backend together. The browser stores no exploration data,
+views, migration receipts, or request queue on disk. IndexedDB dependencies, demos,
+and browser import/export/restore controls have been removed. Existing browser
+databases are left untouched but are no longer read or imported. Previously
+imported server answers and their provenance remain available; the bounded server
+import API remains compatible for administrative tools and release verification.
 
 The shared cookie grants access to the entire library; there is no per-user
-isolation. A second device with private access can list/resume saved explorations.
-Offline copies are acknowledged, read-only snapshots. Pending intents recover by
-operation ID after reconnection, without queuing new offline mutations. A stale
-revision requires explicit reload; purge/restore invalidates old cache scopes.
+isolation. A second device with private access can list/resume saved explorations
+and restore their selected topic, expanded branches, pan and zoom from the server.
+View writes are validated against exploration membership and the library epoch;
+the last successful write wins independently of research revisions. Failed view
+saves block navigation and expose a retry control.
+
+A live server connection is required to load saved data. Connection loss retains
+only the current in-memory display and disables mutations until reconnect.
+Pending admitted operations are discovered through paginated server reads after
+reload; polling does not resubmit paid work. An uncertain request within an open
+tab is retried using its original operation ID. A request never admitted by the
+server does not survive a reload. Stale content revisions require explicit reload.
 
 Question wording and bounded resolved context determine exact identity. Semantic
 matches never substitute an answer. Accepted edges retain original model evidence
@@ -247,7 +250,7 @@ Saved links open existing appearances or retained knowledge without paid work.
 Answer history is immutable and each appearance retains its chosen pin. Refreshing
 one appearance never advances the others. Deleting an exploration retains topics
 and answers; confirmed purge removes live content and derived records. Purge does
-not clear backups, exported files, or browser originals: use the separate controls
+not clear backups, exported files, or old browser databases: manage retained files separately
 and retention procedure for each.
 
 All lists are capped at 100; graph walks at 3 hops, 100 nodes, 200 edges and two
@@ -271,6 +274,6 @@ requested/reported provider model, prompt/schema hashes and generation settings.
 These are immutable with the answer. Imported legacy versions identify their
 original exploration/node/digest; older records with no provenance report it as
 unavailable. Missing provider-reported model metadata is not fabricated.
-Explicit browser restore revalidates previously imported copies and renews a
+The administrative import API revalidates previously imported copies and renews a
 failed upload's IDs only after an authoritative terminal state. Unknown/admitted
 uploads keep their original IDs so a lost response cannot duplicate publication.

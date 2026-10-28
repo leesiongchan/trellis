@@ -81,7 +81,7 @@ try {
     [
       'test',
       '--manifest-path',
-      'backend/Cargo.toml',
+      'api/Cargo.toml',
       '--locked',
       '--test',
       'browser_server',
