@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f3f3e9" />
+    <meta name="theme-color" content="#fff0e5" />
     <title>Trellis — One thing leads to another.</title>
     <meta
       name="description"
@@ -18,17 +18,17 @@
     <meta property="og:url" content="https://leesiongchan.github.io/trellis/" />
     <meta
       property="og:image"
-      content="https://leesiongchan.github.io/trellis/assets/social-card-v3.png"
+      content="https://leesiongchan.github.io/trellis/assets/social-card-v5.png"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Trellis. One question takes root. Follow its branches into a growing tree of connected ideas."
+      content="Trellis. One thing leads to another. A lush coral, apricot, and cobalt tree of curiosity on a warm peach canvas."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://leesiongchan.github.io/trellis/" />
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=5" />
     <link
       rel="preload"
       href="assets/fonts/dm-sans-variable.ttf"
@@ -43,16 +43,19 @@
       type="font/ttf"
       crossorigin
     />
-    <link rel="stylesheet" href="styles.css?v=4" />
-    <script type="module" src="main.js?v=4"></script>
+    <link rel="stylesheet" href="styles.css?v=5" />
+    <script type="module" src="main.js?v=5"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="header shell">
       <a class="logo" href="./" aria-label="Trellis home">trellis<span>.</span></a>
-      <p class="header-caption">A space for<br />curious minds.</p>
+      <p class="header-caption">
+        A place for your<br />
+        questions to grow.
+      </p>
       <nav aria-label="Main navigation">
-        <a href="#inside">Meet the workspace <span aria-hidden="true">↓</span></a
+        <a href="#inside">Explore Trellis <span aria-hidden="true">↓</span></a
         ><a class="get-link" href="https://github.com/leesiongchan/trellis"
           >Get Trellis <span aria-hidden="true">↗</span></a
         >
@@ -62,22 +65,15 @@
     <main id="main">
       <section class="opening" aria-labelledby="opening-title">
         <div class="opening-top shell">
-          <p class="micro">An AI research workspace for curious minds.</p>
-          <p class="micro opening-index">
-            An invitation to follow your curiosity <span aria-hidden="true">↙</span>
-          </p>
+          <p class="micro">For the joy of finding out.</p>
         </div>
         <h1 id="opening-title">
-          <span>One thing</span
-          ><span class="headline-second"
-            >leads to <em>another.</em
-            ><svg class="headline-loop" viewBox="0 0 630 50" aria-hidden="true">
-              <path d="M8 29C147 5 404 7 606 20C647 23 604 43 545 40" /></svg
-          ></span>
+          <span>One thing leads</span> <span>to <em>another.</em></span>
         </h1>
         <div class="hero-intro shell">
           <p>
-            Ask a question. Follow a cited answer.<br />See where the next connection takes you.
+            Ask a question. Follow a cited answer. <br />
+            See where the next connection takes you.
           </p>
           <a href="#knowledge-tree" class="detour-link"
             >See where a question grows <span aria-hidden="true">↙</span></a
@@ -85,8 +81,7 @@
         </div>
 
         <div class="tree-overline shell">
-          <p class="micro" id="tree-label">One question. A world of possibilities.</p>
-          <span class="tree-index" aria-hidden="true">( 01 → ∞ )</span>
+          <p class="micro" id="tree-label">Pick a thought. See where it takes you.</p>
         </div>
         <div
           class="knowledge-tree shell"
@@ -95,35 +90,14 @@
           aria-labelledby="tree-label"
           aria-describedby="tree-help"
         >
-          <svg
-            class="tree-drawing"
-            data-tree-drawing
-            viewBox="0 0 1200 800"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path class="tree-rootlets" data-rootlets />
-            <path class="tree-trunk" data-tree-trunk />
-            <path class="tree-active-trunk" data-active-trunk />
-            <g class="tree-branch" data-tree-branch="0">
-              <path class="tree-limb" data-tree-limb />
-              <g class="tree-foliage" data-tree-foliage></g>
-              <circle class="tree-bud" data-tree-bud r="5" />
-            </g>
-            <g class="tree-branch" data-tree-branch="1">
-              <path class="tree-limb" data-tree-limb />
-              <g class="tree-foliage" data-tree-foliage></g>
-              <circle class="tree-bud" data-tree-bud r="5" />
-            </g>
-            <g class="tree-branch" data-tree-branch="2">
-              <path class="tree-limb" data-tree-limb />
-              <g class="tree-foliage" data-tree-foliage></g>
-              <circle class="tree-bud" data-tree-bud r="5" />
-            </g>
-          </svg>
-          <span class="tree-whisper" aria-hidden="true"
-            >Let one little thought<br /><em>put down roots.</em></span
-          >
+          <img
+            class="canopy-art"
+            src="assets/botanical-canopy.webp"
+            width="1448"
+            height="1086"
+            alt="A lush illustrated tree with twisting coral branches, apricot and cobalt leaves, and a quiet lilac landscape."
+            fetchpriority="high"
+          />
           <button
             class="thought-card root-card"
             type="button"
@@ -133,12 +107,9 @@
             aria-controls="thought-dialog"
           >
             <span class="card-meta"
-              ><span class="card-dot" aria-hidden="true"></span> THE STARTING QUESTION
-              <span>001</span></span
+              ><span class="card-dot" aria-hidden="true"></span> START WITH A QUESTION </span
             ><span class="root-question" data-root-question>How can a tiny card hold so much?</span
-            ><span class="card-bottom"
-              >Start with this question <span aria-hidden="true">↗</span></span
-            >
+            ><span class="card-bottom">Let’s find out <span aria-hidden="true">↗</span></span>
           </button>
 
           <div class="branch-cards" data-branches>
@@ -151,7 +122,7 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">01 / THE FIRST BRANCH</span
+              <span class="card-meta">01 · First connection</span
               ><span class="branch-title">Meet NAND flash</span
               ><span class="card-bottom"
                 >Follow this thought <span aria-hidden="true">↗</span></span
@@ -166,10 +137,10 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">02 / ANOTHER DIRECTION</span
+              <span class="card-meta">02 · Another angle</span
               ><span class="branch-title">Think in three dimensions</span
               ><span class="card-bottom"
-                >A different perspective <span aria-hidden="true">↗</span></span
+                >Follow this thought <span aria-hidden="true">↗</span></span
               >
             </button>
             <button
@@ -181,17 +152,17 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">03 / ONE MORE POSSIBILITY</span
+              <span class="card-meta">03 · A little further</span
               ><span class="branch-title">More than one bit</span
               ><span class="card-bottom"
-                >And another question <span aria-hidden="true">↗</span></span
+                >Follow this thought <span aria-hidden="true">↗</span></span
               >
             </button>
           </div>
         </div>
         <p class="tree-instruction shell" id="tree-help">
           <span class="instruction-dot" aria-hidden="true"></span>
-          Start at the question. Choose a branch. See what grows.
+          A little curiosity goes a long way. Choose a question to explore.
         </p>
 
         <div class="sample-controls shell">
@@ -206,7 +177,8 @@
             </button>
           </div>
           <p class="sample-disclosure">
-            A prewritten sample.<br />Your questions come to life in the app.
+            A prewritten sample.<br />
+            Your questions come to life in the app.
           </p>
         </div>
         <noscript
@@ -221,7 +193,10 @@
       <section class="workspace" id="inside" aria-labelledby="workspace-title">
         <div class="workspace-heading shell">
           <p class="micro">THIS IS TRELLIS <span aria-hidden="true">↙</span></p>
-          <h2 id="workspace-title">Make room for<br /><em>the unexpected.</em></h2>
+          <h2 id="workspace-title">
+            Make room for<br />
+            <em>the unexpected.</em>
+          </h2>
           <div class="workspace-summary">
             <p>
               A research workspace that follows the shape of your curiosity. Branch into a new
@@ -265,21 +240,21 @@
         </div>
         <div class="workspace-footnotes shell">
           <p>
-            <span>01</span> Follow the branches.<br /><strong
-              >Your own path through a topic.</strong
-            >
+            <span>01</span> Follow the branches.<br />
+            <strong>Your own path through a topic.</strong>
           </p>
           <p>
-            <span>02</span> Go back to the source.<br /><strong
-              >Citations beside the explanation.</strong
-            >
+            <span>02</span> Go back to the source.<br />
+            <strong>Citations beside the explanation.</strong>
           </p>
           <p>
-            <span>03</span> Keep the interesting bits.<br /><strong
-              >A saved library on your server.</strong
-            >
+            <span>03</span> Keep the interesting bits.<br />
+            <strong>A saved library on your server.</strong>
           </p>
-          <span class="screenshot-note">Actual app.<br />Sample content.</span>
+          <span class="screenshot-note"
+            >Actual app. <br />
+            Sample content.</span
+          >
         </div>
       </section>
 
@@ -289,9 +264,15 @@
           <span aria-hidden="true">↘</span>
         </div>
         <div class="closing-main">
-          <h2 id="closing-title">Stay a little<br /><em>curious.</em></h2>
+          <h2 id="closing-title">
+            Stay a little<br />
+            <em>curious.</em>
+          </h2>
           <div class="closing-details">
-            <p>Give your questions a place to go.<br />Run Trellis on your own server.</p>
+            <p>
+              Give your questions a place to go.<br />
+              Run Trellis on your own server.
+            </p>
             <a class="closing-cta" href="https://github.com/leesiongchan/trellis"
               >Get Trellis <span aria-hidden="true">↗</span></a
             ><a
@@ -320,7 +301,11 @@
               </p>
             </div>
           </details>
-          <p class="independent-note">Self-hosted.<br />Source-linked.<br />Yours to explore.</p>
+          <p class="independent-note">
+            Self-hosted.<br />
+            Source-linked.<br />
+            Yours to explore.
+          </p>
         </div>
       </section>
     </main>

@@ -1,5 +1,4 @@
 import { createTrailState, getSelection, selectTopic } from './trail.js';
-import { createKnowledgeTree } from './tree.js';
 
 const tree = document.querySelector('.knowledge-tree');
 const dialog = document.querySelector('#thought-dialog');
@@ -9,8 +8,7 @@ if (tree && dialog) {
   const branches = document.querySelector('[data-branches]');
   const root = document.querySelector('[data-root]');
   const choices = document.querySelectorAll('[data-trail]');
-  const branchLabels = ['THE FIRST BRANCH', 'ANOTHER DIRECTION', 'ONE MORE POSSIBILITY'];
-  const treeView = createKnowledgeTree(tree, root, branches);
+  const branchLabels = ['First connection', 'Another angle', 'A little further'];
   let returnFocus = null;
 
   function updateNote() {
@@ -35,7 +33,8 @@ if (tree && dialog) {
     returnFocus = trigger;
     trigger.classList.add('is-visited');
     updateNote();
-    treeView.select(trigger.hasAttribute('data-root') ? null : Number(trigger.dataset.branchIndex));
+    for (const card of tree.querySelectorAll('.thought-card'))
+      card.classList.toggle('is-current', card === trigger);
     dialog.showModal();
   }
 
@@ -55,18 +54,14 @@ if (tree && dialog) {
       card.classList.toggle('is-visited', visited.has(trail.id + ':' + topic.id));
       const meta = document.createElement('span');
       meta.className = 'card-meta';
-      meta.textContent = '0' + (index + 1) + ' / ' + branchLabels[index];
+      meta.textContent = '0' + (index + 1) + ' · ' + branchLabels[index];
       const title = document.createElement('span');
       title.className = 'branch-title';
       title.textContent = topic.title;
       card.append(meta, title);
       const bottom = document.createElement('span');
       bottom.className = 'card-bottom';
-      bottom.append(
-        document.createTextNode(
-          ['Follow this thought', 'A different perspective', 'And another question'][index]
-        )
-      );
+      bottom.append(document.createTextNode('Follow this thought'));
       const arrow = document.createElement('span');
       arrow.textContent = '↗';
       arrow.setAttribute('aria-hidden', 'true');
@@ -77,8 +72,7 @@ if (tree && dialog) {
     branches.replaceChildren(...cards);
     for (const choice of choices)
       choice.setAttribute('aria-pressed', String(choice.dataset.trail === state.trailId));
-    treeView.select(null);
-    treeView.refresh();
+    root.classList.remove('is-current');
     updateNote();
   }
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <style>
+    @font-face{font-family:DM;src:url('fonts/dm-sans-variable.ttf')}
+    text{fill:#3a153d;font-family:Georgia,serif}.sans{font-family:DM,sans-serif}
+  </style>
+  <defs><clipPath id="canopy"><rect x="570" y="24" width="606" height="582" rx="30"/></clipPath></defs>
+  <rect width="1200" height="630" fill="#fff0e5"/>
+  <image href="botanical-canopy.webp" x="550" y="24" width="646" height="582" preserveAspectRatio="xMidYMid slice" clip-path="url(#canopy)"/>
+  <text x="44" y="100" font-size="68" font-weight="600" letter-spacing="-5">trellis<tspan fill="#244de0">.</tspan></text>
+  <rect x="45" y="137" width="306" height="36" rx="18" fill="#ffe1ce"/>
+  <text x="64" y="160" class="sans" font-size="14" font-weight="600" letter-spacing="1">FOR THE JOY OF FINDING OUT.</text>
+  <text x="40" y="282" font-size="80" font-weight="600" letter-spacing="-4">One thing</text>
+  <text x="40" y="368" font-size="80" font-weight="600" letter-spacing="-4">leads to</text>
+  <text x="42" y="465" font-size="98" font-style="italic" letter-spacing="-5">another.</text>
+  <text x="46" y="522" class="sans" font-size="22">A place for your questions to grow.</text>
+  <rect x="46" y="554" width="161" height="46" rx="23" fill="#244de0"/>
+  <text x="70" y="584" class="sans" font-size="17" style="fill:white">Explore Trellis ↗</text>
+</svg>
