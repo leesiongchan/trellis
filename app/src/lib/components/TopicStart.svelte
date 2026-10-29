@@ -1,6 +1,7 @@
 <script lang="ts">
   import { css } from '#styled/css';
   import { button } from '#styled/recipes';
+  import BotanicalMark from './BotanicalMark.svelte';
   let { onStart, disabled = false }: { onStart: (question: string) => void; disabled?: boolean } =
     $props();
   let question = $state('');
@@ -27,7 +28,7 @@
       gap: '2'
     })}
   >
-    <span class={css({ fontSize: 'xl' })} aria-hidden="true">↗</span> FOLLOW A QUESTION SOMEWHERE NEW
+    <BotanicalMark /> Follow a question somewhere new
   </div>
   <h1 class={css({ textStyle: 'heading.hero', my: '6', textWrap: 'balance' })}>
     A little curiosity.<br />An <em class={css({ color: 'accent' })}>entire world.</em>
@@ -99,10 +100,7 @@
     <span class={css({ textStyle: 'caption', color: 'fg.muted', w: 'full', mb: '1' })}
       >A few starting points</span
     >{#each examples as example}<button
-        class={[
-          button({ visual: 'outline', size: 'sm' }),
-          css({ rounded: 'full', textStyle: 'caption' })
-        ]}
+        class={[button({ visual: 'outline', size: 'sm' }), css({ rounded: 'full' })]}
         onclick={() => {
           question = example;
           input.focus();

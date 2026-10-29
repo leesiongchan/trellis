@@ -1,6 +1,7 @@
 <script lang="ts">
   import { css } from '#styled/css';
   import { button } from '#styled/recipes';
+  import BotanicalMark from './BotanicalMark.svelte';
   import type { SavedExploration } from '#lib/knowledge/types.ts';
   let {
     explorations,
@@ -15,7 +16,10 @@
 </script>
 
 {#if explorations.length}
-  <section class={css({ display: 'grid', gap: '3', minW: '0' })} aria-label="Saved explorations">
+  <section
+    class={css({ display: 'grid', gap: '3', minW: '0', containerType: 'inline-size' })}
+    aria-label="Saved explorations"
+  >
     <div
       class={css({
         textStyle: 'label',
@@ -33,12 +37,15 @@
       <div
         class={css({
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) auto',
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          '@container (min-width: 26rem)': { gridTemplateColumns: 'minmax(0, 1fr) auto' },
           gap: '2',
           alignItems: 'start',
-          borderBottomWidth: '1px',
+          borderWidth: '1px',
           borderColor: 'border',
-          pb: '3'
+          p: '3',
+          rounded: 'panel',
+          bg: 'bg.surface'
         })}
       >
         <button
@@ -57,8 +64,15 @@
           aria-label={'Resume ' + item.originalPrompt}
           onclick={() => onResume(item.id)}
         >
-          <span class={css({ color: 'accent', fontSize: 'xl', flexShrink: '0' })} aria-hidden="true"
-            >↗</span
+          <span
+            class={css({
+              p: '2',
+              bg: 'bg.highlight',
+              rounded: 'full',
+              flexShrink: '0',
+              display: 'none',
+              '@container (min-width: 26rem)': { display: 'block' }
+            })}><BotanicalMark /></span
           ><span class={css({ minW: '0', display: 'grid', gap: '2' })}
             ><strong
               class={css({ textStyle: 'body.sm', fontWeight: 'medium', overflowWrap: 'anywhere' })}
@@ -79,7 +93,7 @@
           >
         </button>
         <button
-          class={button({ visual: 'icon' })}
+          class={[button({ visual: 'icon' }), css({ justifySelf: 'end' })]}
           aria-label={'Delete ' + item.originalPrompt}
           onclick={() => (deleting = item.id)}>×</button
         >

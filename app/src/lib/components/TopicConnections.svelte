@@ -80,9 +80,9 @@
         display: 'grid',
         gap: '3',
         p: '4',
-        bg: 'bg.surface',
+        bg: 'bg',
         borderWidth: '1px',
-        borderColor: 'border.strong',
+        borderColor: 'border',
         rounded: 'panel',
         minW: '0'
       })}

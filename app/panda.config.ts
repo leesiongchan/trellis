@@ -16,11 +16,39 @@ export default defineConfig({
       semanticTokens,
       textStyles,
       recipes: { button: buttonRecipe },
+      keyframes: {
+        branchEnter: {
+          from: { opacity: 0, transform: 'translateY(4px)' },
+          to: { opacity: 1, transform: 'none' }
+        }
+      },
       breakpoints: { workspace: '64rem' }
     }
   },
   conditions: {
     extend: { coarsePointer: '@media (pointer: coarse)' }
+  },
+  globalFontface: {
+    'DM Sans': {
+      src: "url('/fonts/dm-sans-variable.ttf') format('truetype')",
+      fontWeight: '100 1000',
+      fontStyle: 'normal',
+      fontDisplay: 'swap'
+    },
+    'Instrument Serif': [
+      {
+        src: "url('/fonts/instrument-serif-regular.ttf') format('truetype')",
+        fontWeight: '400',
+        fontStyle: 'normal',
+        fontDisplay: 'swap'
+      },
+      {
+        src: "url('/fonts/instrument-serif-italic.ttf') format('truetype')",
+        fontWeight: '400',
+        fontStyle: 'italic',
+        fontDisplay: 'swap'
+      }
+    ]
   },
   globalCss: {
     html: {

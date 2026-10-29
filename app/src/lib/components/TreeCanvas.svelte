@@ -45,8 +45,12 @@
   const edges = $derived(
     visible.edges.map((e) => ({
       ...e,
-      type: 'smoothstep',
-      reconnectable: false
+      type: 'default',
+      reconnectable: false,
+      style:
+        e.target === exploration.view.selectedNodeId
+          ? 'stroke: ' + token.var('colors.accent') + '; stroke-width: 2;'
+          : undefined
     }))
   );
   const initialViewport = untrack(() => exploration.view.viewport);
@@ -61,7 +65,7 @@
           .filter((id) => visible.nodes.some((n) => n.id === id))
           .map((id) => ({ id }))
       ],
-      padding: 0.3,
+      padding: 0.12,
       minZoom: 0.5,
       maxZoom: 1,
       duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches

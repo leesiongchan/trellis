@@ -35,8 +35,14 @@
   {#if topic.versions.length}<details
       open={!!topic.selectedAnswer && topic.currentAnswerVersionId !== topic.selectedAnswer.id}
     >
-      <summary class={css({ minH: 'control', py: '3', cursor: 'pointer', color: 'accent' })}
-        >Saved answer history · {topic.versions.length} versions</summary
+      <summary
+        class={css({
+          minH: 'control',
+          py: '3',
+          cursor: 'pointer',
+          color: 'accent',
+          fontWeight: 'medium'
+        })}>Saved answer history · {topic.versions.length} versions</summary
       >
       {#each topic.versions as version (version.id)}<div
           class={css({

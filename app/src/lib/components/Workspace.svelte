@@ -19,12 +19,12 @@
     base: {
       root: {
         flex: '1',
-        minH: '0',
+        minH: 'workspace',
         minW: '0',
         position: 'relative',
         overflow: 'hidden',
         display: 'grid',
-        workspace: { gridTemplateColumns: 'minmax(0, .9fr) minmax(0, 1.1fr)' }
+        workspace: { minH: '0', gridTemplateColumns: 'minmax(0, .9fr) minmax(0, 1.1fr)' }
       },
       map: {
         position: 'absolute',
@@ -147,22 +147,27 @@
       workspace: { display: 'none' },
       bg: 'accent.subtle',
       p: '1',
-      rounded: 'control',
-      gap: '1'
+      rounded: 'full',
+      gap: '1',
+      minW: '0',
+      maxW: 'full'
     })}
     aria-label="Workspace view"
   >
     <button
       class={[
         button({ visual: 'quiet' }),
-        css({ bg: exploration.view.mobilePane === 'map' ? 'bg.surface' : 'transparent' })
+        css({ bg: exploration.view.mobilePane === 'map' ? 'bg.surface' : 'transparent', px: '2' })
       ]}
       aria-pressed={exploration.view.mobilePane === 'map'}
       onclick={() => session.setView({ mobilePane: 'map' })}>Map</button
     ><button
       class={[
         button({ visual: 'quiet' }),
-        css({ bg: exploration.view.mobilePane === 'reader' ? 'bg.surface' : 'transparent' })
+        css({
+          bg: exploration.view.mobilePane === 'reader' ? 'bg.surface' : 'transparent',
+          px: '2'
+        })
       ]}
       aria-pressed={exploration.view.mobilePane === 'reader'}
       onclick={() => session.setView({ mobilePane: 'reader' })}>Read</button
@@ -189,7 +194,7 @@
       onclick={reveal}>Reveal in tree</button
     >
   </div>{/if}
-<div class={classes.root}>
+<main class={classes.root} aria-label="Exploration workspace">
   <div class={classes.map} inert={!wide.current && exploration.view.mobilePane === 'reader'}>
     <TopicTree
       {exploration}
@@ -211,4 +216,4 @@
           : null}>{@render readerExtras?.()}</TopicReader
       >{/key}
   </div>
-</div>
+</main>

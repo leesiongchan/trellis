@@ -1,6 +1,6 @@
 # Trellis: living field guide
 
-Status: approach A selected by the user; this full design is awaiting approval before implementation planning.
+Status: approach A and this full design approved by the user on 2026-10-29; implemented and verified.
 
 Builder check: a fresh frontend reviewer reported “nothing important left” before this design was presented for approval.
 
@@ -120,3 +120,10 @@ These checks establish implementation quality, not a claim of proven best-in-cla
 [Linear's interface redesign](https://linear.app/changelog/2024-03-20-new-linear-ui) describes improving hierarchy, balance, density and clarity. Applied here: consistent navigation and calmer secondary controls support an expressive map and editorial reader; its monochrome aesthetic is not being copied.
 
 The approved product-page design additionally draws on [Hay Festival](https://www.pentagram.com/work/hay-festival?page=1&rel=search), [Natural History Museum](https://www.pentagram.com/work/natural-history-museum) and [Data Humanism](https://giorgialupi.com/data-humanism-my-manifesto-for-a-new-data-wold). Reuse Trellis's existing original artwork and palette rather than copying another identity.
+
+## Implementation verification
+
+- All 32 fixture browser acceptance tests pass, including three new checks for readable fixed-size map cards, reduced-motion controls and a usable 320px/200% reader. The typography/motion checks and enlarged-reader checks were observed failing before their fixes.
+- All 45 frontend unit tests and five release/packaging tests pass. Svelte and Panda checks report zero errors/warnings; root lint retains four existing warnings in product-page tests.
+- Inspected the real start screen, workspace, phone reader/library, loading state and enlarged reader at 320, 390, 768, 1024 and 1440px. Final page/reader bounds remain contained. Confirmed local font loading and zero confirmed axe violations on the completed desktop workspace; decorative glyph contrast remains a manual check.
+- Fresh implementation review approved the change after heading hierarchy and usage documentation were corrected. Responsive validation also corrected the narrow workspace height, bounded form/grid layout, header badge wrapping and Map/Read padding.

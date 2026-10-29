@@ -13,20 +13,31 @@
   }
 </script>
 
-<form class={css({ display: 'grid', gap: '3', py: '4' })} onsubmit={submit}>
+<form
+  class={css({
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    minW: '0',
+    gap: '3',
+    py: '4'
+  })}
+  onsubmit={submit}
+>
   <label class={css({ fontFamily: 'heading', fontSize: '2xl', color: 'accent' })} for="branch-input"
     >A question of your own?</label
   >
   <div
     class={css({
       display: 'flex',
+      minW: '0',
       alignItems: 'center',
       gap: '2',
       p: '2',
       pl: '3',
       borderWidth: '1px',
       borderColor: 'border.strong',
-      rounded: 'control',
+      rounded: 'panel',
+      bg: 'bg',
       _focusWithin: {
         outlineWidth: '2px',
         outlineStyle: 'solid',

@@ -79,7 +79,7 @@
   <button class={classes.wordmark} aria-label="Trellis home" onclick={onHome}
     >trellis<span class={css({ color: 'ornament' })}>.</span></button
   >
-  <span class={classes.tagline}>Room for a little wonder.</span>
+  <span class={classes.tagline}>One thing leads to another.</span>
   <div
     class={css({
       display: 'flex',
@@ -105,18 +105,20 @@
       >Saved topics</button
     >
     <button
-      class={button({ visual: 'outline' })}
+      class={[button({ visual: 'outline' }), css({ minW: '0', maxW: 'full' })]}
       aria-label="Your explorations"
       {disabled}
       onclick={onExplorations}
     >
-      Your explorations{#if explorationCount}<span
+      <span class={css({ minW: '0', overflowWrap: 'anywhere' })}>Your explorations</span
+      >{#if explorationCount}<span
           class={css({
             textStyle: 'caption',
             bg: 'accent.subtle',
             color: 'accent',
             rounded: 'full',
             minW: '5',
+            flexShrink: '0',
             px: '1'
           })}>{explorationCount}</span
         >{/if}

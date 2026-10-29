@@ -50,7 +50,7 @@
       gap: '3',
       px: 'section',
       py: '5',
-      bg: 'accent.subtle',
+      bg: 'bg.highlight',
       borderBottomWidth: '1px',
       borderColor: 'border',
       textStyle: 'body.sm',

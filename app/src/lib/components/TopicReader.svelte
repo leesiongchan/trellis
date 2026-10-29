@@ -5,6 +5,7 @@
   import type { TopicNode } from '#lib/knowledge/types.ts';
   import CitationLink from './CitationLink.svelte';
   import BranchQuestion from './BranchQuestion.svelte';
+  import BotanicalMark from './BotanicalMark.svelte';
   let {
     node,
     onFollow,
@@ -25,7 +26,15 @@
   let answer = $state('');
   const content = $derived(node.content);
   const styles = {
-    label: css({ textStyle: 'label', color: 'accent' }),
+    label: css({
+      textStyle: 'label',
+      color: 'fg.muted',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '2',
+      minW: '0',
+      overflowWrap: 'anywhere'
+    }),
     paragraph: css({ textStyle: 'body', color: 'fg', overflowWrap: 'anywhere' }),
     section: css({
       display: 'grid',
@@ -68,16 +77,28 @@
   aria-live="polite"
   aria-busy={node.status === 'researching' || node.isRefreshing}
 >
-  <div class={css({ maxW: 'prose', mx: 'auto', display: 'grid', gap: '6', minW: '0' })}>
+  <div
+    class={css({
+      maxW: 'prose',
+      mx: 'auto',
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      gap: '6',
+      minW: '0'
+    })}
+  >
     <div
       class={css({
         display: 'flex',
+        flexWrap: 'wrap',
         gap: '4',
         alignItems: 'center',
         justifyContent: 'space-between'
       })}
     >
-      <span class={styles.label}>{node.relationship || 'EXPLANATION'}</span>{#if content}<button
+      <span class={styles.label}
+        ><BotanicalMark />{node.relationship || 'Follow your curiosity'}</span
+      >{#if content}<button
           class={button({ visual: 'icon' })}
           aria-label="Refresh research"
           title="Research this topic again"
@@ -85,9 +106,9 @@
           onclick={onRefresh}>↻</button
         >{/if}
     </div>
-    <h2 class={css({ textStyle: 'heading.topic', overflowWrap: 'anywhere', textWrap: 'balance' })}>
+    <h1 class={css({ textStyle: 'heading.topic', overflowWrap: 'anywhere', textWrap: 'balance' })}>
       {content?.title ?? node.question}
-    </h2>
+    </h1>
     {#if node.status === 'researching'}<div
         class={css({
           display: 'flex',
@@ -192,14 +213,20 @@
               px: '5',
               py: '4',
               bg: 'bg.highlight',
-              borderLeftWidth: '2px',
-              borderColor: 'accent',
-              rounded: 'control',
+              borderTopLeftRadius: 'sm',
+              rounded: 'panel',
               overflowWrap: 'anywhere'
             })}
           >
-            <span class={styles.label}>A WAY TO THINK ABOUT IT</span>
-            <p class={css({ textStyle: 'body', fontFamily: 'heading', fontSize: 'xl' })}>
+            <span class={styles.label}><BotanicalMark kind="spark" />A way to think about it</span>
+            <p
+              class={css({
+                textStyle: 'body',
+                fontFamily: 'heading',
+                fontSize: '2xl',
+                lineHeight: 'relaxed'
+              })}
+            >
               {content.analogy}
             </p>
             {#if content.limitations}<small class={css({ textStyle: 'body.sm', color: 'fg.muted' })}
@@ -209,9 +236,9 @@
         {#each content.sections as section, sectionIndex (sectionIndex)}<section
             class={css({ display: 'grid', gap: '4', minW: '0' })}
           >
-            <h3 class={css({ textStyle: 'heading.section', overflowWrap: 'anywhere' })}>
+            <h2 class={css({ textStyle: 'heading.section', overflowWrap: 'anywhere' })}>
               {section.heading}
-            </h3>
+            </h2>
             {#each section.paragraphs as p (p.id)}<p class={styles.paragraph}>
                 {p.text}{#each [...new Set(p.evidence.map((e) => e.sourceId))] as id}{@const index =
                     content.sources.findIndex((s) => s.id === id)}{#if index >= 0}<CitationLink
@@ -223,34 +250,65 @@
           </section>{/each}
       </div>
       {#if content.branches.length}<section class={styles.section}>
-          <div class={styles.label}>THERE'S MORE TO THIS STORY</div>
+          <h2 class={css({ fontFamily: 'heading', fontSize: '2xl', lineHeight: 'snug' })}>
+            That leads to another question.
+          </h2>
           {#each content.branches as branch, i (i)}<button
               class={css({
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1fr)',
+                '@container (min-width: 26rem)': {
+                  gridTemplateColumns: 'auto minmax(0, 1fr) auto'
+                },
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: '4',
                 textAlign: 'left',
                 w: 'full',
                 minH: 'control',
-                py: '3',
-                px: '2',
-                bg: 'transparent',
-                borderBottomWidth: '1px',
+                p: '4',
+                bg: 'bg',
+                borderWidth: '1px',
                 borderColor: 'border',
-                rounded: 'control',
+                rounded: 'panel',
+                transitionProperty: 'background-color, border-color',
+                transitionDuration: 'fast',
+                _motionReduce: { transitionProperty: 'none' },
                 _hover: { bg: 'accent.subtle' }
               })}
               disabled={readOnly}
               onclick={() => onFollow(branch.question)}
-              ><span class={css({ minW: '0', display: 'grid', gap: '2', overflowWrap: 'anywhere' })}
+              ><span
+                class={css({
+                  bg: 'bg.highlight',
+                  rounded: 'full',
+                  p: '2',
+                  flexShrink: '0',
+                  display: 'none',
+                  '@container (min-width: 26rem)': { display: 'grid' },
+                  placeItems: 'center'
+                })}><BotanicalMark kind="spark" /></span
+              ><span
+                class={css({
+                  minW: '0',
+                  flex: '1',
+                  display: 'grid',
+                  gap: '2',
+                  overflowWrap: 'anywhere'
+                })}
                 ><strong class={css({ textStyle: 'body.sm', fontWeight: 'semibold' })}
                   >{branch.title}</strong
                 ><small class={css({ textStyle: 'body.sm', color: 'fg.muted' })}
                   >{branch.reason.text}</small
                 ></span
               ><span
-                class={css({ color: 'accent', fontSize: 'xl', flexShrink: '0' })}
+                class={css({
+                  color: 'accent',
+                  fontSize: '2xl',
+                  flexShrink: '0',
+                  display: 'none',
+                  '@container (min-width: 26rem)': { display: 'block' }
+                })}
                 aria-hidden="true">↗</span
               ></button
             >{/each}

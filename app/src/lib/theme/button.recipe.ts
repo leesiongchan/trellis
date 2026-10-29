@@ -9,8 +9,8 @@ export const buttonRecipe = defineRecipe({
     gap: '2',
     borderWidth: '1px',
     borderColor: 'transparent',
-    rounded: 'control',
-    fontSize: 'sm',
+    rounded: 'full',
+    fontSize: 'md',
     fontWeight: 'medium',
     lineHeight: 'tight',
     textAlign: 'center',
@@ -25,7 +25,7 @@ export const buttonRecipe = defineRecipe({
       outlineOffset: '1'
     },
     _disabled: { opacity: '0.5', cursor: 'default' },
-    _motionReduce: { transition: 'none' }
+    _motionReduce: { transitionProperty: 'none' }
   },
   variants: {
     visual: {
@@ -41,7 +41,7 @@ export const buttonRecipe = defineRecipe({
       icon: { bg: 'transparent', color: 'accent', minW: 'control', _hover: { bg: 'accent.subtle' } }
     },
     size: {
-      sm: { minH: '8', px: '3', py: '1', _coarsePointer: { minH: 'control' } },
+      sm: { minH: 'control', px: '3', py: '1' },
       md: { minH: 'control', px: '4', py: '2' }
     }
   },

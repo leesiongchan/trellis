@@ -17,12 +17,12 @@
       compact: {
         true: {
           display: 'inline-block',
-          fontSize: 'xs',
+          fontSize: 'sm',
           lineHeight: 'tight',
           verticalAlign: 'super',
           ml: '1',
-          minW: '4',
-          minH: '5',
+          minW: '5',
+          minH: '6',
           textAlign: 'center',
           _focusVisible: { outlineOffset: '0.5' }
         },

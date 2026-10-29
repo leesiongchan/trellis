@@ -1,10 +1,10 @@
 <script lang="ts">
   import { css, cva } from '#styled/css';
   import { button } from '#styled/recipes';
-  import { token } from '#styled/tokens';
   import AppHeader from '#lib/components/AppHeader.svelte';
   import { onMount, untrack } from 'svelte';
   import TopicStart from '#lib/components/TopicStart.svelte';
+  import StartIllustration from '#lib/components/StartIllustration.svelte';
   import ExplorationList from '#lib/components/ExplorationList.svelte';
   import Workspace from '#lib/components/Workspace.svelte';
   import TopicConnections from '#lib/components/TopicConnections.svelte';
@@ -46,7 +46,11 @@
     base: { minH: 'viewport', position: 'relative' },
     variants: {
       exploring: {
-        true: { h: 'viewport', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+        true: {
+          display: 'flex',
+          flexDirection: 'column',
+          workspace: { h: 'viewport', overflow: 'hidden' }
+        }
       }
     }
   });
@@ -115,7 +119,7 @@
       minH: 'control',
       borderWidth: '1px',
       borderColor: 'border.strong',
-      rounded: 'control',
+      rounded: 'panel',
       bg: 'bg.surface',
       px: '3',
       py: '2'
@@ -130,7 +134,7 @@
       rounded: 'control',
       borderWidth: '1px',
       borderColor: 'border',
-      bg: 'bg.surface',
+      bg: 'bg',
       overflowWrap: 'anywhere',
       _hover: { bg: 'accent.subtle', borderColor: 'accent' }
     })
@@ -468,7 +472,10 @@
     </div>{/if}
   {#if showLibrary}<div class={styles.drawer} role="region" aria-label="Your explorations drawer">
       <div class={styles.label}>
-        YOUR EXPLORATIONS<button
+        <h2 class={css({ fontFamily: 'heading', fontSize: '2xl', color: 'fg' })}>
+          Your explorations
+        </h2>
+        <button
           class={button({ visual: 'icon' })}
           aria-label="Close explorations"
           onclick={() => (showLibrary = false)}>×</button
@@ -497,7 +504,8 @@
     </div>{/if}
   {#if navigation.showCatalog}<section class={styles.catalog} aria-label="Saved topics">
       <div class={styles.label}>
-        SAVED TOPICS<button
+        <h2 class={css({ fontFamily: 'heading', fontSize: '2xl', color: 'fg' })}>Saved topics</h2>
+        <button
           class={button({ visual: 'icon' })}
           aria-label="Close saved topics"
           onclick={() => (navigation.showCatalog = false)}>×</button
@@ -515,7 +523,9 @@
           onclick={() => {
             void navigation.openTopic(topic.id);
           }}
-          ><strong>{topic.question}</strong><span>{topic.answerVersionCount} saved answers</span
+          ><strong class={css({ textStyle: 'body.sm' })}>{topic.question}</strong><span
+            class={css({ textStyle: 'caption', color: 'fg.muted' })}
+            >{topic.answerVersionCount} saved answers</span
           ></button
         >{/each}{#if navigation.catalog.nextCursor}<button
           class={button({ visual: 'quiet' })}
@@ -554,114 +564,7 @@
           })}
         >
           <TopicStart onStart={start} disabled={switching || !mounted} />
-          <div
-            class={css({
-              display: 'none',
-              workspace: { display: 'flex' },
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4',
-              color: 'fg.muted'
-            })}
-            aria-hidden="true"
-          >
-            <div class={css({ textStyle: 'label' })}>A QUESTION IS JUST THE BEGINNING</div>
-            <svg class={css({ w: 'full', h: 'auto' })} viewBox="0 0 480 440" fill="none"
-              ><path
-                d="M82 220H158M158 103V337M158 103H225M158 220H225M158 337H225M337 103H363M363 53V153M363 53H403M363 153H403M337 337H395"
-                stroke={token.var('colors.border.strong')}
-                stroke-width="1.5"
-              /><circle
-                cx="82"
-                cy="220"
-                r="27"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><path
-                d="M73 220H91M82 211V229"
-                stroke={token.var('colors.border.strong')}
-                stroke-width="1.5"
-              /><rect
-                x="225"
-                y="72"
-                width="112"
-                height="62"
-                rx="11"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><rect
-                x="225"
-                y="189"
-                width="137"
-                height="62"
-                rx="11"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><rect
-                x="225"
-                y="306"
-                width="112"
-                height="62"
-                rx="11"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><circle
-                cx="415"
-                cy="53"
-                r="12"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><circle
-                cx="415"
-                cy="153"
-                r="12"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><circle
-                cx="407"
-                cy="337"
-                r="12"
-                fill={token.var('colors.accent.subtle')}
-                stroke={token.var('colors.border.strong')}
-              /><text
-                x="243"
-                y="99"
-                fill={token.var('colors.accent')}
-                font-size="11"
-                font-family="system-ui">How it works</text
-              ><text
-                x="243"
-                y="117"
-                fill={token.var('colors.accent')}
-                font-size="9"
-                font-family="system-ui">Look a little closer ↗</text
-              ><text
-                x="243"
-                y="217"
-                fill={token.var('colors.accent')}
-                font-size="11"
-                font-family="system-ui">What makes it possible</text
-              ><text
-                x="243"
-                y="235"
-                fill={token.var('colors.accent')}
-                font-size="9"
-                font-family="system-ui">Find the foundations ↗</text
-              ><text
-                x="243"
-                y="333"
-                fill={token.var('colors.accent')}
-                font-size="11"
-                font-family="system-ui">Something unexpected</text
-              ><text
-                x="243"
-                y="351"
-                fill={token.var('colors.accent')}
-                font-size="9"
-                font-family="system-ui">Make a connection ↗</text
-              ><circle cx="158" cy="220" r="3" fill={token.var('colors.accent.subtle')} /></svg
-            ><span class={css({ textStyle: 'caption' })}>Every answer opens another door.</span>
-          </div>
+          <StartIllustration />
         </div>
         <div class={css({ display: 'grid', gap: '8', py: '6' })}>
           {#if !showLibrary}<ExplorationList

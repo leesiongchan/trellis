@@ -86,16 +86,21 @@ export const tokens = defineTokens({
     heading: { value: "'Instrument Serif', Georgia, serif" }
   },
   fontSizes: {
-    body: { value: 'clamp(1rem, 0.94rem + 0.2vw, 1.125rem)' },
-    topic: { value: 'clamp(2rem, 1.4rem + 2vw, 3rem)' },
+    body: { value: 'clamp(1.125rem, 1.05rem + 0.25vw, 1.25rem)' },
+    topic: { value: 'clamp(2.25rem, 1.6rem + 2vw, 3.5rem)' },
     hero: { value: 'clamp(3rem, 2rem + 4vw, 5rem)' }
   },
   spacing: {
     gutter: { value: 'clamp(1rem, 0.6rem + 1.5vw, 2.5rem)' },
     section: { value: 'clamp(1.5rem, 1rem + 2vw, 3rem)' }
   },
-  sizes: { prose: { value: '70ch' }, control: { value: '2.75rem' }, viewport: { value: '100dvh' } },
-  radii: { panel: { value: '0.875rem' }, control: { value: '0.5rem' } },
+  sizes: {
+    prose: { value: '70ch' },
+    control: { value: '2.75rem' },
+    viewport: { value: '100dvh' },
+    workspace: { value: 'max(24rem, calc(100dvh - 16rem))' }
+  },
+  radii: { panel: { value: '1.25rem' }, control: { value: '0.875rem' } },
   durations: { fast: { value: '150ms' }, normal: { value: '200ms' } },
   easings: { standard: { value: 'cubic-bezier(0.2, 0, 0, 1)' } }
 });
@@ -137,7 +142,7 @@ export const semanticTokens = defineSemanticTokens({
 export const textStyles = defineTextStyles({
   body: {
     DEFAULT: { value: { fontFamily: 'body', fontSize: 'body', lineHeight: '1.8' } },
-    sm: { value: { fontFamily: 'body', fontSize: 'sm', lineHeight: '1.7' } }
+    sm: { value: { fontFamily: 'body', fontSize: 'md', lineHeight: '1.7' } }
   },
   heading: {
     hero: {
@@ -165,12 +170,11 @@ export const textStyles = defineTextStyles({
   label: {
     value: {
       fontFamily: 'body',
-      fontSize: 'xs',
+      fontSize: 'sm',
       fontWeight: 'semibold',
-      letterSpacing: '0.1em',
-      textTransform: 'uppercase',
+      letterSpacing: '0.03em',
       lineHeight: '1.5'
     }
   },
-  caption: { value: { fontFamily: 'body', fontSize: 'xs', lineHeight: '1.6' } }
+  caption: { value: { fontFamily: 'body', fontSize: 'sm', lineHeight: '1.6' } }
 });

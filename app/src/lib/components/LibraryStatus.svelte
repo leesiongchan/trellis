@@ -54,7 +54,7 @@
         bg: 'danger.subtle',
         borderWidth: '1px',
         borderColor: 'danger',
-        rounded: 'control',
+        rounded: 'panel',
         color: 'fg',
         minW: '0'
       })}

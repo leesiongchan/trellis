@@ -15,12 +15,13 @@
 </script>
 
 <script lang="ts">
-  import { sva } from '#styled/css';
+  import { css, sva } from '#styled/css';
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
+  import BotanicalMark from './BotanicalMark.svelte';
   let { data }: NodeProps<FlowTopicNode> = $props();
   const topic = $derived(data.topic);
   const node = sva({
-    slots: ['root', 'read', 'relationship', 'title', 'teaser', 'expand', 'count'],
+    slots: ['root', 'read', 'relationship', 'title', 'status', 'expand', 'count'],
     base: {
       // SvelteFlow layout and node bounds use fixed 240 × 150 CSS-pixel geometry.
       root: {
@@ -33,6 +34,12 @@
         borderColor: 'border.strong',
         rounded: 'panel',
         shadow: 'xs',
+        transitionProperty: 'border-color, box-shadow',
+        transitionDuration: 'fast',
+        animationName: 'branchEnter',
+        animationDuration: 'normal',
+        animationTimingFunction: 'standard',
+        _motionReduce: { transitionProperty: 'none', animationName: 'none' },
         overflow: 'hidden',
         _focusWithin: { borderColor: 'focus' }
       },
@@ -43,28 +50,33 @@
         display: 'flex',
         flexDirection: 'column',
         gap: '1',
+        justifyContent: 'center',
         px: '4',
-        py: '3',
+        py: '2',
         textAlign: 'left',
         bg: 'transparent',
         _focusVisible: { outlineOffset: '-1' }
       },
       relationship: {
-        fontSize: '2xs',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1.5',
+        fontSize: 'sm',
         color: 'fg.muted',
         fontWeight: 'semibold',
-        textTransform: 'uppercase',
-        letterSpacing: 'wide',
-        lineClamp: 1
+        lineHeight: 'tight',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis'
       },
       title: {
-        fontSize: 'sm',
+        fontSize: 'lg',
         lineHeight: 'tight',
         fontWeight: 'semibold',
         lineClamp: 2,
         overflowWrap: 'anywhere'
       },
-      teaser: { textStyle: 'caption', color: 'fg.muted', lineClamp: 1 },
+      status: { fontSize: 'sm', lineHeight: 'tight', color: 'fg.muted' },
       expand: {
         display: 'flex',
         alignItems: 'center',
@@ -72,9 +84,9 @@
         minH: 'control',
         w: 'full',
         px: '4',
-        fontSize: 'xs',
+        fontSize: 'sm',
         textAlign: 'left',
-        bg: 'bg.subtle',
+        bg: 'bg.surface',
         color: 'accent',
         borderTopWidth: '1px',
         borderColor: 'border',
@@ -85,13 +97,13 @@
       count: { ml: 'auto' }
     },
     variants: {
-      root: { true: { root: { bg: 'bg.highlight' } } },
-      active: { true: { root: { borderColor: 'accent', bg: 'accent.subtle', shadow: 'sm' } } },
+      root: { true: { root: { bg: 'bg.highlight', borderBottomLeftRadius: 'sm' } } },
+      active: { true: { root: { borderColor: 'accent', borderWidth: '2px', shadow: 'sm' } } },
       status: {
         suggested: {},
         ready: {},
         researching: { root: { borderStyle: 'dashed' } },
-        failed: { root: { borderColor: 'danger' } }
+        failed: { root: { borderColor: 'danger' }, status: { color: 'danger' } }
       }
     }
   });
@@ -108,15 +120,19 @@
     aria-describedby={topic.status === 'failed' ? 'topic-status-' + topic.id : undefined}
     aria-current={data.active ? 'location' : undefined}
     onclick={() => data.onSelect(topic.id)}
-    ><span class={classes.relationship}>{topic.relationship}</span><strong class={classes.title}
-      >{topic.content?.title ?? topic.question}</strong
-    ><span class={classes.teaser} id={'topic-status-' + topic.id}
-      >{topic.status === 'failed'
-        ? 'Research failed. Open to retry.'
-        : topic.teaser ||
-          topic.content?.summary[0]?.text ||
-          'Open this question and see where it leads.'}</span
-    ></button
+    >{#if topic.status === 'failed' || topic.status === 'researching'}
+      <span class={classes.status} id={'topic-status-' + topic.id} data-topic-label>
+        {topic.status === 'failed' ? 'Research failed. Open to retry.' : 'Researching…'}
+      </span>
+    {:else}
+      <span class={classes.relationship} data-topic-label
+        ><BotanicalMark /><span
+          class={css({ minW: '0', overflow: 'hidden', textOverflow: 'ellipsis' })}
+          >{topic.relationship || 'Your starting question'}</span
+        ></span
+      >
+    {/if}
+    <strong class={classes.title}>{topic.content?.title ?? topic.question}</strong></button
   >
   <button
     class={[classes.expand, 'nodrag', 'nopan']}

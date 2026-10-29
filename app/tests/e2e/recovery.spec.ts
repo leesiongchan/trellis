@@ -46,7 +46,11 @@ test('saved model HTML remains inert text from the server', async ({ page }) => 
   await seedServerExploration(page, legacy);
   await page.reload();
   await page.getByRole('button', { name: 'Resume Hostile model text', exact: true }).click();
-  await expect(page.getByText(hostile, { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('complementary', { name: 'Topic explanation', exact: true })
+      .getByText(hostile, { exact: false })
+  ).toBeVisible();
   expect(await page.locator('[data-injected]').count()).toBe(0);
 });
 
