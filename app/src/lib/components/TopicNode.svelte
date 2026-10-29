@@ -85,7 +85,7 @@
       count: { ml: 'auto' }
     },
     variants: {
-      root: { true: { root: { bg: 'bg.subtle' } } },
+      root: { true: { root: { bg: 'bg.highlight' } } },
       active: { true: { root: { borderColor: 'accent', bg: 'accent.subtle', shadow: 'sm' } } },
       status: {
         suggested: {},

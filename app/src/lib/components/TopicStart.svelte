@@ -119,7 +119,7 @@
       alignItems: 'center'
     })}
   >
-    <span class={css({ w: '1.5', h: '1.5', rounded: 'full', bg: 'accent', flexShrink: '0' })}
+    <span class={css({ w: '1.5', h: '1.5', rounded: 'full', bg: 'ornament', flexShrink: '0' })}
     ></span> Your pace. Your path. Always another question.
   </div>
 </section>

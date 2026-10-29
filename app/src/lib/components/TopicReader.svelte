@@ -191,7 +191,7 @@
               gap: '3',
               px: '5',
               py: '4',
-              bg: 'accent.subtle',
+              bg: 'bg.highlight',
               borderLeftWidth: '2px',
               borderColor: 'accent',
               rounded: 'control',

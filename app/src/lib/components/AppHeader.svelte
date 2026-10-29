@@ -77,7 +77,7 @@
 
 <header class={classes.root}>
   <button class={classes.wordmark} aria-label="Trellis home" onclick={onHome}
-    >trellis<span class={css({ color: 'accent' })}>.</span></button
+    >trellis<span class={css({ color: 'ornament' })}>.</span></button
   >
   <span class={classes.tagline}>Room for a little wonder.</span>
   <div

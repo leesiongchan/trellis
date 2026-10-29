@@ -2,31 +2,83 @@ import { defineSemanticTokens, defineTextStyles, defineTokens } from '@pandacss/
 
 export const tokens = defineTokens({
   colors: {
-    forest: {
-      50: { value: '#f0f5ec' },
-      100: { value: '#e7efdf' },
-      200: { value: '#cedec2' },
-      300: { value: '#b0c49e' },
-      400: { value: '#96ae81' },
-      500: { value: '#7b9666' },
-      600: { value: '#607e51' },
-      700: { value: '#4f6d48' },
-      800: { value: '#3e6547' },
-      900: { value: '#26392c' },
-      950: { value: '#17271d' }
+    plum: {
+      50: { value: '#fbf4f8' },
+      100: { value: '#f1e2eb' },
+      200: { value: '#d9b9c9' },
+      300: { value: '#c9a0b7' },
+      400: { value: '#b486a1' },
+      500: { value: '#956580' },
+      600: { value: '#7b526c' },
+      700: { value: '#704a65' },
+      800: { value: '#532d50' },
+      900: { value: '#3a153d' },
+      950: { value: '#260c29' }
     },
-    sand: {
-      50: { value: '#fffef9' },
-      100: { value: '#f7f7f2' },
-      200: { value: '#eef0e7' },
-      300: { value: '#e0e4d8' },
-      400: { value: '#c7cdbd' },
-      500: { value: '#a5ad99' },
-      600: { value: '#818b75' },
-      700: { value: '#606a55' },
-      800: { value: '#454d3d' },
-      900: { value: '#2d3529' },
-      950: { value: '#1c2219' }
+    peach: {
+      50: { value: '#fffaf5' },
+      100: { value: '#fff0e5' },
+      200: { value: '#ffe1ce' },
+      300: { value: '#ffcaac' },
+      400: { value: '#f7aa83' },
+      500: { value: '#e78861' },
+      600: { value: '#ca6240' },
+      700: { value: '#a1462e' },
+      800: { value: '#803a2b' },
+      900: { value: '#653126' },
+      950: { value: '#37170f' }
+    },
+    cobalt: {
+      50: { value: '#eef2ff' },
+      100: { value: '#dfe6ff' },
+      200: { value: '#c5d1ff' },
+      300: { value: '#9badff' },
+      400: { value: '#7185fa' },
+      500: { value: '#4965f0' },
+      600: { value: '#244de0' },
+      700: { value: '#1c3bb7' },
+      800: { value: '#1d3291' },
+      900: { value: '#1c2d73' },
+      950: { value: '#141c45' }
+    },
+    lilac: {
+      50: { value: '#faf6ff' },
+      100: { value: '#eee4ff' },
+      200: { value: '#ddcbfa' },
+      300: { value: '#c6a9ef' },
+      400: { value: '#ac81df' },
+      500: { value: '#925fc8' },
+      600: { value: '#7b43ac' },
+      700: { value: '#66368c' },
+      800: { value: '#522d70' },
+      900: { value: '#43265a' },
+      950: { value: '#2b153d' }
+    },
+    coral: {
+      50: { value: '#fff4f0' },
+      100: { value: '#ffe3d9' },
+      200: { value: '#ffc7b8' },
+      300: { value: '#ffa18b' },
+      400: { value: '#ff806b' },
+      500: { value: '#ef5c49' },
+      600: { value: '#d43d31' },
+      700: { value: '#b12d28' },
+      800: { value: '#902925' },
+      900: { value: '#772724' },
+      950: { value: '#40100e' }
+    },
+    apricot: {
+      50: { value: '#fff8ee' },
+      100: { value: '#ffeccf' },
+      200: { value: '#ffdaad' },
+      300: { value: '#ffc078' },
+      400: { value: '#f5a34b' },
+      500: { value: '#e58628' },
+      600: { value: '#c76a1b' },
+      700: { value: '#a34f19' },
+      800: { value: '#843f1c' },
+      900: { value: '#6c351b' },
+      950: { value: '#3c190a' }
     }
   },
   fonts: {
@@ -51,31 +103,33 @@ export const tokens = defineTokens({
 export const semanticTokens = defineSemanticTokens({
   colors: {
     fg: {
-      DEFAULT: { value: '{colors.forest.900}' },
-      muted: { value: '{colors.sand.700}' },
-      subtle: { value: '{colors.gray.600}' }
+      DEFAULT: { value: '{colors.plum.900}' },
+      muted: { value: '{colors.plum.700}' },
+      subtle: { value: '{colors.plum.600}' }
     },
     bg: {
-      DEFAULT: { value: '{colors.sand.100}' },
-      canvas: { value: '{colors.forest.50}' },
-      surface: { value: '{colors.sand.50}' },
-      subtle: { value: '{colors.sand.200}' }
+      DEFAULT: { value: '{colors.peach.100}' },
+      canvas: { value: '{colors.lilac.100}' },
+      surface: { value: '{colors.peach.50}' },
+      subtle: { value: '{colors.peach.200}' },
+      highlight: { value: '{colors.apricot.200}' }
     },
     border: {
-      DEFAULT: { value: '{colors.sand.300}' },
-      strong: { value: '{colors.sand.600}' }
+      DEFAULT: { value: '{colors.plum.200}' },
+      strong: { value: '{colors.plum.500}' }
     },
     accent: {
-      DEFAULT: { value: '{colors.forest.800}' },
-      hover: { value: '{colors.forest.900}' },
-      subtle: { value: '{colors.forest.100}' }
+      DEFAULT: { value: '{colors.cobalt.600}' },
+      hover: { value: '{colors.cobalt.700}' },
+      subtle: { value: '{colors.lilac.100}' }
     },
-    focus: { value: '{colors.amber.700}' },
+    ornament: { value: '{colors.coral.400}' },
+    focus: { value: '{colors.cobalt.700}' },
     danger: {
       DEFAULT: { value: '{colors.red.700}' },
       subtle: { value: '{colors.red.50}' }
     },
-    success: { value: '{colors.forest.800}' },
+    success: { value: '{colors.emerald.700}' },
     warning: { value: '{colors.amber.800}' }
   }
 });
