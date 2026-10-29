@@ -257,80 +257,154 @@ em {
   color: var(--orange);
   border-color: var(--orange);
 }
-.constellation {
+
+/* A real branching structure: the starting question feeds three explorable paths. */
+.tree-overline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-top: 54px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.tree-overline .micro {
+  color: var(--muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tree-index {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 2rem;
+  white-space: nowrap;
+}
+.knowledge-tree {
+  --tree-layout: branching;
   position: relative;
-  height: 660px;
-  margin-top: 25px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 55px 36px;
+  padding-block: 26px 80px;
+  margin-top: 20px;
   isolation: isolate;
 }
-.connections {
+.tree-drawing {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  stroke: #8c9c7d;
-  stroke-width: 1.2;
   overflow: visible;
+  pointer-events: none;
   z-index: -1;
+  opacity: 0;
 }
-.connection {
-  stroke-dasharray: 4 5;
+.knowledge-tree[data-ready] .tree-drawing {
+  opacity: 1;
+}
+.tree-trunk,
+.tree-active-trunk,
+.tree-limb,
+.tree-rootlets {
+  stroke: var(--green);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tree-trunk {
+  stroke-width: 14px;
+}
+.tree-active-trunk {
+  stroke: var(--orange);
+  stroke-width: 14px;
+  opacity: 0;
+}
+.knowledge-tree[data-active-branch] .tree-active-trunk {
+  opacity: 1;
+}
+.tree-limb {
+  stroke-width: 7px;
+}
+.tree-rootlets {
+  stroke-width: 2px;
+  opacity: 0.55;
+}
+.tree-bud {
+  fill: var(--paper);
+  stroke: var(--green);
+  stroke-width: 2px;
+}
+.tree-leaf {
+  fill: var(--citron);
+  stroke: var(--green);
+  stroke-width: 1.3px;
+}
+.tree-foliage > g:nth-child(even) .tree-leaf {
+  fill: #d0ddc2;
+}
+.tree-vein {
+  stroke: var(--green);
+  stroke-width: 1px;
+  fill: none;
+}
+.tree-branch .tree-limb,
+.tree-branch .tree-bud,
+.tree-branch .tree-leaf,
+.tree-trunk {
   transition:
     stroke 0.2s,
-    stroke-width 0.2s;
+    fill 0.2s;
 }
-.connection.is-active {
+.tree-branch.is-active .tree-limb,
+.tree-branch.is-active .tree-leaf,
+.tree-branch.is-active .tree-bud {
   stroke: var(--orange);
-  stroke-width: 2;
-  stroke-dasharray: none;
 }
-.connections circle {
-  fill: var(--paper);
-  stroke: var(--ink);
-}
-.connections circle:last-child {
+.tree-branch.is-active .tree-bud {
   fill: var(--orange);
-  stroke: none;
 }
-.thought-knot {
+.tree-whisper {
   position: absolute;
-  width: 480px;
-  height: 480px;
-  object-fit: contain;
-  left: calc(50% - 205px);
-  top: 0;
-  z-index: 0;
-  pointer-events: none;
-  filter: drop-shadow(0 22px 20px #20382c0c);
+  bottom: 90px;
+  left: 0;
+  font-size: var(--type-ui);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.tree-whisper em {
+  font-size: 1.75rem;
+  color: var(--green);
 }
 .thought-card {
-  position: absolute;
-  text-align: left;
-  border: 1px solid var(--ink);
-  border-radius: 3px;
-  padding: 18px 20px 0;
+  position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 5px 6px 0 #20382c08;
-  transform: rotate(var(--rotation, 0deg));
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  width: 100%;
+  max-width: 310px;
+  min-width: 0;
+  align-self: start;
+  justify-self: center;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 22px 22px 0;
   background: var(--paper);
-  z-index: 2;
+  box-shadow: 5px 7px 0 #20382c08;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .thought-card:hover,
 .thought-card:focus-visible {
-  transform: translateY(-7px) rotate(0deg);
-  box-shadow: 7px 12px 0 #20382c10;
+  border-color: var(--orange);
+  box-shadow: 6px 9px 0 #20382c0c;
 }
 .thought-card.is-visited::after {
   content: '↗';
   position: absolute;
   top: -12px;
   right: -12px;
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
   background: var(--orange);
   color: var(--paper);
   border-radius: 50%;
@@ -339,180 +413,148 @@ em {
   font-size: 14px;
 }
 .root-card {
-  --rotation: -5deg;
-  width: 310px;
-  min-height: 208px;
-  left: 4%;
-  top: 24px;
+  grid-column: 2;
+  grid-row: 3;
+  max-width: 350px;
+  margin-top: 70px;
   background: var(--ink);
   color: var(--paper);
+  border-color: var(--ink);
 }
 .card-meta {
-  font-size: var(--type-caption);
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-  flex-wrap: wrap;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  font-size: var(--type-caption);
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .card-meta > span:last-child {
   margin-left: auto;
 }
 .card-dot {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   background: var(--citron);
   border-radius: 50%;
   flex-shrink: 0;
 }
+.root-question,
+.branch-title {
+  display: block;
+  margin-block: 24px;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
 .root-question {
   font-size: 2rem;
-  letter-spacing: -0.045em;
-  line-height: 1.15;
-  margin-block: 23px;
-  max-width: none;
 }
 .card-bottom {
   margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  border-top: 1px solid #9aab8d66;
-  min-height: 44px;
+  gap: 12px;
+  min-height: 50px;
+  padding-block: 12px;
   font-size: var(--type-caption);
-  line-height: 1.3;
+  line-height: 1.5;
+  border-top: 1px solid #9aab8d66;
+  overflow-wrap: anywhere;
 }
 .card-bottom > span {
-  font-size: 18px;
-  line-height: 1;
+  font-size: 20px;
+  flex-shrink: 0;
 }
-.branch-card {
-  width: 250px;
-  min-height: 157px;
-}
-.branch-title {
-  font-size: 1.75rem;
-  line-height: 1.15;
-  letter-spacing: -0.045em;
-  margin-block: 23px 18px;
+.branch-cards {
+  display: contents;
 }
 .branch-one {
-  --rotation: 5deg;
-  right: 8%;
-  top: 12px;
-  background: #fdfdf5;
+  grid-column: 1;
+  grid-row: 2;
+  background: #fcfcf4;
 }
 .branch-two {
-  --rotation: -4deg;
-  right: 0;
-  top: 300px;
-  min-height: 238px;
+  grid-column: 2;
+  grid-row: 1;
   background: var(--citron);
 }
 .branch-three {
-  --rotation: 3deg;
-  left: 21%;
-  bottom: 29px;
+  grid-column: 3;
+  grid-row: 2;
   background: #e9dfd0;
+  transform: translateY(-35px);
 }
-.mini-layers {
-  height: 60px;
-  width: 100px;
-  position: relative;
-  display: block;
-  align-self: center;
-  margin-bottom: 12px;
-  transform: rotate(-15deg) skew(-15deg);
-}
-.mini-layers i {
-  position: absolute;
-  width: 70px;
-  height: 35px;
-  left: 15px;
-  top: 0;
-  border: 1px solid var(--ink);
-  background: #e8f3b8;
-  transform: skewY(-18deg);
-}
-.mini-layers i:nth-child(1) {
-  top: 20px;
-  background: #74845f;
-}
-.mini-layers i:nth-child(2) {
-  top: 10px;
-  background: #b0c187;
-}
-.mini-layers i:nth-child(3) {
-  top: 0;
-}
-.canvas-aside {
-  position: absolute;
-  left: 0;
-  top: 325px;
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
-  z-index: 1;
-}
-.canvas-aside .asterisk {
-  font-size: 37px;
-  color: var(--orange);
-  line-height: 1;
-}
-.canvas-aside p {
-  font-size: 1.125rem;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
-}
-.canvas-aside em {
-  font-size: 1.65rem;
-}
-.canvas-instruction {
-  position: absolute;
-  bottom: 0;
-  right: 0;
+.tree-instruction {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 12px;
   font-size: var(--type-caption);
-  letter-spacing: 0.02em;
+  line-height: 1.6;
 }
 .instruction-dot {
   width: 6px;
   height: 6px;
   background: var(--orange);
   border-radius: 50%;
+  flex-shrink: 0;
 }
-.object-caption {
-  position: absolute;
-  left: 63%;
-  top: 480px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 1.3125rem;
-  line-height: 1.12;
-  transform: rotate(-9deg);
-  color: var(--muted);
-}
-.canvas-mark {
-  position: absolute;
-  font-size: 21px;
-  color: #9dac91;
-  line-height: 1;
-}
-.mark-one {
-  top: 0;
-  left: 0;
-}
-.mark-two {
-  top: 260px;
-  right: 26%;
-}
-.mark-three {
-  bottom: 74px;
-  left: 0;
+@container (max-width: 55rem) {
+  .knowledge-tree {
+    --tree-layout: stacked;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 38px;
+    padding-block: 14px 24px;
+  }
+  .thought-card {
+    grid-column: 1;
+    grid-row: auto;
+    max-width: 32rem;
+    justify-self: end;
+    width: calc(100% - 58px);
+    transform: none;
+    padding: 20px 20px 0;
+  }
+  .root-card {
+    grid-row: 1;
+    margin-top: 0;
+    width: 100%;
+    max-width: none;
+  }
+  .root-question {
+    font-size: 1.875rem;
+  }
+  .branch-title {
+    font-size: 1.625rem;
+  }
+  .tree-trunk,
+  .tree-active-trunk {
+    stroke-width: 4px;
+  }
+  .tree-limb {
+    stroke-width: 3px;
+  }
+  .tree-whisper,
+  .tree-rootlets {
+    display: none;
+  }
+  .tree-overline {
+    margin-top: 32px;
+    gap: 15px;
+  }
+  .tree-index {
+    font-size: 1.5rem;
+  }
+  .tree-instruction {
+    justify-content: flex-start;
+    align-items: baseline;
+  }
 }
 .sample-controls {
   display: flex;
@@ -1022,26 +1064,6 @@ em {
 .dialog-bottom > button:hover {
   background: var(--green);
 }
-@media (min-width: 1600px) {
-  .constellation {
-    height: 700px;
-  }
-  .thought-knot {
-    width: 530px;
-    height: 530px;
-    left: calc(50% - 235px);
-  }
-  .branch-two {
-    top: 340px;
-  }
-  .object-caption {
-    top: 520px;
-  }
-  .root-card {
-    left: 7%;
-    top: 35px;
-  }
-}
 @media (max-width: 1100px) {
   .shell {
     width: calc(100% - 64px);
@@ -1052,59 +1074,6 @@ em {
   }
   .hero-intro {
     margin-top: 48px;
-  }
-  .constellation {
-    height: 620px;
-  }
-  .thought-knot {
-    width: 410px;
-    height: 410px;
-    left: calc(50% - 170px);
-    top: 40px;
-  }
-  .root-card {
-    width: 240px;
-    left: 1%;
-    top: 35px;
-    min-height: 190px;
-  }
-  .root-question {
-    font-size: 1.65rem;
-  }
-  .branch-card {
-    width: 190px;
-    min-height: 150px;
-    padding: 15px 16px 0;
-  }
-  .branch-title {
-    font-size: 1.45rem;
-  }
-  .branch-one {
-    right: 3%;
-    top: 4px;
-  }
-  .branch-two {
-    top: 290px;
-    right: 0;
-    min-height: 220px;
-  }
-  .branch-three {
-    left: 21%;
-    bottom: 25px;
-  }
-  .canvas-aside {
-    top: 300px;
-    gap: 10px;
-  }
-  .canvas-aside p {
-    font-size: 1rem;
-  }
-  .canvas-aside em {
-    font-size: 1.4rem;
-  }
-  .object-caption {
-    left: 58%;
-    top: 460px;
   }
   .sample-controls {
     gap: 20px;
@@ -1196,10 +1165,6 @@ em {
     gap: 38px;
     padding-block: 12px;
     margin-top: 10px;
-  }
-  .mini-layers {
-    transform: rotate(-15deg) skew(-15deg) scale(0.8);
-    height: 50px;
   }
   .sample-controls {
     display: block;
@@ -1482,14 +1447,9 @@ em {
     transition: none !important;
     animation: none !important;
   }
-  .thought-card:hover,
-  .thought-card:focus-visible {
-    transform: rotate(var(--rotation, 0deg));
-  }
 }
 @media print {
   .thought-dialog,
-  .connections,
   .header nav,
   .sample-controls,
   .screen-toolbar,
@@ -1504,9 +1464,6 @@ em {
   }
   .opening h1 {
     font-size: 80px;
-  }
-  .constellation {
-    height: 500px;
   }
   .workspace {
     background: white;
@@ -1534,86 +1491,7 @@ em {
 .workspace h2 {
   word-spacing: 0.05em;
 }
-.connections-mobile {
-  display: none;
-}
-@media (hover: hover) and (pointer: fine) {
-  .thought-knot {
-    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .constellation:hover .thought-knot {
-    transform: rotate(-4deg);
-  }
-}
 @media (max-width: 760px) {
-  .constellation {
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 34px;
-    padding-block: 18px 16px;
-  }
-  .thought-card {
-    position: relative;
-    inset: auto;
-    width: min(18rem, calc(100% - 28px));
-    min-height: 0;
-    padding: 20px 20px 0;
-  }
-  .root-card {
-    justify-self: start;
-    margin-left: 10px;
-  }
-  .root-question {
-    font-size: 1.875rem;
-    margin-block: 24px;
-  }
-  .branch-cards {
-    display: contents;
-  }
-  .branch-title {
-    font-size: 1.625rem;
-    line-height: 1.2;
-    margin-block: 24px;
-  }
-  .branch-one,
-  .branch-three {
-    justify-self: end;
-    margin-right: 10px;
-    --rotation: 3deg;
-  }
-  .branch-two {
-    justify-self: start;
-    margin-left: 10px;
-    --rotation: -3deg;
-  }
-  .card-bottom {
-    min-height: 48px;
-    padding-block: 10px;
-  }
-  .thought-knot {
-    position: static;
-    width: min(360px, 100%);
-    height: auto;
-    grid-row: 2;
-    justify-self: center;
-    margin-block: -26px;
-  }
-  .canvas-mark,
-  .canvas-aside,
-  .object-caption,
-  .connections,
-  .connections-mobile {
-    display: none;
-  }
-  .canvas-instruction {
-    position: static;
-    margin-top: 10px;
-    line-height: 1.6;
-  }
-  .instruction-dot {
-    flex-shrink: 0;
-  }
   .sample-choices {
     gap: 10px;
   }
@@ -1637,68 +1515,9 @@ em {
     padding-block: 8px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .constellation:hover .thought-knot {
-    transform: none;
-  }
-}
-
-/* Text enlargement changes the available room for each spatial card. */
 h1,
-h2,
-.root-question,
-.branch-title {
+h2 {
   overflow-wrap: anywhere;
-}
-@media (min-width: 761px) {
-  @container (max-width: 50rem) {
-    .constellation {
-      height: auto;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 24px;
-      padding-block: 20px;
-    }
-    .thought-card {
-      position: relative;
-      inset: auto;
-      width: 100%;
-      max-width: 30rem;
-      height: auto;
-      min-height: 0;
-      transform: none;
-      margin: 0;
-    }
-    .thought-card:hover,
-    .thought-card:focus-visible {
-      transform: none;
-    }
-    .branch-cards {
-      display: contents;
-    }
-    .thought-knot {
-      position: static;
-      width: 85%;
-      max-width: 300px;
-      height: auto;
-      grid-row: 2;
-      justify-self: center;
-    }
-    .connections,
-    .connections-mobile,
-    .canvas-mark,
-    .canvas-aside,
-    .object-caption {
-      display: none;
-    }
-    .canvas-instruction {
-      position: static;
-      margin-top: 10px;
-    }
-    .card-meta {
-      flex-wrap: wrap;
-    }
-  }
 }
 
 /* Reading text keeps a stable scale; hierarchy comes from space and weight. */
@@ -1711,15 +1530,12 @@ h2,
 .sample-disclosure {
   max-width: 29ch;
 }
-.card-meta,
-.card-bottom,
 .dialog-source,
 .dialog-path,
 .dialog-text,
 .dialog-connection {
   overflow-wrap: anywhere;
 }
-.card-bottom > span,
 .dialog-source > span,
 .close-thought {
   flex-shrink: 0;

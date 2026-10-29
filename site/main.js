@@ -1,14 +1,16 @@
 import { createTrailState, getSelection, selectTopic } from './trail.js';
+import { createKnowledgeTree } from './tree.js';
 
-const constellation = document.querySelector('.constellation');
+const tree = document.querySelector('.knowledge-tree');
 const dialog = document.querySelector('#thought-dialog');
-if (constellation && dialog) {
+if (tree && dialog) {
   let state = createTrailState('memory');
   const visited = new Set();
   const branches = document.querySelector('[data-branches]');
   const root = document.querySelector('[data-root]');
   const choices = document.querySelectorAll('[data-trail]');
-  const branchLabels = ['THE THREAD', 'THE PERSPECTIVE', 'THE POSSIBILITY'];
+  const branchLabels = ['THE FIRST BRANCH', 'ANOTHER DIRECTION', 'ONE MORE POSSIBILITY'];
+  const treeView = createKnowledgeTree(tree, root, branches);
   let returnFocus = null;
 
   function updateNote() {
@@ -33,9 +35,7 @@ if (constellation && dialog) {
     returnFocus = trigger;
     trigger.classList.add('is-visited');
     updateNote();
-    for (const path of constellation.querySelectorAll('[data-connection]')) {
-      path.classList.toggle('is-active', path.dataset.connection === trigger.dataset.branchIndex);
-    }
+    treeView.select(trigger.hasAttribute('data-root') ? null : Number(trigger.dataset.branchIndex));
     dialog.showModal();
   }
 
@@ -60,17 +60,6 @@ if (constellation && dialog) {
       title.className = 'branch-title';
       title.textContent = topic.title;
       card.append(meta, title);
-      if (index === 1) {
-        const illustration = document.createElement('span');
-        illustration.className = 'mini-layers';
-        illustration.setAttribute('aria-hidden', 'true');
-        illustration.append(
-          document.createElement('i'),
-          document.createElement('i'),
-          document.createElement('i')
-        );
-        card.append(illustration);
-      }
       const bottom = document.createElement('span');
       bottom.className = 'card-bottom';
       bottom.append(
@@ -88,8 +77,8 @@ if (constellation && dialog) {
     branches.replaceChildren(...cards);
     for (const choice of choices)
       choice.setAttribute('aria-pressed', String(choice.dataset.trail === state.trailId));
-    for (const path of constellation.querySelectorAll('[data-connection]'))
-      path.classList.remove('is-active');
+    treeView.select(null);
+    treeView.refresh();
     updateNote();
   }
 

@@ -18,13 +18,13 @@
     <meta property="og:url" content="https://leesiongchan.github.io/trellis/" />
     <meta
       property="og:image"
-      content="https://leesiongchan.github.io/trellis/assets/social-card-v2.png"
+      content="https://leesiongchan.github.io/trellis/assets/social-card-v3.png"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Trellis. One thing leads to another. A dimensional knot of interconnected paper, glass, and forest-green ribbons."
+      content="Trellis. One question takes root. Follow its branches into a growing tree of connected ideas."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://leesiongchan.github.io/trellis/" />
@@ -43,8 +43,8 @@
       type="font/ttf"
       crossorigin
     />
-    <link rel="stylesheet" href="styles.css?v=3" />
-    <script type="module" src="main.js?v=2"></script>
+    <link rel="stylesheet" href="styles.css?v=4" />
+    <script type="module" src="main.js?v=4"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -79,54 +79,51 @@
           <p>
             Ask a question. Follow a cited answer.<br />See where the next connection takes you.
           </p>
-          <a href="#constellation" class="detour-link"
-            >Take a little detour <span aria-hidden="true">↙</span></a
+          <a href="#knowledge-tree" class="detour-link"
+            >See where a question grows <span aria-hidden="true">↙</span></a
           >
         </div>
 
+        <div class="tree-overline shell">
+          <p class="micro" id="tree-label">One question. A world of possibilities.</p>
+          <span class="tree-index" aria-hidden="true">( 01 → ∞ )</span>
+        </div>
         <div
-          class="constellation shell"
-          id="constellation"
+          class="knowledge-tree shell"
+          id="knowledge-tree"
           role="group"
-          aria-label="Interactive sample question constellation"
+          aria-labelledby="tree-label"
+          aria-describedby="tree-help"
         >
           <svg
-            class="connections"
-            viewBox="0 0 1280 650"
-            preserveAspectRatio="none"
+            class="tree-drawing"
+            data-tree-drawing
+            viewBox="0 0 1200 800"
             fill="none"
             aria-hidden="true"
           >
-            <path class="connection root-connection" d="M280 125C430 105 405 320 635 310" />
-            <path class="connection" data-connection="0" d="M635 310C830 310 780 90 1000 90" />
-            <path class="connection" data-connection="1" d="M635 310C790 310 790 435 1095 435" />
-            <path class="connection" data-connection="2" d="M635 310C440 310 510 545 365 545" />
-            <circle cx="635" cy="310" r="7" />
-            <circle cx="635" cy="310" r="2" />
+            <path class="tree-rootlets" data-rootlets />
+            <path class="tree-trunk" data-tree-trunk />
+            <path class="tree-active-trunk" data-active-trunk />
+            <g class="tree-branch" data-tree-branch="0">
+              <path class="tree-limb" data-tree-limb />
+              <g class="tree-foliage" data-tree-foliage></g>
+              <circle class="tree-bud" data-tree-bud r="5" />
+            </g>
+            <g class="tree-branch" data-tree-branch="1">
+              <path class="tree-limb" data-tree-limb />
+              <g class="tree-foliage" data-tree-foliage></g>
+              <circle class="tree-bud" data-tree-bud r="5" />
+            </g>
+            <g class="tree-branch" data-tree-branch="2">
+              <path class="tree-limb" data-tree-limb />
+              <g class="tree-foliage" data-tree-foliage></g>
+              <circle class="tree-bud" data-tree-bud r="5" />
+            </g>
           </svg>
-          <svg
-            class="connections-mobile"
-            viewBox="0 0 350 800"
-            preserveAspectRatio="none"
-            fill="none"
-            aria-hidden="true"
+          <span class="tree-whisper" aria-hidden="true"
+            >Let one little thought<br /><em>put down roots.</em></span
           >
-            <path
-              d="M150 100C150 230 175 220 175 365M175 365C245 365 270 280 270 265M175 365C115 365 80 440 80 540M175 365C230 450 250 550 270 690"
-            />
-          </svg>
-          <img
-            class="thought-knot"
-            src="assets/thought-knot.webp"
-            width="1280"
-            height="1280"
-            alt="An original sculptural knot: ivory paper, forest-green metal, and citron glass loop into one connected form."
-            fetchpriority="high"
-          />
-          <span class="canvas-mark mark-one" aria-hidden="true">+</span
-          ><span class="canvas-mark mark-two" aria-hidden="true">+</span
-          ><span class="canvas-mark mark-three" aria-hidden="true">+</span>
-
           <button
             class="thought-card root-card"
             type="button"
@@ -136,11 +133,11 @@
             aria-controls="thought-dialog"
           >
             <span class="card-meta"
-              ><span class="card-dot" aria-hidden="true"></span> THE FIRST QUESTION
+              ><span class="card-dot" aria-hidden="true"></span> THE STARTING QUESTION
               <span>001</span></span
             ><span class="root-question" data-root-question>How can a tiny card hold so much?</span
             ><span class="card-bottom"
-              >A small place to start <span aria-hidden="true">↗</span></span
+              >Start with this question <span aria-hidden="true">↗</span></span
             >
           </button>
 
@@ -154,7 +151,7 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">01 / THE MEMORY</span
+              <span class="card-meta">01 / THE FIRST BRANCH</span
               ><span class="branch-title">Meet NAND flash</span
               ><span class="card-bottom"
                 >Follow this thought <span aria-hidden="true">↗</span></span
@@ -169,9 +166,8 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">02 / THE DIMENSION</span
+              <span class="card-meta">02 / ANOTHER DIRECTION</span
               ><span class="branch-title">Think in three dimensions</span
-              ><span class="mini-layers" aria-hidden="true"><i></i><i></i><i></i></span
               ><span class="card-bottom"
                 >A different perspective <span aria-hidden="true">↗</span></span
               >
@@ -185,23 +181,18 @@
               aria-haspopup="dialog"
               aria-controls="thought-dialog"
             >
-              <span class="card-meta">03 / THE POSSIBILITY</span
+              <span class="card-meta">03 / ONE MORE POSSIBILITY</span
               ><span class="branch-title">More than one bit</span
               ><span class="card-bottom"
                 >And another question <span aria-hidden="true">↗</span></span
               >
             </button>
           </div>
-          <div class="canvas-aside">
-            <span class="asterisk" aria-hidden="true">✳</span>
-            <p>A little question.<br />A very good <em>rabbit hole.</em></p>
-          </div>
-          <p class="canvas-instruction">
-            <span class="instruction-dot" aria-hidden="true"></span> Pick a thought. Pull on the
-            thread.
-          </p>
-          <p class="object-caption">Connected thoughts,<br />taking shape.</p>
         </div>
+        <p class="tree-instruction shell" id="tree-help">
+          <span class="instruction-dot" aria-hidden="true"></span>
+          Start at the question. Choose a branch. See what grows.
+        </p>
 
         <div class="sample-controls shell">
           <div class="sample-choices" role="group" aria-label="Choose a sample starting point">
@@ -220,8 +211,8 @@
         </div>
         <noscript
           ><p class="static-note shell">
-            The sample constellation needs JavaScript to open its source-linked notes. Explore the
-            workspace below, or
+            The sample tree needs JavaScript to open its source-linked notes. Explore the workspace
+            below, or
             <a href="https://github.com/leesiongchan/trellis">get Trellis on GitHub</a>.
           </p></noscript
         >
@@ -378,7 +369,7 @@
       <div class="dialog-bottom">
         <span>Sample note · Prewritten, source-linked</span
         ><button type="button" data-close-dialog>
-          Back to the connections <span aria-hidden="true">↗</span>
+          Back to the tree <span aria-hidden="true">↗</span>
         </button>
       </div>
     </dialog>

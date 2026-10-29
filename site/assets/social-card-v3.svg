@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <style>
+    @font-face{font-family:DM;src:url('fonts/dm-sans-variable.ttf')}@font-face{font-family:Instrument;src:url('fonts/instrument-serif-regular.ttf')}@font-face{font-family:Instrument;src:url('fonts/instrument-serif-italic.ttf');font-style:italic}
+    text{fill:#20382c;font-family:DM,sans-serif}.serif{font-family:Instrument,Georgia,serif}.small{font-size:14px;letter-spacing:1px}.label{font-size:12px;font-weight:500}.title{font-size:25px;letter-spacing:-.6px}.stem{fill:none;stroke:#41634c;stroke-linecap:round}.leaf{fill:#dfed9e;stroke:#41634c;stroke-width:1.5}
+  </style>
+  <defs>
+    <path id="leaf" d="M0 0C12-18 38-18 48 0C30 8 11 13 0 0Z"/>
+  </defs>
+  <rect width="1200" height="630" fill="#f3f3e9"/>
+  <text x="54" y="100" class="serif" font-size="78" letter-spacing="-4">trellis<tspan fill="#41634c">.</tspan></text>
+  <text x="58" y="153" class="small">FOLLOW A QUESTION. SEE WHAT GROWS.</text>
+  <text x="50" y="275" font-size="100" letter-spacing="-6">One thing</text>
+  <text x="50" y="371" font-size="100" letter-spacing="-6">leads to</text>
+  <text x="53" y="480" class="serif" font-size="142" font-style="italic" letter-spacing="-5">another.</text>
+  <path d="M67 501Q298 480 529 498" stroke="#ae4f2b" stroke-width="1.5" fill="none"/>
+  <text x="58" y="565" font-size="20">One question. A world of possibilities.</text>
+  <path class="stem" stroke-width="12" d="M935 452C922 418 950 405 938 366"/>
+  <path class="stem" stroke-width="6" d="M938 366C901 301 905 327 837 327"/>
+  <path class="stem" stroke-width="6" d="M938 366C961 290 936 259 959 204"/>
+  <path class="stem" stroke-width="6" d="M938 366C969 320 1002 327 1039 327"/>
+  <g class="leaf">
+    <use href="#leaf" transform="translate(905 327) rotate(-110) scale(.75)"/>
+    <use href="#leaf" transform="translate(878 325) rotate(125) scale(.7)"/>
+    <use href="#leaf" transform="translate(944 319) rotate(-165) scale(.85)"/>
+    <use href="#leaf" transform="translate(948 270) rotate(-25) scale(.8)"/>
+    <use href="#leaf" transform="translate(951 238) rotate(-160) scale(.7)"/>
+    <use href="#leaf" transform="translate(980 333) rotate(-85) scale(.75)"/>
+    <use href="#leaf" transform="translate(1005 328) rotate(65) scale(.7)"/>
+  </g>
+  <g>
+    <rect x="621" y="266" width="216" height="122" rx="3" fill="#fcfcf4" stroke="#cdd3c2"/>
+    <text x="639" y="294" class="label">01 / THE FIRST BRANCH</text>
+    <text x="639" y="332" class="title">Meet NAND flash</text>
+    <path d="M639 352H819" stroke="#cdd3c2"/>
+    <text x="639" y="374" font-size="14">Follow this thought</text>
+    <text x="806" y="374" font-size="18">↗</text>
+  </g>
+  <g>
+    <rect x="842" y="48" width="234" height="156" rx="3" fill="#dfed9e" stroke="#cdd3c2"/>
+    <text x="860" y="77" class="label">02 / ANOTHER DIRECTION</text>
+    <text x="860" y="118" class="title">Think in three</text>
+    <text x="860" y="146" class="title">dimensions</text>
+    <path d="M860 167H1058" stroke="#b1c58d"/>
+    <text x="860" y="189" font-size="14">A different perspective</text>
+    <text x="1044" y="189" font-size="18">↗</text>
+  </g>
+  <g>
+    <rect x="1039" y="260" width="136" height="140" rx="3" fill="#e9dfd0" stroke="#cdd3c2"/>
+    <text x="1053" y="286" class="label">03 / ONE MORE</text>
+    <text x="1053" y="326" class="title">More than</text>
+    <text x="1053" y="354" class="title">one bit</text>
+    <text x="1144" y="384" font-size="18">↗</text>
+  </g>
+  <g>
+    <rect x="789" y="452" width="300" height="135" rx="3" fill="#20382c"/>
+    <circle cx="810" cy="476" r="3" fill="#dfed9e"/>
+    <text x="821" y="480" class="label" style="fill:#f3f3e9">THE STARTING QUESTION</text>
+    <text x="809" y="520" font-size="27" style="fill:#f3f3e9">How can a tiny card</text>
+    <text x="809" y="551" font-size="27" style="fill:#f3f3e9">hold so much?</text>
+  </g>
+  <path class="stem" stroke-width="1.5" opacity=".55" d="M939 587Q927 603 893 615M939 587V622M939 587Q952 605 986 615"/>
+</svg>
