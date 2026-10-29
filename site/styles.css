@@ -26,7 +26,10 @@
   --muted: #637060;
   --line: #cdd3c2;
   --citron: #dfed9e;
-  --orange: #b5542f;
+  --orange: #ae4f2b;
+  --type-caption: 0.875rem;
+  --type-ui: 1rem;
+  --type-body: 1.125rem;
   --sans: 'DM Sans', system-ui, sans-serif;
   --serif: 'Instrument Serif', Georgia, serif;
   font-family: var(--sans);
@@ -42,6 +45,7 @@
 }
 body {
   margin: 0;
+  font-size: var(--type-body);
   -webkit-font-smoothing: antialiased;
 }
 a {
@@ -100,7 +104,7 @@ em {
   margin-inline: auto;
 }
 .micro {
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
   font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -140,7 +144,7 @@ em {
   color: var(--green);
 }
 .header-caption {
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
   line-height: 1.3;
   color: var(--muted);
 }
@@ -149,7 +153,7 @@ em {
   align-items: center;
   gap: 30px;
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--type-ui);
 }
 .header nav > a {
   display: flex;
@@ -233,15 +237,15 @@ em {
   z-index: 3;
 }
 .hero-intro > p {
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   line-height: 1.65;
-  max-width: 360px;
+  max-width: 470px;
 }
 .detour-link {
   display: inline-flex;
   align-items: center;
   gap: 50px;
-  font-size: 0.75rem;
+  font-size: var(--type-ui);
   font-weight: 500;
   border-bottom: 1px solid var(--ink);
   padding-block: 15px;
@@ -336,7 +340,7 @@ em {
 }
 .root-card {
   --rotation: -5deg;
-  width: 282px;
+  width: 310px;
   min-height: 208px;
   left: 4%;
   top: 24px;
@@ -344,9 +348,10 @@ em {
   color: var(--paper);
 }
 .card-meta {
-  font-size: 0.5rem;
+  font-size: var(--type-caption);
   line-height: 1.4;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -362,11 +367,11 @@ em {
   flex-shrink: 0;
 }
 .root-question {
-  font-size: 1.8rem;
+  font-size: 2rem;
   letter-spacing: -0.045em;
-  line-height: 1.08;
+  line-height: 1.15;
   margin-block: 23px;
-  max-width: 240px;
+  max-width: none;
 }
 .card-bottom {
   margin-top: auto;
@@ -375,8 +380,8 @@ em {
   align-items: center;
   gap: 10px;
   border-top: 1px solid #9aab8d66;
-  min-height: 41px;
-  font-size: 0.5625rem;
+  min-height: 44px;
+  font-size: var(--type-caption);
   line-height: 1.3;
 }
 .card-bottom > span {
@@ -384,12 +389,12 @@ em {
   line-height: 1;
 }
 .branch-card {
-  width: 222px;
+  width: 250px;
   min-height: 157px;
 }
 .branch-title {
-  font-size: 1.65rem;
-  line-height: 1.08;
+  font-size: 1.75rem;
+  line-height: 1.15;
   letter-spacing: -0.045em;
   margin-block: 23px 18px;
 }
@@ -471,7 +476,7 @@ em {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
   letter-spacing: 0.02em;
 }
 .instruction-dot {
@@ -529,7 +534,7 @@ em {
   color: var(--muted);
 }
 .sample-choices button {
-  font-size: 0.6875rem;
+  font-size: var(--type-ui);
   background: transparent;
   border: 1px solid var(--line);
   padding: 11px 13px;
@@ -549,12 +554,12 @@ em {
   border-color: var(--ink);
 }
 .sample-disclosure {
-  font-size: 0.5625rem;
+  font-size: var(--type-caption);
   color: var(--muted);
   line-height: 1.5;
 }
 .static-note {
-  font-size: 0.875rem;
+  font-size: var(--type-body);
   margin-top: 25px;
 }
 .static-note a {
@@ -564,6 +569,10 @@ em {
   background: var(--ink);
   color: var(--paper);
   padding-block: 78px 60px;
+}
+.workspace button:focus-visible,
+.workspace a:focus-visible {
+  outline-color: var(--citron);
 }
 .workspace-heading {
   position: relative;
@@ -598,8 +607,8 @@ em {
   gap: 40px;
 }
 .workspace-summary > p {
-  font-size: 0.875rem;
-  max-width: 400px;
+  font-size: var(--type-body);
+  max-width: 510px;
   color: #d2d9c8;
 }
 .workspace-index {
@@ -618,7 +627,7 @@ em {
   align-items: center;
   gap: 25px;
   margin-bottom: 17px;
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
 }
 .screen-toolbar > a {
   min-height: 44px;
@@ -639,8 +648,8 @@ em {
   background: transparent;
   color: var(--paper);
   padding: 10px 14px;
-  font-size: 0.6875rem;
-  min-height: 41px;
+  font-size: var(--type-ui);
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -686,7 +695,7 @@ em {
   transform-origin: 100% 20%;
 }
 .screen-caption {
-  font-size: 0.6875rem;
+  font-size: var(--type-caption);
   color: #c9d3bd;
   min-height: 44px;
   display: flex;
@@ -703,7 +712,7 @@ em {
   padding-top: 30px;
 }
 .workspace-footnotes p {
-  font-size: 0.75rem;
+  font-size: var(--type-ui);
   font-weight: 500;
   line-height: 1.8;
 }
@@ -717,12 +726,12 @@ em {
   margin-bottom: 13px;
 }
 .workspace-footnotes strong {
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
   font-weight: 400;
   color: #b1c0a5;
 }
 .screenshot-note {
-  font-size: 0.5rem;
+  font-size: var(--type-caption);
   line-height: 1.5;
   color: #b1c0a5;
   align-self: flex-end;
@@ -763,7 +772,7 @@ em {
   padding-top: 20px;
 }
 .closing-details > p:first-child {
-  font-size: 1rem;
+  font-size: var(--type-body);
   line-height: 1.6;
   letter-spacing: -0.02em;
 }
@@ -776,7 +785,7 @@ em {
   color: var(--paper);
   padding: 20px 22px;
   margin-top: 23px;
-  font-size: 0.875rem;
+  font-size: var(--type-ui);
   min-height: 64px;
   transition: background 0.15s;
 }
@@ -793,14 +802,14 @@ em {
   gap: 20px;
   align-items: center;
   min-height: 45px;
-  font-size: 0.6875rem;
+  font-size: var(--type-ui);
   border-bottom: 1px solid var(--line);
 }
 .setup-link:hover {
   color: var(--orange);
 }
 .requirements {
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
   color: var(--muted);
   margin-top: 15px;
   line-height: 1.6;
@@ -823,8 +832,9 @@ em {
   gap: 25px;
   cursor: pointer;
   list-style: none;
-  font-size: 0.75rem;
+  font-size: var(--type-ui);
   min-height: 65px;
+  padding-right: 12px;
 }
 .practical-notes summary::-webkit-details-marker {
   display: none;
@@ -832,6 +842,7 @@ em {
 .practical-notes summary > span {
   font-size: 25px;
   font-weight: 300;
+  flex-shrink: 0;
 }
 .practical-notes details[open] summary > span {
   transform: rotate(45deg);
@@ -840,7 +851,7 @@ em {
   padding: 0 25px 22px 0;
 }
 .practical-notes details p {
-  font-size: 0.75rem;
+  font-size: var(--type-ui);
   color: var(--muted);
   line-height: 1.7;
 }
@@ -848,7 +859,7 @@ em {
   margin-top: 15px;
 }
 .independent-note {
-  font-size: 0.6875rem;
+  font-size: var(--type-caption);
   color: var(--muted);
   line-height: 1.5;
   letter-spacing: -0.02em;
@@ -863,7 +874,7 @@ em {
   gap: 25px;
   border-top: 1px solid var(--line);
   padding-top: 20px;
-  font-size: 0.625rem;
+  font-size: var(--type-caption);
 }
 .footer-top > a {
   min-height: 44px;
@@ -905,6 +916,7 @@ em {
 }
 .thought-dialog {
   width: min(590px, calc(100% - 32px));
+  max-width: calc(100% - 32px);
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -925,6 +937,10 @@ em {
   justify-content: space-between;
   gap: 20px;
 }
+.dialog-top > .micro {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .close-thought {
   display: grid;
   place-items: center;
@@ -939,7 +955,7 @@ em {
   background: var(--citron);
 }
 .dialog-path {
-  font-size: 0.6875rem;
+  font-size: var(--type-caption);
   color: var(--muted);
   margin-top: 22px;
 }
@@ -952,7 +968,7 @@ em {
   text-wrap: balance;
 }
 .dialog-text {
-  font-size: 1rem;
+  font-size: var(--type-body);
   line-height: 1.75;
 }
 .dialog-connection {
@@ -969,7 +985,7 @@ em {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  font-size: 0.6875rem;
+  font-size: var(--type-ui);
   padding-block: 17px;
   border-block: 1px solid var(--line);
   min-height: 51px;
@@ -987,7 +1003,7 @@ em {
   margin-top: 20px;
 }
 .dialog-bottom > span {
-  font-size: 0.5rem;
+  font-size: var(--type-caption);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -996,11 +1012,12 @@ em {
   background: var(--ink);
   color: var(--paper);
   min-height: 44px;
-  font-size: 0.625rem;
+  font-size: var(--type-ui);
   padding: 12px 14px;
   display: flex;
   gap: 15px;
   align-items: center;
+  overflow-wrap: anywhere;
 }
 .dialog-bottom > button:hover {
   background: var(--green);
@@ -1099,23 +1116,15 @@ em {
     width: 100%;
     margin-bottom: 3px;
   }
-  .sample-disclosure {
-    font-size: 0.5rem;
-  }
   .closing-main {
     gap: 50px;
   }
   .closing-details {
-    max-width: 300px;
+    max-width: 345px;
   }
   .workspace-footnotes {
-    gap: 20px;
-  }
-  .workspace-footnotes p {
-    font-size: 0.6875rem;
-  }
-  .workspace-footnotes strong {
-    font-size: 0.5625rem;
+    gap: 24px;
+    flex-wrap: wrap;
   }
 }
 @media (max-width: 760px) {
@@ -1130,11 +1139,10 @@ em {
     font-size: 2.8rem;
   }
   .header-caption {
-    font-size: 0.5rem;
+    display: none;
   }
   .header nav {
     gap: 0;
-    font-size: 0.6875rem;
   }
   .header nav > a:first-child {
     display: none;
@@ -1150,9 +1158,6 @@ em {
   }
   .opening-top {
     padding-top: 23px;
-  }
-  .opening-top .micro {
-    font-size: 0.5rem;
   }
   .opening-index {
     display: none;
@@ -1185,119 +1190,16 @@ em {
     display: block;
   }
   .hero-intro > p {
-    font-size: 0.8125rem;
-    max-width: 290px;
+    max-width: 36ch;
   }
   .detour-link {
-    font-size: 0.625rem;
     gap: 38px;
     padding-block: 12px;
     margin-top: 10px;
   }
-  .constellation {
-    height: 800px;
-    margin-top: 35px;
-  }
-  .thought-knot {
-    width: 370px;
-    height: 370px;
-    left: calc(50% - 185px);
-    top: 178px;
-    z-index: 0;
-  }
-  .connections {
-    display: none;
-  }
-  .root-card {
-    top: 5px;
-    left: 6%;
-    width: 230px;
-    min-height: 174px;
-    --rotation: -5deg;
-    padding: 16px 18px 0;
-  }
-  .root-question {
-    font-size: 1.65rem;
-    margin-block: 18px;
-  }
-  .card-meta {
-    font-size: 0.4375rem;
-  }
-  .card-bottom {
-    font-size: 0.5rem;
-    min-height: 37px;
-  }
-  .branch-card {
-    width: 165px;
-    min-height: 150px;
-    padding: 15px 14px 0;
-  }
-  .branch-title {
-    font-size: 1.45rem;
-    margin-block: 20px 16px;
-  }
-  .branch-one {
-    right: 0;
-    top: 205px;
-    --rotation: 7deg;
-  }
-  .branch-two {
-    left: 0;
-    right: auto;
-    top: 455px;
-    min-height: 211px;
-    --rotation: -6deg;
-  }
-  .branch-three {
-    right: 0;
-    left: auto;
-    bottom: 43px;
-    --rotation: 5deg;
-    min-height: 153px;
-  }
   .mini-layers {
     transform: rotate(-15deg) skew(-15deg) scale(0.8);
     height: 50px;
-  }
-  .canvas-aside {
-    top: 350px;
-    left: 0;
-    gap: 8px;
-    max-width: 165px;
-  }
-  .canvas-aside .asterisk {
-    font-size: 28px;
-  }
-  .canvas-aside p {
-    font-size: 0.8125rem;
-  }
-  .canvas-aside em {
-    font-size: 1.125rem;
-  }
-  .object-caption {
-    top: 590px;
-    left: auto;
-    right: 7px;
-    font-size: 1.0625rem;
-    line-height: 1.12;
-  }
-  .canvas-instruction {
-    font-size: 0.5rem;
-    left: 0;
-    right: auto;
-    bottom: 0;
-  }
-  .mark-one {
-    left: 0;
-    top: 0;
-  }
-  .mark-two {
-    right: 0;
-    top: 410px;
-  }
-  .mark-three {
-    left: 0;
-    bottom: 78px;
   }
   .sample-controls {
     display: block;
@@ -1308,17 +1210,14 @@ em {
     gap: 6px;
   }
   .sample-choices > .micro {
-    font-size: 0.5rem;
     margin-bottom: 5px;
   }
   .sample-choices button {
-    font-size: 0.5625rem;
     padding: 10px;
     gap: 9px;
     min-height: 44px;
   }
   .sample-disclosure {
-    font-size: 0.5rem;
     margin-top: 14px;
     line-height: 1.5;
   }
@@ -1327,9 +1226,6 @@ em {
   }
   .workspace {
     padding-block: 43px 35px;
-  }
-  .workspace-heading > .micro {
-    font-size: 0.5625rem;
   }
   .workspace-heading > .micro span {
     font-size: 28px;
@@ -1349,8 +1245,7 @@ em {
     gap: 15px;
   }
   .workspace-summary > p {
-    font-size: 0.75rem;
-    max-width: 280px;
+    max-width: 36ch;
     line-height: 1.7;
   }
   .workspace-index {
@@ -1371,15 +1266,14 @@ em {
     gap: 0;
   }
   .screen-modes button {
-    font-size: 0.5625rem;
     padding: 9px 11px;
     gap: 13px;
-    min-height: 40px;
+    min-height: 44px;
   }
   .screen-toolbar > a {
-    font-size: 0.5625rem;
+    font-size: var(--type-ui);
     gap: 16px;
-    min-height: 40px;
+    min-height: 44px;
     margin-top: 3px;
   }
   .product-screen {
@@ -1403,8 +1297,7 @@ em {
     transform-origin: 100% 0;
   }
   .screen-caption {
-    font-size: 0.5625rem;
-    max-width: 290px;
+    max-width: 36ch;
     margin-top: 10px;
     min-height: 44px;
   }
@@ -1416,7 +1309,6 @@ em {
     padding-top: 24px;
   }
   .workspace-footnotes p {
-    font-size: 0.75rem;
     position: relative;
     padding-left: 40px;
     line-height: 1.7;
@@ -1428,11 +1320,7 @@ em {
     font-size: 1.4rem;
     margin: 0;
   }
-  .workspace-footnotes strong {
-    font-size: 0.625rem;
-  }
   .screenshot-note {
-    font-size: 0.5rem;
     padding-left: 40px;
   }
   .screenshot-note br {
@@ -1442,7 +1330,6 @@ em {
     padding-block: 37px 10px;
   }
   .closing-top > .micro {
-    font-size: 0.5rem;
     max-width: 200px;
   }
   .closing-top > span {
@@ -1463,21 +1350,15 @@ em {
     max-width: none;
     padding-top: 32px;
   }
-  .closing-details > p:first-child {
-    font-size: 0.875rem;
-  }
   .closing-cta {
-    font-size: 0.875rem;
     padding: 18px 20px;
     min-height: 62px;
     margin-top: 22px;
   }
   .setup-link {
-    font-size: 0.6875rem;
     min-height: 48px;
   }
   .requirements {
-    font-size: 0.5625rem;
     margin-top: 15px;
     max-width: 300px;
   }
@@ -1489,27 +1370,16 @@ em {
     width: 100%;
   }
   .practical-notes summary {
-    font-size: 0.6875rem;
     min-height: 62px;
   }
-  .practical-notes details p {
-    font-size: 0.6875rem;
-  }
   .independent-note {
-    font-size: 0.625rem;
-    display: flex;
-    gap: 5px;
     margin-top: 24px;
     line-height: 1.7;
-  }
-  .independent-note br {
-    display: none;
   }
   .footer {
     padding-top: 25px;
   }
   .footer-top {
-    font-size: 0.5rem;
     gap: 7px 20px;
     flex-wrap: wrap;
     padding-top: 18px;
@@ -1518,7 +1388,7 @@ em {
     width: 100%;
   }
   .footer-top > a {
-    min-height: 36px;
+    min-height: 44px;
     gap: 17px;
   }
   .giant-logo {
@@ -1536,7 +1406,6 @@ em {
     box-shadow: 8px 12px 0 #10241926;
   }
   .dialog-top > .micro {
-    font-size: 0.5rem;
     max-width: 180px;
   }
   .thought-dialog h2 {
@@ -1544,32 +1413,21 @@ em {
     line-height: 1.05;
     margin-block: 17px 21px;
   }
-  .dialog-path {
-    font-size: 0.625rem;
-  }
   .dialog-text {
-    font-size: 0.875rem;
     line-height: 1.75;
   }
   .dialog-connection {
     font-size: 1.55rem;
     margin-block: 22px;
   }
-  .dialog-source {
-    font-size: 0.625rem;
-  }
   .dialog-bottom {
     display: block;
     margin-top: 15px;
-  }
-  .dialog-bottom > span {
-    font-size: 0.5rem;
   }
   .dialog-bottom > button {
     margin-top: 13px;
     width: 100%;
     justify-content: space-between;
-    font-size: 0.6875rem;
     min-height: 47px;
   }
 }
@@ -1588,78 +1446,10 @@ em {
   .headline-second em {
     font-size: 1.65em;
   }
-  .hero-intro > p {
-    font-size: 0.75rem;
-  }
-  .root-card {
-    width: 211px;
-    left: 7%;
-    min-height: 168px;
-  }
-  .root-question {
-    font-size: 1.5rem;
-  }
-  .constellation {
-    height: 795px;
-  }
-  .thought-knot {
-    width: 320px;
-    height: 320px;
-    left: calc(50% - 160px);
-    top: 210px;
-  }
-  .branch-card {
-    width: 149px;
-    min-height: 150px;
-    padding: 14px 12px 0;
-  }
-  .branch-title {
-    font-size: 1.375rem;
-  }
-  .branch-one {
-    right: 0;
-    top: 220px;
-  }
-  .branch-two {
-    min-height: 218px;
-    top: 443px;
-    left: 1%;
-  }
-  .branch-three {
-    min-height: 150px;
-    right: 1%;
-    bottom: 47px;
-  }
-  .canvas-aside {
-    top: 338px;
-    max-width: 130px;
-    gap: 5px;
-  }
-  .canvas-aside p {
-    font-size: 0.75rem;
-  }
-  .canvas-aside em {
-    font-size: 1rem;
-  }
-  .canvas-aside .asterisk {
-    font-size: 24px;
-  }
-  .object-caption {
-    top: 575px;
-    right: 5%;
-    font-size: 0.9375rem;
-  }
-  .card-meta {
-    font-size: 0.375rem;
-  }
-  .card-bottom {
-    font-size: 0.4375rem;
-  }
   .sample-choices {
     gap: 5px;
   }
   .sample-choices button {
-    font-size: 0.5rem;
     padding: 9px;
     gap: 7px;
   }
@@ -1670,12 +1460,8 @@ em {
     font-size: 1.3em;
   }
   .screen-modes button {
-    font-size: 0.5rem;
     padding: 9px;
     gap: 8px;
-  }
-  .screen-toolbar > a {
-    font-size: 0.5rem;
   }
   .closing h2 {
     font-size: 3.625rem;
@@ -1760,25 +1546,95 @@ em {
   }
 }
 @media (max-width: 760px) {
+  .constellation {
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
+    padding-block: 18px 16px;
+  }
+  .thought-card {
+    position: relative;
+    inset: auto;
+    width: min(18rem, calc(100% - 28px));
+    min-height: 0;
+    padding: 20px 20px 0;
+  }
+  .root-card {
+    justify-self: start;
+    margin-left: 10px;
+  }
+  .root-question {
+    font-size: 1.875rem;
+    margin-block: 24px;
+  }
+  .branch-cards {
+    display: contents;
+  }
+  .branch-title {
+    font-size: 1.625rem;
+    line-height: 1.2;
+    margin-block: 24px;
+  }
+  .branch-one,
+  .branch-three {
+    justify-self: end;
+    margin-right: 10px;
+    --rotation: 3deg;
+  }
+  .branch-two {
+    justify-self: start;
+    margin-left: 10px;
+    --rotation: -3deg;
+  }
+  .card-bottom {
+    min-height: 48px;
+    padding-block: 10px;
+  }
+  .thought-knot {
+    position: static;
+    width: min(360px, 100%);
+    height: auto;
+    grid-row: 2;
+    justify-self: center;
+    margin-block: -26px;
+  }
+  .canvas-mark,
   .canvas-aside,
-  .object-caption {
+  .object-caption,
+  .connections,
+  .connections-mobile {
     display: none;
   }
-  .connections-mobile {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    stroke: #8c9c7d;
-    stroke-width: 1;
-    stroke-dasharray: 4 5;
-    z-index: -1;
+  .canvas-instruction {
+    position: static;
+    margin-top: 10px;
+    line-height: 1.6;
   }
-}
-@media (max-width: 380px) {
-  .branch-card {
-    width: 135px;
+  .instruction-dot {
+    flex-shrink: 0;
+  }
+  .sample-choices {
+    gap: 10px;
+  }
+  .sample-choices button {
+    padding: 12px 14px;
+  }
+  .screen-modes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 4px;
+  }
+  .screen-modes button {
+    justify-content: space-between;
+    padding: 12px;
+  }
+  .screen-modes button:first-child {
+    grid-column: 1 / -1;
+  }
+  .footer-top > a {
+    padding-block: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1794,51 +1650,92 @@ h2,
 .branch-title {
   overflow-wrap: anywhere;
 }
-@container (max-width: 18rem) {
-  .constellation {
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-    padding-block: 20px;
+@media (min-width: 761px) {
+  @container (max-width: 50rem) {
+    .constellation {
+      height: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+      padding-block: 20px;
+    }
+    .thought-card {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      max-width: 30rem;
+      height: auto;
+      min-height: 0;
+      transform: none;
+      margin: 0;
+    }
+    .thought-card:hover,
+    .thought-card:focus-visible {
+      transform: none;
+    }
+    .branch-cards {
+      display: contents;
+    }
+    .thought-knot {
+      position: static;
+      width: 85%;
+      max-width: 300px;
+      height: auto;
+      grid-row: 2;
+      justify-self: center;
+    }
+    .connections,
+    .connections-mobile,
+    .canvas-mark,
+    .canvas-aside,
+    .object-caption {
+      display: none;
+    }
+    .canvas-instruction {
+      position: static;
+      margin-top: 10px;
+    }
+    .card-meta {
+      flex-wrap: wrap;
+    }
   }
-  .thought-card {
-    position: relative;
-    inset: auto;
-    width: 100%;
-    max-width: 320px;
-    height: auto;
-    min-height: 0;
-    transform: none;
-    margin: 0;
-  }
-  .thought-card:hover,
-  .thought-card:focus-visible {
-    transform: none;
-  }
-  .branch-cards {
-    display: contents;
-  }
-  .thought-knot {
-    position: static;
-    width: 85%;
-    max-width: 300px;
-    height: auto;
-    grid-row: 2;
-    justify-self: center;
-  }
-  .connections,
-  .connections-mobile,
-  .canvas-mark,
-  .canvas-aside,
-  .object-caption {
-    display: none;
-  }
-  .canvas-instruction {
-    position: static;
-    margin-top: 10px;
-  }
-  .card-meta {
+}
+
+/* Reading text keeps a stable scale; hierarchy comes from space and weight. */
+.hero-intro > p,
+.workspace-summary > p,
+.dialog-text,
+.practical-notes details p {
+  text-wrap: pretty;
+}
+.sample-disclosure {
+  max-width: 29ch;
+}
+.card-meta,
+.card-bottom,
+.dialog-source,
+.dialog-path,
+.dialog-text,
+.dialog-connection {
+  overflow-wrap: anywhere;
+}
+.card-bottom > span,
+.dialog-source > span,
+.close-thought {
+  flex-shrink: 0;
+}
+.screen-modes button {
+  text-align: left;
+}
+.dialog-bottom {
+  flex-wrap: wrap;
+}
+@media (max-width: 1100px) {
+  .sample-controls {
+    align-items: flex-start;
     flex-wrap: wrap;
+  }
+  .practical-notes {
+    align-items: flex-start;
   }
 }
