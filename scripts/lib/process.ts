@@ -88,6 +88,7 @@ export function testEnvironment(): NodeJS.ProcessEnv {
     'CARGO_HOME',
     'RUSTUP_HOME',
     'RUSTUP_TOOLCHAIN',
+    'MISE_TRUSTED_CONFIG_PATHS',
     'SYSTEMROOT',
     'SSL_CERT_FILE',
     'NIX_SSL_CERT_FILE'

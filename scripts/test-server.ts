@@ -120,6 +120,8 @@ try {
         void stop(1);
       });
   console.log('Launched isolated Rust production and provider-fixture servers.');
-} catch {
+} catch (error) {
+  const detail = error instanceof Error ? error.message : 'Unknown startup error.';
+  console.error('Browser fixture startup failed:', detail.slice(0, 8192));
   await stop(1);
 }
