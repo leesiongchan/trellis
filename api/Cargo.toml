@@ -53,6 +53,10 @@ unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
 
+# Startup hashes the executable; keep SHA-256 fast in dev and inherited test builds.
+[profile.dev.package.sha2]
+opt-level = 3
+
 [profile.release]
 lto = "thin"
 strip = true

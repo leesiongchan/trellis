@@ -284,6 +284,25 @@ struct ProcessGuard {
     origin: String,
     log: std::path::PathBuf,
 }
+impl ProcessGuard {
+    fn logs(&self) -> String {
+        use std::io::Read;
+        let read = |name: &str| {
+            let mut text = String::new();
+            match std::fs::File::open(self.root.path().join(name))
+                .and_then(|file| file.take(8192).read_to_string(&mut text))
+            {
+                Ok(_) => text,
+                Err(error) => format!("<log unavailable: {:?}>", error.kind()),
+            }
+        };
+        format!(
+            "stdout:\n{}\nstderr:\n{}",
+            read("stdout.log"),
+            read("stderr.log")
+        )
+    }
+}
 impl Drop for ProcessGuard {
     fn drop(&mut self) {
         if self.child.try_wait().ok().flatten().is_none() {
@@ -358,14 +377,17 @@ fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuar
     }
 }
 async fn process_ready(process: &mut ProcessGuard) {
+    let started = std::time::Instant::now();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_millis(100))
         .build()
         .unwrap();
     for _ in 0..3000 {
+        let status = process.child.try_wait().unwrap();
         assert!(
-            process.child.try_wait().unwrap().is_none(),
-            "server exited before ready"
+            status.is_none(),
+            "server exited before ready ({status:?})\n{}",
+            process.logs()
         );
         if let Ok(response) = client
             .get(format!("{}/health/live", process.origin))
@@ -377,7 +399,11 @@ async fn process_ready(process: &mut ProcessGuard) {
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    panic!("server did not become ready");
+    panic!(
+        "server did not become ready after {:?}\n{}",
+        started.elapsed(),
+        process.logs()
+    );
 }
 fn signal(process: &ProcessGuard, signal: rustix::process::Signal) {
     rustix::process::kill_process(
@@ -393,7 +419,7 @@ async fn process_exit(process: &mut ProcessGuard) -> std::process::ExitStatus {
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    panic!("server did not exit");
+    panic!("server did not exit\n{}", process.logs());
 }
 #[tokio::test]
 async fn executable_handles_sigint_sigterm_env_precedence_and_unrelated_cwd() {
