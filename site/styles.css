@@ -629,6 +629,24 @@ em {
   font-size: var(--type-caption);
   line-height: 1.6;
 }
+.workspace-welcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: var(--type-ui);
+}
+.workspace-welcome a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--cobalt);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
 .closing {
   margin-top: 64px;
   padding: 58px 64px;
