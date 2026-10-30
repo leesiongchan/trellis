@@ -33,6 +33,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes build-essential clang libclang-dev cmake pkg-config
       - name: Set up checksummed local model explicitly
         run: node api/scripts/fetch-embedding-model.ts .artifacts/embedding-model
+      - name: Audit locked dependencies
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo audit --file api/Cargo.lock
+          pnpm audit
       - name: Verify backend
         run: |
           cargo fmt --manifest-path api/Cargo.toml -- --check
@@ -54,11 +59,6 @@ jobs:
         run: |
           pnpm --dir app exec playwright install --with-deps chromium --only-shell
           pnpm test:e2e
-      - name: Audit locked dependencies
-        run: |
-          cargo install cargo-audit --version 0.22.2 --locked
-          cargo audit --file api/Cargo.lock
-          pnpm audit
       - name: Retain fixture-only failure evidence
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

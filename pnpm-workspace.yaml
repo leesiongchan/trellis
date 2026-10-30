@@ -2,6 +2,14 @@ packages:
   - app
 
 allowBuilds: {}
+audit:
+  ignore:
+    # Svelte's plugin only uses deepmerge for trusted repository build configuration.
+    # The shipped Rust/static release contains no Node build toolchain. No patched
+    # deepmerge release is published as of 2026-10-31; review by 2026-11-14 or on
+    # a vite-plugin-svelte update. All other advisory IDs remain blocking.
+    # https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+    - GHSA-gcqx-w48m-w2h4
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@^1.4.0
   vite-plus: ^1.4.0
