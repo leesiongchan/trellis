@@ -26,6 +26,13 @@ jobs:
         with:
           version: '2026.10.3'
           install_args: node pnpm rust
+      - name: Restore Rust dependencies and audit tool
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: api -> target
+          # Native artifacts and installed tools must match the runner and audit version.
+          key: ubuntu-26.04-cargo-audit-0.22.2
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Install locked workspace dependencies
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
@@ -33,32 +40,45 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes build-essential clang libclang-dev cmake pkg-config
       - name: Set up checksummed local model explicitly
         run: node api/scripts/fetch-embedding-model.ts .artifacts/embedding-model
+      - name: Install pinned audit tool
+        run: cargo install cargo-audit --version 0.22.2 --locked
       - name: Audit locked dependencies
         run: |
-          cargo install cargo-audit --version 0.22.2 --locked
           cargo audit --file api/Cargo.lock
           pnpm audit
       - name: Verify backend
         run: |
           cargo fmt --manifest-path api/Cargo.toml -- --check
-          cargo clippy --manifest-path api/Cargo.toml --all-targets --all-features --locked -- -D warnings
-          cargo test --manifest-path api/Cargo.toml --all-targets --all-features --locked
+          cargo clippy --manifest-path api/Cargo.toml --all-targets --all-features --locked --timings -- -D warnings
+          cargo test --manifest-path api/Cargo.toml --all-targets --all-features --locked --timings
       - name: Explicit native model and maximum import gates
         env:
           BRANCH_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/.artifacts/embedding-model
         run: |
           cargo test --manifest-path api/Cargo.toml --locked --test embeddings native_embedding_matches_pinned_public_fixture -- --ignored --exact
           cargo test --manifest-path api/Cargo.toml --locked --test migration thirty_two_mib_native_finalization_is_atomic_and_bounded -- --ignored --exact
-      - name: Verify frontend and packaged runtime
+      - name: Verify frontend
         run: |
           pnpm check
           pnpm test:unit
-          pnpm build
+          pnpm build:frontend
+      - name: Build and verify packaged runtime
+        run: |
+          pnpm build:backend --timings
+          node scripts/package-release.ts
           pnpm test:build
       - name: Production browser acceptance
         run: |
           pnpm --dir app exec playwright install --with-deps chromium --only-shell
           pnpm test:e2e
+      - name: Retain compiler timing reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cargo-timings-linux
+          path: api/target/cargo-timings/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Retain fixture-only failure evidence
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
