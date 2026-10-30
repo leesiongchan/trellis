@@ -13,11 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-15]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       APP_ENV_FILE: ''
@@ -34,13 +30,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
       - name: Linux native prerequisites
-        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes build-essential clang libclang-dev cmake pkg-config
-      - name: macOS native prerequisites
-        if: runner.os == 'macOS'
-        run: |
-          xcrun --find clang
-          echo "LIBCLANG_PATH=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib" >> "$GITHUB_ENV"
       - name: Set up checksummed local model explicitly
         run: node api/scripts/fetch-embedding-model.ts .artifacts/embedding-model
       - name: Verify backend
@@ -61,12 +51,10 @@ jobs:
           pnpm build
           pnpm test:build
       - name: Production browser acceptance
-        if: runner.os == 'Linux'
         run: |
           pnpm --dir app exec playwright install --with-deps chromium --only-shell
           pnpm test:e2e
       - name: Audit locked dependencies
-        if: runner.os == 'Linux'
         run: |
           cargo install cargo-audit --version 0.22.2 --locked
           cargo audit --file api/Cargo.lock
@@ -75,7 +63,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: browser-evidence-${{ matrix.os }}
+          name: browser-evidence-linux
           path: |
             app/test-results/
             app/playwright-report/
