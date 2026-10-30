@@ -8,7 +8,7 @@
     "build": "vp build",
     "styles:codegen": "panda codegen --spec",
     "styles:check": "panda cssgen --max-warnings=0 && eslint --config eslint.panda.config.mjs 'src/**/*.svelte' --max-warnings=0",
-    "check": "pnpm styles:codegen && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && pnpm styles:check",
+    "check": "svelte-kit sync && pnpm styles:codegen && svelte-check --tsconfig ./tsconfig.json && pnpm styles:check",
     "test:unit": "vp test",
     "test:e2e": "playwright test"
   },
