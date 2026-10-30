@@ -38,17 +38,55 @@ test('reduced-motion map controls settle without animation or new research', asy
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const requests = await observeResearch(page);
   await startExample(page);
+  const map = page.getByRole('region', { name: 'Topic map', exact: true });
+  await expect(map.locator('.svelte-flow__node')).toHaveCount(2);
+  // The reader appears before the initial two-topic fit has finished.
+  await expect
+    .poll(() =>
+      map.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        return [...element.querySelectorAll('.svelte-flow__node')].every((node) => {
+          const card = node.getBoundingClientRect();
+          return (
+            card.left > bounds.left &&
+            card.top > bounds.top &&
+            card.right < bounds.right &&
+            card.bottom < bounds.bottom
+          );
+        });
+      })
+    )
+    .toBe(true);
   const before = requests.length;
   for (const name of ['Zoom in', 'Zoom out', 'Fit entire tree', 'Refocus selected topic']) {
-    await page.getByRole('button', { name, exact: true }).click();
-    const settled = await page.evaluate(async () => {
+    const motion = await page.evaluateHandle(() => {
       const viewport = document.querySelector('.svelte-flow__viewport')!;
-      await new Promise(requestAnimationFrame);
-      const first = getComputedStyle(viewport).transform;
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      return first === getComputedStyle(viewport).transform;
+      const transforms = [getComputedStyle(viewport).transform];
+      let frame: number;
+      const sample = () => {
+        transforms.push(getComputedStyle(viewport).transform);
+        frame = requestAnimationFrame(sample);
+      };
+      frame = requestAnimationFrame(sample);
+      return {
+        stop() {
+          cancelAnimationFrame(frame);
+          transforms.push(getComputedStyle(viewport).transform);
+          return transforms;
+        }
+      };
     });
-    expect(settled, name).toBe(true);
+    let transforms: string[];
+    try {
+      await page.getByRole('button', { name, exact: true }).click();
+      // Observe beyond the normal 200ms animation window, including every frame.
+      await page.waitForTimeout(250);
+    } finally {
+      transforms = await motion.evaluate((observer) => observer.stop());
+      await motion.dispose();
+    }
+    // A control must move the map once, without any interpolated transforms.
+    expect([...new Set(transforms)], name).toHaveLength(2);
   }
   expect(requests.length).toBe(before);
 });
