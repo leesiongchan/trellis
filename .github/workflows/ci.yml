@@ -32,6 +32,8 @@ jobs:
           workspaces: api -> target
           # Native artifacts and installed tools must match the runner and audit version.
           key: ubuntu-26.04-cargo-audit-0.22.2
+          # Keep valid dependency work when a later verification step fails.
+          cache-on-failure: true
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Install locked workspace dependencies
         run: |

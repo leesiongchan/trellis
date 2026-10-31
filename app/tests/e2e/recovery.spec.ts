@@ -116,6 +116,7 @@ test('a second tab cannot overwrite an exploration and failed reload preserves t
 }) => {
   await observeResearch(page);
   await startExample(page);
+  await expect(page.getByText('All changes saved', { exact: true })).toBeVisible();
   const other = await context.newPage();
   await other.goto('/');
   await other.getByRole('button', { name: 'Resume microSD cards', exact: true }).click();
