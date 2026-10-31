@@ -9,9 +9,13 @@ starting with caching and comparing cold and warm runs.
 Use an immutable revision of Swatinem/rust-cache for `api -> target` and
 installed Cargo binaries. Include Ubuntu 26.04 and cargo-audit 0.22.2 in
 the key alongside the action's toolchain, environment, and dependency hashes.
-Only main-branch runs publish caches; PRs may restore them. Save completed
-dependency artifacts even if a later check fails; Cargo validates artifacts
-on reuse and failed checks still fail the run.
+Only main-branch runs whose packaged native build passed publish caches;
+PRs may restore them. Save completed dependency artifacts even if browser
+acceptance later fails. Early audit/compilation failures do not publish
+partial immutable caches. The action reads `save-if` during its post step;
+the runner reevaluates inputs then, including a completion flag set only
+after the packaged native build and its runtime checks pass.
+Cargo validates artifacts on reuse and failed checks still fail the run.
 Cargo still determines which artifacts are valid and all checks still run.
 
 Keep the current two-job cap and release settings for this comparison.
@@ -28,6 +32,16 @@ The two-tab browser setup now waits for the initial save acknowledgement
 before opening the second tab, avoiding startup recovery of pending initial
 research. The scenario passed 10 repeated runs and the full 32-test browser
 suite passed locally; application behavior and test timeouts are unchanged.
+
+A second trial stopped before compilation on GHSA-g3hv-75wg-m249. Update
+only minimatch 10 consumers to the published fixed 11.0.3: the installed
+ESLint, config-array, and typescript-estree consumers use matching APIs
+preserved in 11. No 10.x backport is published. Verify lint selection,
+types, frontend build, and tests; retain the existing deepmerge exception.
+Remove that trial's partial cache before testing the complete-build policy.
+
+References: [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249),
+[runner post/input evaluation](https://raw.githubusercontent.com/actions/runner/main/src/Runner.Worker/ActionRunner.cs).
 
 ## Alternatives
 

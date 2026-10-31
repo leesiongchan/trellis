@@ -15,7 +15,7 @@
 - Preserve the two-job cap, pinned toolchain, release profile, and every existing check.
 - Configure the actual `api` workspace rather than the repository root.
 - Version audit-binary caches explicitly; audit the current lockfiles on cache hits too.
-- Save dependency caches only from main, including runs with failed checks; retain compiler timings when a check fails.
+- Save dependency caches only after main's packaged build passes, including later browser failures; retain compiler timings when a check fails.
 - A warm comparison must use the same commit, and include cache transfer/post-job time.
 
 ## Task: Cache and measure CI

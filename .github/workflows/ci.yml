@@ -19,6 +19,7 @@ jobs:
       APP_ENV_FILE: ''
       CARGO_TERM_COLOR: always
       CARGO_BUILD_JOBS: 2
+      NATIVE_CACHE_COMPLETE: 'false'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install pinned development tools
@@ -32,9 +33,9 @@ jobs:
           workspaces: api -> target
           # Native artifacts and installed tools must match the runner and audit version.
           key: ubuntu-26.04-cargo-audit-0.22.2
-          # Keep valid dependency work when a later verification step fails.
+          # The post step reevaluates save-if after compilation finishes.
           cache-on-failure: true
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          save-if: ${{ github.ref == 'refs/heads/main' && env.NATIVE_CACHE_COMPLETE == 'true' }}
       - name: Install locked workspace dependencies
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
@@ -69,6 +70,7 @@ jobs:
           pnpm build:backend --timings
           node scripts/package-release.ts
           pnpm test:build
+          echo "NATIVE_CACHE_COMPLETE=true" >> "$GITHUB_ENV"
       - name: Production browser acceptance
         run: |
           pnpm --dir app exec playwright install --with-deps chromium --only-shell
