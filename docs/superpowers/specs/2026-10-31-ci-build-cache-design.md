@@ -43,6 +43,25 @@ Remove that trial's partial cache before testing the complete-build policy.
 References: [minimatch advisory](https://github.com/advisories/GHSA-g3hv-75wg-m249),
 [runner post/input evaluation](https://raw.githubusercontent.com/actions/runner/main/src/Runner.Worker/ActionRunner.cs).
 
+## Trial evidence
+
+Commit `d9d97bd` passed the complete Linux run in 52m20s and published a
+2,865,301,329-byte dependency cache. Its same-commit rerun restored that
+cache in 44s: audit-tool installation took 1s, Clippy 11.03s, and test
+compilation 1m58s. A lifecycle fixture then failed with Linux `ETXTBSY`
+while executing a newly copied binary, so that failed run is not an
+end-to-end performance result.
+
+The fixture now hard-links the immutable compiled executable into a
+temporary directory on its filesystem. Public assets remain beside that
+link; private data and logs remain in a separate temporary directory
+outside the checkout. This removes the write/exec race documented in
+[Rust issue 114554](https://github.com/rust-lang/rust/issues/114554) without
+retries or timeout changes. The final cached comparison includes this
+fixture correction; production code, dependencies, compiler profiles,
+compiler-job limit, and verification coverage remain the same as the
+successful cold build.
+
 ## Alternatives
 
 Splitting independent checks into parallel jobs improves feedback but does

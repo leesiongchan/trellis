@@ -281,6 +281,7 @@ fn fatal_startup_is_nonzero_and_does_not_echo_configuration() {
 struct ProcessGuard {
     child: std::process::Child,
     root: tempfile::TempDir,
+    _executable_root: tempfile::TempDir,
     origin: String,
     log: std::path::PathBuf,
 }
@@ -320,14 +321,17 @@ fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuar
         fs,
         process::{Command, Stdio},
     };
+    let compiled_executable = std::path::Path::new(env!("CARGO_BIN_EXE_branch-backend"));
+    let executable_root = tempfile::tempdir_in(compiled_executable.parent().unwrap()).unwrap();
     let root = tempfile::tempdir().unwrap();
-    let public = root.path().join("public");
+    let public = executable_root.path().join("public");
     fs::create_dir(&public).unwrap();
     let html = "<!doctype html><html><body>Fixture</body></html>";
     fs::write(public.join("index.html"), html).unwrap();
-    fs::write(root.path().join("frontend-manifest.json"),json!({"version":1,"files":[{"path":"index.html","sha256":hex::encode(Sha256::digest(html)),"immutable":false}],"inlineScriptHashes":[]}).to_string()).unwrap();
-    let executable = root.path().join("branch-backend");
-    fs::copy(env!("CARGO_BIN_EXE_branch-backend"), &executable).unwrap();
+    fs::write(executable_root.path().join("frontend-manifest.json"),json!({"version":1,"files":[{"path":"index.html","sha256":hex::encode(Sha256::digest(html)),"immutable":false}],"inlineScriptHashes":[]}).to_string()).unwrap();
+    let executable = executable_root.path().join("branch-backend");
+    // Linking avoids writable executable descriptors inherited by concurrent forks.
+    fs::hard_link(compiled_executable, &executable).unwrap();
     let unrelated = root.path().join("unrelated");
     fs::create_dir(&unrelated).unwrap();
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -372,6 +376,7 @@ fn spawn_process_output(with_env_file: bool, unread_stdout: bool) -> ProcessGuar
     ProcessGuard {
         child,
         root,
+        _executable_root: executable_root,
         origin,
         log,
     }
