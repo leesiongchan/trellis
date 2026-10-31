@@ -91,17 +91,28 @@ async fn generated_topics_keep_server_owned_sources_and_verification_wire() {
 #[tokio::test]
 async fn stalled_provider_deadline_cancels_without_retry() {
     let stub = StubProviders::start(vec![Script {
-        delay: Duration::from_millis(200),
+        gate: Some(std::sync::Arc::new(tokio::sync::Notify::new())),
         ..Script::json(json!({"results":[]}))
     }])
     .await;
-    let mut ctx = context();
-    ctx.deadline = tokio::time::Instant::now() + Duration::from_millis(30);
-    assert_eq!(
-        adapter(&stub).search("q", &ctx).await.unwrap_err().code(),
-        "RESEARCH_TIMEOUT"
-    );
+    let provider = adapter(&stub);
+    let ctx = context();
+    let request = provider.search("q", &ctx);
+    tokio::pin!(request);
+    let error = tokio::select! {
+        result = &mut request => result.unwrap_err(),
+        _ = stub.state.received.notified() => {
+            // Complete real socket setup before fast-forwarding the response deadline.
+            tokio::time::pause();
+            tokio::time::timeout_at(ctx.deadline + Duration::from_secs(1), request)
+                .await
+                .expect("provider must honor its deadline")
+                .unwrap_err()
+        }
+    };
+    assert_eq!(error.code(), "RESEARCH_TIMEOUT");
     assert_eq!(stub.count(), 1);
+    assert!(tokio::time::Instant::now() >= ctx.deadline);
 }
 
 #[tokio::test]

@@ -62,6 +62,13 @@ fixture correction; production code, dependencies, compiler profiles,
 compiler-job limit, and verification coverage remain the same as the
 successful cold build.
 
+The next Linux run passed all lifecycle tests and exposed a separate
+provider-test race: its 30ms deadline included adapter construction, so it
+could expire before the local server received a request. That fixture now
+holds the response behind a gate, waits for request receipt, then pauses
+Tokio time to exercise the existing context deadline. It still requires
+the timeout error and exactly one request. See [Tokio's testing guidance](https://tokio.rs/tokio/topics/testing).
+
 ## Alternatives
 
 Splitting independent checks into parallel jobs improves feedback but does

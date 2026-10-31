@@ -37,6 +37,7 @@ impl Script {
 pub struct StubState {
     pub scripts: Mutex<VecDeque<Script>>,
     pub requests: Mutex<Vec<(HeaderMap, Value)>>,
+    pub received: tokio::sync::Notify,
 }
 pub struct StubProviders {
     pub server: TestServer,
@@ -69,6 +70,7 @@ async fn answer(
     Json(input): Json<Value>,
 ) -> Response {
     state.requests.lock().unwrap().push((headers, input));
+    state.received.notify_one();
     let script = state
         .scripts
         .lock()
